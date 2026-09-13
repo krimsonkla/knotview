@@ -1,13 +1,14 @@
 ---
 id: kno-01m2ehj8cf3t
 title: '[P2] CLAUDE.md is an unfilled template whose Build and Test section contradicts the toolchain'
-status: open
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:45.039088Z'
-updated: '2026-09-13T23:27:45.168422Z'
-assignee: ''
+updated: '2026-09-13T23:49:15.414080Z'
+closed: '2026-09-13T23:49:15.414080Z'
+assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
 
@@ -45,3 +46,9 @@ Evidence: CLAUDE.md lines 22-25: ```pytest\npre-commit run --all-files```; line 
 Recommendation: Correct CLAUDE.md (prek run --all-files; uv) and fill the empty sections, or replace it with a short CONTRIBUTING.md that lists: how to enter the environment, `pytest`, `prek run --all-files`, the conventional-commit rule, the no-co-author-trailer rule, and that knot must be on PATH for the fidelity test.
 
 Verifier (P2, blocks public: no): The evidence reproduces exactly: CLAUDE.md (committed, last touched 2026-09-13) lists "Package Manager: pip" at line 11 and "pre-commit run --all-files" at line 25, while inside the devenv shell `command -v pre-commit` prints nothing and `prek --version` gives 0.4.14; uv 0.12.5 is on PATH, uv.lock is committed, no requirements*.txt exists, and devenv.nix lines 13-19 configure languages.python.uv with sync on shell entry. The Architecture/Key Files/Local Conventions/Gotchas sections are indeed empty "<!-- AI: -->" placeholders, and the conventional-commits (line 291), knot-check (line 423) and no-coauthor-trailers (line 489) hook ids are present in the generated .pre-commit-config.yaml, which is a gitignored symlink into /nix/store, so nothing committed documents them; no CONTRIBUTING.md exists and README.md mentions none of it. I downgrade the severity, though: CLAUDE.md is an AI-assistant memory file rather than the primary contributor entry point, README already documents `devenv shell` as the way in, and the hooks are installed automatically by devenv (`.git/hooks/pre-commit` and `commit-msg` are prek-generated and hardcode the prek store path), so a contributor who commits gets conventional-commit, no-coauthor and knot-check enforcement regardless of what CLAUDE.md says; the only concrete failure is a "command not found" on a stale one-liner, with the correct tool obviously on PATH. That is a genuine doc inaccuracy worth a two-line fix (prek, uv) plus a short contributor note, but it does not block going public. Separately noted, not part of this finding: devenv.yaml pulls `devenv-layers` from a git+ssh private GitHub URL, which is the thing that would actually stop an outside contributor from entering the shell at all.
+
+## Notes
+
+**2026-09-13T23:49:14.808963Z**
+
+Task completed: CLAUDE.md is filled in from the code as it is (uv, prek, the reading port, Pages and ROUTES, the guards, the digest, key files, conventions, gotchas), and docs/ai-assistant-ideation/README.md says what those documents are and that the harness they mention is the maintainer's.
