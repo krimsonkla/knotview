@@ -1,13 +1,14 @@
 ---
 id: kno-01m2ehj752jy
 title: '[P1] No CI of any kind, so nothing runs tests or lint on a pull request and the fidelity test runs only where knot happens to be'
-status: open
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:43.778465Z'
-updated: '2026-09-13T23:27:43.890810Z'
-assignee: ''
+updated: '2026-09-13T23:38:09.095048Z'
+closed: '2026-09-13T23:38:09.095048Z'
+assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
 
@@ -29,3 +30,9 @@ Evidence: No .github directory (`ls -a .github` -> no such file); no CI config o
 Recommendation: Add a CI workflow that installs knot (or runs inside devenv once the input is public) and runs `pytest` plus `prek run --all-files`. Add `-ra` to addopts so the skip reason is printed in every run.
 
 Verifier (P2, blocks public: no): The evidence reproduces exactly: `.github` does not exist, `git ls-files` has no CI/workflow config of any kind, tests/reading/test_real_knot.py lines 18-21 carry `pytest.mark.skipif(shutil.which("knot") is None, reason="knot is not on PATH")`, pyproject's addopts (`--cov=knotview --cov-report=term-missing --cov-fail-under=100`) has no `-ra`, and running pytest from `env -i PATH=/usr/bin:/bin` gives `135 passed, 10 skipped` with the reason only surfacing under `-rs` (`SKIPPED [9] tests/reading/test_real_knot.py:142` and `[1] :160`). knot itself comes only through the devenv shell (`/nix/store/...-knot-0.12.0/bin/knot`, via the devenv-layers input, which is a private `git+ssh://` URL in devenv.yaml). So the finding is real, but I disagree with P1/blocks_public: an 18-commit repository with no remote CI is ordinary for a first public push, a first outside user of the panel never touches this, and a contributor without knot gets a green run with the fake-backed unit tests still enforcing 100% coverage; the fidelity tests are an extra guard against fixture rot, not the primary correctness gate. The silent-skip half is a one-line `-ra` addopts fix and the CI half cannot even be done properly until the devenv-layers input is public (which the reviewer's own recommendation concedes), making that a separate, prior concern. This is polish that should be done soon after going public, not a gate on it.
+
+## Notes
+
+**2026-09-13T23:38:08.474060Z**
+
+Task completed: .github/workflows/ci.yml runs on push to main and on pull requests. Job checks: uv sync, ruff, black, pylint, pytest -m "not slow" with the coverage gate, then builds the wheel, installs it into a fresh venv and asserts the templates and static files are inside. Job fidelity: installs babashka, bbin and knot from UniSoma/knot and runs the slow test against the real binary. Not verified locally: this repository has no remote, so the workflow has not run; the fidelity job in particular depends on the babashka and bbin install scripts and should be watched on the first push.
