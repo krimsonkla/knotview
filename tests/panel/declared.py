@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 
 from knotview.values.criterion import Criterion
+from knotview.values.missing_ticket import MissingTicket
 from knotview.values.project import Project
 from knotview.values.reference import Reference
 from knotview.values.ticket import Ticket
@@ -120,9 +121,8 @@ class DeclaredBacklog:  # pylint: disable=too-many-instance-attributes
         for held in (*self.live_value, *self.closed_value):
             if held.id == identifier:
                 return held
-        raise UnreadableBacklog(
-            f"knot show was refused: no ticket matching {identifier}",
-            advice="check the id against knot list",
+        raise MissingTicket(
+            identifier, message=f"knot show was refused: no ticket matching {identifier}"
         )
 
     def integrity(self) -> tuple[str, ...]:

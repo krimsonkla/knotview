@@ -14,6 +14,7 @@ from knotview.reading.knot_envelope import (
     verdict,
 )
 from knotview.values.project import Project
+from knotview.values.missing_ticket import MissingTicket
 from knotview.values.ticket import Ticket
 from knotview.values.unreadable_backlog import UnreadableBacklog
 
@@ -82,8 +83,17 @@ class KnotCommand:
         return tickets_from(self._read("blocked"), attempting="listing the blocked tickets")
 
     def ticket(self, identifier: str) -> Ticket:
-        """One ticket in full, by the id or the partial id knot resolves."""
-        stated = self._read("show", identifier)
+        """One ticket in full, by the id or the partial id knot resolves.
+
+        An identifier knot cannot resolve is its own refusal, so the panel can answer it as a page
+        that is not there rather than as a backlog that cannot be read.
+        """
+        try:
+            stated = self._read("show", identifier)
+        except UnreadableBacklog as refusal:
+            if refusal.code == "not_found":
+                raise MissingTicket(identifier, message=refusal.message) from refusal
+            raise
         if not isinstance(stated, dict):
             raise UnreadableBacklog(
                 f"reading {identifier} answered with {type(stated).__name__} rather than a ticket",

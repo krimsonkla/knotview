@@ -64,9 +64,11 @@ def _refused(payload: dict[str, Any], *, attempting: str) -> UnreadableBacklog:
     """The refusal for a not-ok envelope, carrying knot's message where it gave one."""
     stated = payload.get("error") or {}
     said = stated.get("message") if isinstance(stated, dict) else None
+    code = stated.get("code") if isinstance(stated, dict) else None
     return UnreadableBacklog(
         f"{attempting} was refused: {said or 'knot gave no reason'}",
         advice="run the same knot command in that directory to see it in full",
+        code=str(code) if code else None,
     )
 
 

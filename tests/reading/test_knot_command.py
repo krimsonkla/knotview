@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from knotview.reading.knot_command import READS, KnotCommand, _described
+from knotview.values.missing_ticket import MissingTicket
 from knotview.values.unreadable_backlog import UnreadableBacklog
 from tests.reading.envelopes import envelope
 
@@ -81,9 +82,20 @@ def test_one_ticket_is_read_in_full_by_its_id(fake):
     assert child.sections == {"description": "The child does a thing."}
 
 
-def test_an_unknown_id_refuses_with_knots_own_message(fake):
-    with pytest.raises(UnreadableBacklog, match="no ticket matching nope"):
+def test_an_unknown_id_is_a_missing_ticket_naming_the_identifier(fake):
+    with pytest.raises(MissingTicket, match="no ticket matching nope") as refused:
         fake().ticket("nope")
+
+    assert refused.value.identifier == "nope"
+    assert isinstance(refused.value, UnreadableBacklog)
+
+
+def test_a_show_refused_for_another_reason_stays_the_general_refusal(fake):
+    """Only knot's not_found is a missing ticket; anything else is a backlog that cannot be read."""
+    with pytest.raises(UnreadableBacklog) as refused:
+        fake(mode="junk").ticket("pro-01m2aaaaaaaa")
+
+    assert not isinstance(refused.value, MissingTicket)
 
 
 def test_a_show_that_answers_a_list_is_refused_as_not_a_ticket(fake):

@@ -41,12 +41,12 @@ def test_a_closed_ticket_shows_when_it_closed_and_an_assignee_is_a_link(client):
     assert 'href="/tickets?assignee=someone"' in orphan
 
 
-def test_an_unknown_id_is_the_unreadable_page_at_503(client):
-    """Current behaviour: knot's not_found surfaces as a refusal. A 404 page is a follow-up."""
+def test_an_unknown_id_is_a_page_that_is_not_there_at_404(client):
+    """The backlog read fine; the ticket is not in it. A 404 that offers the list, not a 503."""
     response = client(DeclaredBacklog()).get("/ticket/nope")
 
-    assert response.status_code == 503
-    assert "no ticket matching nope" in response.text
+    assert response.status_code == 404
+    assert "This panel has no ticket called nope." in response.text
 
 
 def test_an_instant_is_shown_to_the_minute_and_nothing_as_a_dash():

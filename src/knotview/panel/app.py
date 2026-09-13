@@ -14,6 +14,7 @@ from knotview.panel.selection import ANY, ORDERS, Selection
 from knotview.panel.tree import Tree
 from knotview.reading.backlog import Backlog
 from knotview.reading.snapshot import Snapshot
+from knotview.values.missing_ticket import MissingTicket
 from knotview.values.unreadable_backlog import UnreadableBacklog
 
 HERE = Path(__file__).resolve().parent
@@ -51,13 +52,26 @@ class Pages:
         self.templates = templates
         self.heartbeat = heartbeat
 
-    def _rendered(self, request: Request, template: str, **context: object) -> HTMLResponse:
+    def _rendered(
+        self, request: Request, template: str, *, status: int = 200, **context: object
+    ) -> HTMLResponse:
         """One page, with what every page needs already in it."""
         project = self.backlog.project()
         return self.templates.TemplateResponse(
             request=request,
             name=template,
             context={"project": project, "orders": ORDERS, "any": ANY, **context},
+            status_code=status,
+        )
+
+    async def missing(self, request: Request, refusal: MissingTicket) -> HTMLResponse:
+        """The page for a ticket that is not there: a 404 offering the list, not a 503."""
+        return self._rendered(
+            request,
+            "unknown.html",
+            status=404,
+            looking_for=f"ticket called {refusal.identifier}",
+            selection=Selection(),
         )
 
     async def unreadable(self, request: Request, refusal: UnreadableBacklog) -> HTMLResponse:
@@ -180,6 +194,7 @@ def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
     pages = Pages(backlog, templates=templates, heartbeat=heartbeat)
     app.add_exception_handler(UnreadableBacklog, pages.unreadable)
+    app.add_exception_handler(MissingTicket, pages.missing)
     for path, name, response_class in ROUTES:
         chosen = {"response_class": response_class} if response_class else {}
         app.add_api_route(path, getattr(pages, name), methods=["GET"], **chosen)

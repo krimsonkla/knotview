@@ -13,7 +13,10 @@ class UnreadableBacklog(Exception):
     and those have different remedies.
     """
 
-    def __init__(self, message: str, *, advice: str) -> None:
+    def __init__(self, message: str, *, advice: str, code: str | None = None) -> None:
         super().__init__(f"{message}. {advice}")
         self.message = message
         self.advice = advice
+        # knot's own error code where the refusal came from an envelope, so a caller can tell a
+        # ticket that is not there from a backlog that cannot be read, without parsing the message.
+        self.code = code

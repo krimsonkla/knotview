@@ -57,9 +57,11 @@ def test_answered_returns_the_data():
     assert answered(envelope("check-clean"), attempting="x")["scanned"]["live"] == 1
 
 
-def test_answered_refuses_a_not_ok_envelope_with_knots_own_message():
-    with pytest.raises(UnreadableBacklog, match="no ticket matching nope"):
+def test_answered_refuses_a_not_ok_envelope_with_knots_own_message_and_code():
+    with pytest.raises(UnreadableBacklog, match="no ticket matching nope") as refused:
         answered(envelope("not-found"), attempting="knot show")
+
+    assert refused.value.code == "not_found"
 
 
 def test_answered_refuses_a_not_ok_envelope_that_gives_no_reason():

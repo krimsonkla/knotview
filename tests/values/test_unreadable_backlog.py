@@ -8,3 +8,4 @@ def test_the_message_and_the_advice_are_both_kept_and_joined():
 
     assert (refusal.message, refusal.advice) == ("could not read", "point it at a project")
     assert str(refusal) == "could not read. point it at a project"
+    assert refusal.code is None
