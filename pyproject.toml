@@ -48,6 +48,11 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# The pages are rendered from templates and served with one stylesheet and one script, and a
+# wheel that shipped only the Python would build a panel that cannot mount its static files.
+[tool.setuptools.package-data]
+knotview = ["panel/templates/*.html", "panel/static/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

@@ -1,13 +1,14 @@
 ---
 id: kno-01m2ehj4me4b
 title: '[P1] A non-editable install ships without templates and static files, so pip install produces a broken command'
-status: open
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:41.198304Z'
-updated: '2026-09-13T23:27:41.314640Z'
-assignee: ''
+updated: '2026-09-13T23:34:13.910384Z'
+closed: '2026-09-13T23:34:13.910384Z'
+assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
 
@@ -29,3 +30,9 @@ Evidence: `uv build` then `unzip -l knotview-0.0.0-py3-none-any.whl` lists 22 .p
 Recommendation: In pyproject.toml add `[tool.setuptools.package-data] knotview = ["panel/templates/*.html", "panel/static/*"]` (or a MANIFEST.in with `include-package-data`), rebuild, and add a packaging smoke test/CI step that builds the wheel, installs it into a clean venv and requests `/` so this cannot regress.
 
 Verifier (P1, blocks public: no): Reproduced end to end. pyproject.toml uses setuptools with only [tool.setuptools.packages.find] where=["src"], no package-data or include-package-data, and there is no MANIFEST.in, while src/knotview/panel/templates/ (10 .html) and src/knotview/panel/static/ (panel.css, follow.js) exist on disk and app.py:171-173 resolves them via HERE / "templates" and HERE / "static". I ran `uv build` into the scratchpad: the wheel contains 22 .py files and zero entries matching templates|static, and the sdist likewise has none. Installing that wheel into a fresh `uv venv --clear` and running `knotview --repository <repo> --port 7799` crashes with `RuntimeError: Directory '.../site-packages/knotview/panel/static' does not exist` from starlette's StaticFiles.__init__, exactly as reported; the editable install via devenv/uv.lock is why it works locally. On severity: the finding is real and a `pip install`/`uv tool install` user hits it on first run, but the README documents only `devenv shell -- knotview ...` (an editable checkout), the version is 0.0.0 with no publish/release workflow, and nothing tells outside users to install from a built artifact, so it is a first-contributor/first-packager hazard (P1) rather than a must-fix-before-any-public-visibility P0. The recommended fix (package-data entry plus a build-install-smoke test) is correct and cheap, and should land before any wheel or PyPI release is advertised.
+
+## Notes
+
+**2026-09-13T23:34:13.255212Z**
+
+Task completed: the wheel now carries panel/templates/*.html and panel/static/* via [tool.setuptools.package-data]; verified by building the wheel, installing it into a fresh venv outside the checkout and serving / and /static/panel.css from the installed package.
