@@ -1,13 +1,14 @@
 ---
 id: kno-01m2ehj9rzfe
 title: '[P2] Decide what of the tracked .tickets backlog and the AI design docs ships publicly'
-status: open
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:46.463043Z'
-updated: '2026-09-13T23:27:46.594253Z'
-assignee: ''
+updated: '2026-09-13T23:45:46.188016Z'
+closed: '2026-09-13T23:45:46.188016Z'
+assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
 
@@ -37,3 +38,9 @@ Evidence: .knot.edn:1-3 deliberately declares .tickets as the dev fixture, so sh
 Recommendation: Decide explicitly: keep .tickets as the public sample backlog (then scrub the assignee to a neutral value, fix or drop the --no-verify note once the lint ticket is archived, and mention in README that .tickets is the demo data), and either move docs/ai-assistant-ideation out of the repo or add a one-line README note on what it is. Reword test_real_knot.py:3-5 so it does not depend on a hook outsiders do not have.
 
 Verifier (P2, blocks public: no): Every piece of evidence reproduces at fcc6b66: .knot.edn lines 1-3 explicitly declare .tickets as the project's own backlog and dev fixture; .tickets/archive/kno-01m2ebf3w4q3...md:15 says "committed with --no-verify"; the two archived tickets and the open audit ticket carry "assignee: Jason Risch" and "branch: jr/..." lines (the three other open tickets have assignee ''); the audit ticket line 19 states "no LICENSE, no CONTRIBUTING and no CI" and ls confirms none of those exist; docs/ai-assistant-ideation totals 2,580 lines with two files mentioning quality-engineer/review cycles; tests/reading/test_real_knot.py lines 3-5 reference "this repository's ticket-discipline hook"; git status shows the audit ticket modified but uncommitted. Nothing here is a secret, a credential, or misleading about the code, and the author's name is already in the git log, so no outsider is harmed or blocked by it; the --no-verify note is stale history in an archived ticket, and the test docstring is merely confusing to a contributor without the private hook. This is cosmetic curation of intentionally-shipped sample data and design transcripts, correctly P2 and not a block on going public.
+
+## Notes
+
+**2026-09-13T23:45:45.604912Z**
+
+Decision recorded: the .tickets backlog and docs/ai-assistant-ideation ship publicly. The .knot.edn comment already says the backlog is the fixture this panel is developed against, and a viewer over knot whose own repository hides its knot backlog would be a strange advertisement. The design docs reference the maintainer's private review harness by skill name; that is context, not a dependency, and the README explains that environment. The assignee name in the tickets is the author's public name. Nothing else to do here.
