@@ -54,6 +54,7 @@ class KnotCommand:
         self._repository = repository
         self._knot = knot
         self._patience = patience
+        self._tickets_path: Path | None = None
 
     @property
     def repository(self) -> Path:
@@ -108,19 +109,28 @@ class KnotCommand:
 
         Over the files rather than over the rendered pages, because it has to be cheap enough to
         compute on a timer: this is what the live stream compares, and a digest that cost a full
-        read would make following the backlog more expensive than reading it.
+        read would make following the backlog more expensive than reading it. For the same reason
+        the tickets directory is asked of knot once and remembered: it is a fact about the project
+        that does not move while the panel runs, and asking every second would start a process per
+        tick per open page.
 
         Modification times rather than contents, for the same reason. A write that leaves a file
-        byte-identical changes nothing a reader would see.
+        byte-identical changes nothing a reader would see. A file that vanishes between being listed
+        and being stamped, which an agent closing a ticket does, is simply left out of that digest.
         """
-        tickets = Path(self.project().tickets_path)
+        tickets = self._tickets()
         if not tickets.is_dir():
             return "absent"
         stamped = sorted(
-            f"{path.relative_to(tickets)}:{path.stat().st_mtime_ns}"
-            for path in tickets.rglob("*.md")
+            stamp for stamp in (_stamped(tickets, path) for path in tickets.rglob("*.md")) if stamp
         )
         return hashlib.sha256("\n".join(stamped).encode("utf-8")).hexdigest()[:16]
+
+    def _tickets(self) -> Path:
+        """Where the ticket files are, asked of knot the first time and kept."""
+        if self._tickets_path is None:
+            self._tickets_path = Path(self.project().tickets_path)
+        return self._tickets_path
 
     def _read(self, command: str, *arguments: str, verdict_read: bool = False) -> object:
         """One knot read, as data, refusing anything this panel was not written to run.
@@ -187,6 +197,14 @@ def _data_in(answer: subprocess.CompletedProcess[str], spoken: Sequence[str]) ->
             + (f": {said[0]}" if said else ""),
             advice="run that command in the directory the panel was pointed at",
         ) from unreadable
+
+
+def _stamped(tickets: Path, path: Path) -> str | None:
+    """One file's name and modification time, or nothing if it vanished since it was listed."""
+    try:
+        return f"{path.relative_to(tickets)}:{path.stat().st_mtime_ns}"
+    except FileNotFoundError:
+        return None
 
 
 def _described(issue: object) -> str:

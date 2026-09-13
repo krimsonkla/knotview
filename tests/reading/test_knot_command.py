@@ -137,6 +137,32 @@ def test_the_digest_is_stable_and_moves_when_a_ticket_file_does(fake, tmp_path: 
     assert command.digest() != before
 
 
+def test_the_digest_asks_knot_where_the_tickets_are_only_once(fake, monkeypatch):
+    """The live stream digests every second per open page; a knot process per tick would be the
+    panel's whole cost. After the first digest, knot answering junk changes nothing."""
+    command = fake()
+    before = command.digest()
+    monkeypatch.setenv("KNOTVIEW_FAKE_MODE", "junk")
+
+    assert command.digest() == before
+
+
+def test_a_file_that_vanishes_while_being_stamped_is_left_out(fake, tmp_path: Path, monkeypatch):
+    """An agent closing a ticket moves the file between the listing and the stat."""
+    (tmp_path / ".tickets" / "pro-01m2aaaaaaaa--stays.md").write_text("x")
+    (tmp_path / ".tickets" / "pro-01m2bbbbbbbb--vanishes.md").write_text("y")
+    real_stat = Path.stat
+
+    def racing(self, *args, **kwargs):
+        if self.name.endswith("vanishes.md"):
+            raise FileNotFoundError(self)
+        return real_stat(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "stat", racing)
+
+    assert fake().digest() != "absent"
+
+
 def test_the_digest_covers_the_archive(fake, tmp_path: Path):
     command = fake()
     before = command.digest()
