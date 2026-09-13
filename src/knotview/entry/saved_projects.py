@@ -30,10 +30,6 @@ class SavedProjects:
     def __init__(self, path: Path) -> None:
         self._path = path
 
-    def names(self) -> tuple[str, ...]:
-        """Every saved name, in the order they were saved."""
-        return tuple(self._read())
-
     def named(self, name: str) -> SavedProject:
         """The project saved under that name, or a refusal naming the ones that were."""
         saved = self._read()

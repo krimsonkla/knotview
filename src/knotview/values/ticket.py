@@ -11,7 +11,7 @@ class Ticket:  # pylint: disable=too-many-instance-attributes
     """A ticket and everything the panel shows about it.
 
     Assembled from whichever knot command answered, which is why so much is optional. A listing
-    gives the summary; `show` adds the body, the sections, the notes and both directions of the
+    gives the summary; `show` adds the sections, the notes and both directions of the
     graph. The same value carries both so a template does not have to know which command the reader
     used, and a field nobody was told about is absent rather than invented.
 
@@ -43,7 +43,6 @@ class Ticket:  # pylint: disable=too-many-instance-attributes
     children: tuple[Reference, ...] = ()
     linked: tuple[Reference, ...] = ()
     sections: dict[str, str] = field(default_factory=dict)
-    body: str | None = None
 
     @property
     def met(self) -> int:

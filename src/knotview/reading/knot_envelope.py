@@ -136,7 +136,6 @@ def ticket_from(stated: dict[str, Any]) -> Ticket:
         children=_references(stated, "children"),
         linked=_references(stated, "linked"),
         sections=_sections(stated),
-        body=_text(stated, "body"),
     )
 
 

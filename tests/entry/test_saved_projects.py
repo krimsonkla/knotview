@@ -48,15 +48,16 @@ def test_saving_a_name_again_replaces_it(tmp_path: Path):
     registry.save("outcry", SavedProject(repository=tmp_path / "outcry", port=7790))
 
     assert registry.named("outcry").port == 7790
-    assert registry.names() == ("outcry",)
+    assert (tmp_path / "config" / "knotview" / "projects.toml").read_text().count('["outcry"]') == 1
 
 
-def test_the_names_are_listed_in_the_order_saved(tmp_path: Path):
+def test_the_file_keeps_the_order_saved(tmp_path: Path):
     registry = _registry(tmp_path)
     registry.save("zeta", SavedProject(repository=tmp_path / "z", port=1))
     registry.save("alpha", SavedProject(repository=tmp_path / "a", port=2))
 
-    assert registry.names() == ("zeta", "alpha")
+    written = (tmp_path / "config" / "knotview" / "projects.toml").read_text()
+    assert written.index('["zeta"]') < written.index('["alpha"]')
 
 
 def test_a_name_nobody_saved_is_refused_naming_the_ones_that_were(tmp_path: Path):
