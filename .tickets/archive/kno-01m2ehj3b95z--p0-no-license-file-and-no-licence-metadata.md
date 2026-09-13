@@ -1,13 +1,14 @@
 ---
 id: kno-01m2ehj3b95z
 title: '[P0] No LICENSE file and no licence metadata anywhere'
-status: open
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:39.881162Z'
-updated: '2026-09-13T23:27:40.001684Z'
-assignee: ''
+updated: '2026-09-13T23:33:20.597523Z'
+closed: '2026-09-13T23:33:20.597523Z'
+assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
 
@@ -53,3 +54,9 @@ Evidence: `git ls-files` has no LICENSE*; `ls LICENSE* CONTRIBUTING*` reports no
 Recommendation: Add a LICENSE file and the matching `license` field / classifier in pyproject.toml before the visibility flip.
 
 Verifier (P0, blocks public: yes): Reproduced at fcc6b66: `git ls-files` matches no LICENSE*/LICENCE*/COPYING*/CONTRIBUTING*, `ls` on those globs finds nothing in the working tree, and `git log --all` shows no such file ever existed in history. pyproject.toml [project] has no `license` field and its classifiers list (Alpha, Web Environment, Developers, Python 3.12, Bug Tracking) contains no `License ::` entry; a repo-wide grep for license/copyright/SPDX outside .tickets returns zero hits in source, README, docs or nix files, so there is no per-file notice standing in for a LICENSE file either. The only mention is the audit ticket .tickets/kno-01m2ebf5sxdb line 19 acknowledging "there is no LICENSE, no CONTRIBUTING and no CI". Severity P0 is correct: without a license, default copyright applies and outsiders have no right to use, modify or redistribute the code, which defeats the purpose of going public and exposes any early adopter; it is not merely something a first contributor hits, it is a precondition for the repo being usable at all. Missing CONTRIBUTING is separate polish (P2) and should not be bundled into this finding.
+
+## Notes
+
+**2026-09-13T23:33:19.953259Z**
+
+Task completed: MIT LICENSE added (assumed to match knot upstream; change the text before publishing if another licence is wanted), pyproject declares license = "MIT" with license-files and the OSI classifier, README has a Licence section; the wheel carries the LICENSE and License metadata.

@@ -7,9 +7,12 @@ name = "knotview"
 version = "0.0.0"
 description = "A read-only panel over a knot backlog, dynamic over the project's own configuration."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
     "Environment :: Web Environment",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3.12",

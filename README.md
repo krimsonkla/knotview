@@ -54,3 +54,7 @@ knot ships its own panel, and it is good at what it does: three fixed groups, in
 over blocked, expanded inline. What it does not do is navigate a project's own types, filter, show the
 closed work, draw the shape of what is filed under what, or follow changes without being asked. That is
 what this adds.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
