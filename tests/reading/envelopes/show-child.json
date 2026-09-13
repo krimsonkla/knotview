@@ -1,0 +1,39 @@
+{
+    "schema_version": 1,
+    "ok": true,
+    "data": {
+        "id": "pro-01m2bbbbbbbb",
+        "title": "The child",
+        "status": "in_progress",
+        "type": "task",
+        "priority": 2,
+        "mode": "afk",
+        "created": "2026-09-03T10:00:00.000000Z",
+        "updated": "2026-09-04T10:00:00.000000Z",
+        "assignee": "",
+        "parent": "pro-01m2aaaaaaaa",
+        "deps": ["pro-01m2cccccccc", "pro-01m2zzzzzzzz"],
+        "links": ["pro-01m2dddddddd"],
+        "tags": [],
+        "external_refs": [],
+        "body": "## Description\nThe child does a thing.\n",
+        "sections": { "description": "\nThe child does a thing.\n" },
+        "blockers": [
+            {
+                "id": "pro-01m2cccccccc",
+                "title": "The closed one",
+                "status": "closed"
+            },
+            { "id": "pro-01m2zzzzzzzz", "missing": true }
+        ],
+        "blocking": [],
+        "children": [],
+        "linked": [
+            {
+                "id": "pro-01m2dddddddd",
+                "title": "The orphan",
+                "status": "open"
+            }
+        ]
+    }
+}

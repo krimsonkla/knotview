@@ -1,0 +1,22 @@
+{
+    "schema_version": 1,
+    "ok": true,
+    "data": [
+        {
+            "id": "pro-01m2cccccccc",
+            "title": "The closed one",
+            "status": "closed",
+            "type": "chore",
+            "priority": 4,
+            "mode": "hitl",
+            "created": "2026-08-01T10:00:00.000000Z",
+            "updated": "2026-08-02T10:00:00.000000Z",
+            "closed": "2026-08-02T10:00:00.000000Z",
+            "parent": "pro-01m2aaaaaaaa",
+            "tags": [],
+            "deps": [],
+            "links": [],
+            "external_refs": []
+        }
+    ]
+}

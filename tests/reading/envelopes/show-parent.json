@@ -1,0 +1,46 @@
+{
+    "schema_version": 1,
+    "ok": true,
+    "data": {
+        "id": "pro-01m2aaaaaaaa",
+        "title": "The parent",
+        "status": "open",
+        "type": "epic",
+        "priority": 1,
+        "mode": "hitl",
+        "created": "2026-09-01T10:00:00.000000Z",
+        "updated": "2026-09-02T10:00:00.000000Z",
+        "acceptance": [
+            { "title": "first thing", "done": true },
+            { "title": "second thing", "done": false }
+        ],
+        "tags": ["p0", "auth"],
+        "deps": [],
+        "links": [],
+        "external_refs": [],
+        "body": "Text before any heading.\n\n## Description\nWhat the parent is for.\n\n## Design\nHow it is built.\n\n## Notes\n\n**2026-09-02T10:00:00.000000Z**\n\nA note on the parent.\n",
+        "children_total": 2,
+        "children_terminal": 1,
+        "sections": {
+            "": "Text before any heading.\n\n",
+            "description": "\nWhat the parent is for.\n\n",
+            "design": "\nHow it is built.\n\n",
+            "notes": "\n\n**2026-09-02T10:00:00.000000Z**\n\nA note on the parent.\n"
+        },
+        "blockers": [],
+        "blocking": [],
+        "children": [
+            {
+                "id": "pro-01m2bbbbbbbb",
+                "title": "The child",
+                "status": "in_progress"
+            },
+            {
+                "id": "pro-01m2cccccccc",
+                "title": "The closed one",
+                "status": "closed"
+            }
+        ],
+        "linked": []
+    }
+}

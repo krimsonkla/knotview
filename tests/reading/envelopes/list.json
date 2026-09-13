@@ -1,0 +1,69 @@
+{
+    "schema_version": 1,
+    "ok": true,
+    "data": [
+        {
+            "id": "pro-01m2aaaaaaaa",
+            "title": "The parent",
+            "status": "open",
+            "type": "epic",
+            "priority": 1,
+            "mode": "hitl",
+            "created": "2026-09-01T10:00:00.000000Z",
+            "updated": "2026-09-02T10:00:00.000000Z",
+            "acceptance": [
+                { "title": "first thing", "done": true },
+                { "title": "second thing", "done": false }
+            ],
+            "tags": ["p0", "auth"],
+            "deps": [],
+            "links": [],
+            "external_refs": [],
+            "children_total": 2,
+            "children_terminal": 1,
+            "leverage": 0,
+            "coupling": 0,
+            "level": 0,
+            "cc": 1
+        },
+        {
+            "id": "pro-01m2bbbbbbbb",
+            "title": "The child",
+            "status": "in_progress",
+            "type": "task",
+            "priority": 2,
+            "mode": "afk",
+            "created": "2026-09-03T10:00:00.000000Z",
+            "updated": "2026-09-04T10:00:00.000000Z",
+            "assignee": "",
+            "parent": "pro-01m2aaaaaaaa",
+            "deps": ["pro-01m2cccccccc", "pro-01m2zzzzzzzz"],
+            "links": ["pro-01m2dddddddd"],
+            "tags": [],
+            "external_refs": [],
+            "leverage": 0,
+            "coupling": 1,
+            "level": 1,
+            "cc": 1
+        },
+        {
+            "id": "pro-01m2dddddddd",
+            "title": "The orphan",
+            "status": "open",
+            "type": "bug",
+            "priority": 3,
+            "mode": "hitl",
+            "created": "2026-09-05T10:00:00.000000Z",
+            "updated": "2026-09-05T10:00:00.000000Z",
+            "assignee": "someone",
+            "links": ["pro-01m2bbbbbbbb"],
+            "tags": [],
+            "deps": [],
+            "external_refs": [],
+            "leverage": 0,
+            "coupling": 1,
+            "level": 0,
+            "cc": 1
+        }
+    ]
+}

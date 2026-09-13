@@ -1,0 +1,37 @@
+{
+    "schema_version": 1,
+    "ok": true,
+    "data": {
+        "project": {
+            "knot_version": "0.12.0",
+            "name": null,
+            "prefix": "pro",
+            "config_present": true
+        },
+        "paths": {
+            "cwd": "/private/tmp/claude-501/-Users-krimsonkla-git-krimsonkla-knotview/d0ad9ed2-6e54-486b-9b6b-5e82fd325168/scratchpad/probe",
+            "project_root": "/private/tmp/claude-501/-Users-krimsonkla-git-krimsonkla-knotview/d0ad9ed2-6e54-486b-9b6b-5e82fd325168/scratchpad/probe",
+            "config_path": "/private/tmp/claude-501/-Users-krimsonkla-git-krimsonkla-knotview/d0ad9ed2-6e54-486b-9b6b-5e82fd325168/scratchpad/probe/.knot.edn",
+            "tickets_dir": ".tickets",
+            "tickets_path": "/private/tmp/claude-501/-Users-krimsonkla-git-krimsonkla-knotview/d0ad9ed2-6e54-486b-9b6b-5e82fd325168/scratchpad/probe/.tickets",
+            "archive_path": "/private/tmp/claude-501/-Users-krimsonkla-git-krimsonkla-knotview/d0ad9ed2-6e54-486b-9b6b-5e82fd325168/scratchpad/probe/.tickets/archive"
+        },
+        "defaults": {
+            "default_assignee": null,
+            "effective_create_assignee": "Jason Risch",
+            "default_type": "task",
+            "default_priority": 2,
+            "default_mode": "hitl"
+        },
+        "allowed_values": {
+            "statuses": ["open", "in_progress", "closed"],
+            "active_status": "in_progress",
+            "terminal_statuses": ["closed"],
+            "types": ["bug", "feature", "task", "epic", "chore"],
+            "modes": ["afk", "hitl"],
+            "afk_mode": "afk",
+            "priority_range": { "min": 0, "max": 4 }
+        },
+        "counts": { "live_count": 3, "archive_count": 1, "total_count": 4 }
+    }
+}
