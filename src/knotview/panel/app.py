@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -28,62 +28,60 @@ HEARTBEAT = 1.0
 KEEPALIVE = ": waiting\n\n"
 
 
-def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
-    """The panel over one backlog.
+class Pages:
+    """Every page the panel serves, over one backlog.
 
-    Built around an injected backlog rather than reaching for knot itself, which is what lets every
-    page be tested against a backlog declared in a test while the real one drives a real project.
+    A class rather than a set of closures so that which backlog a page reads is a named
+    attribute, and so that assembling the app (mounting the static files, registering the
+    exception handler, writing out the route table) is separate from rendering a page.
 
-    Read-only, and structurally so: every route below is a GET, there is no form, and the backlog
-    port has no method that writes. The backlog stays driven by whatever writes it, and this
-    watches.
+    Read-only, and structurally so: every route in ROUTES is a GET, there is no form, and the
+    backlog port has no method that writes. The backlog stays driven by whatever writes it, and
+    this watches.
     """
-    app = FastAPI(title="knotview", docs_url=None, redoc_url=None, openapi_url=None)
-    pages = Jinja2Templates(directory=str(HERE / "templates"))
-    pages.env.filters["humanise"] = _humanise
-    app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
 
-    def rendered(request: Request, template: str, **context: object) -> HTMLResponse:
+    def __init__(self, backlog: Backlog, *, templates: Jinja2Templates, heartbeat: float) -> None:
+        self.backlog = backlog
+        self.templates = templates
+        self.heartbeat = heartbeat
+
+    def rendered(self, request: Request, template: str, **context: object) -> HTMLResponse:
         """One page, with what every page needs already in it."""
-        project = backlog.project()
-        return pages.TemplateResponse(
+        project = self.backlog.project()
+        return self.templates.TemplateResponse(
             request=request,
             name=template,
             context={"project": project, "orders": ORDERS, "any": ANY, **context},
         )
 
-    @app.exception_handler(UnreadableBacklog)
-    async def unreadable(request: Request, refusal: UnreadableBacklog) -> HTMLResponse:
+    async def unreadable(self, request: Request, refusal: UnreadableBacklog) -> HTMLResponse:
         """Say what could not be read and what to do about it, rather than a stack trace.
 
         A panel pointed at the wrong directory is the ordinary first mistake, and the page that
-        admits
-        it is worth more than the one that works once everything is right.
+        admits it is worth more than the one that works once everything is right.
         """
-        return pages.TemplateResponse(
+        return self.templates.TemplateResponse(
             request=request,
             name="unreadable.html",
             context={"refusal": refusal},
             status_code=503,
         )
 
-    @app.get("/", response_class=HTMLResponse)
-    async def overview(request: Request) -> HTMLResponse:
+    async def overview(self, request: Request) -> HTMLResponse:
         """The backlog counted by type, by status and by priority, with the queues beside it."""
-        return rendered(
+        return self.rendered(
             request,
             "overview.html",
-            overview=Overview.over(Snapshot.read(backlog)),
+            overview=Overview.over(Snapshot.read(self.backlog)),
             selection=Selection(),
         )
 
-    @app.get("/tickets", response_class=HTMLResponse)
-    async def tickets(request: Request) -> HTMLResponse:
+    async def tickets(self, request: Request) -> HTMLResponse:
         """Every ticket the filters admit, in the order asked for."""
-        project = backlog.project()
+        project = self.backlog.project()
         selection = Selection.asked(project, dict(request.query_params))
-        held = backlog.live() + (backlog.closed() if selection.closed else ())
-        return rendered(
+        held = self.backlog.live() + (self.backlog.closed() if selection.closed else ())
+        return self.rendered(
             request,
             "tickets.html",
             selection=selection,
@@ -91,29 +89,27 @@ def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
             counted=len(held),
         )
 
-    @app.get("/tree", response_class=HTMLResponse)
-    async def tree(request: Request) -> HTMLResponse:
+    async def tree(self, request: Request) -> HTMLResponse:
         """What is filed under what, with each parent's progress counted."""
-        project = backlog.project()
-        return rendered(
+        project = self.backlog.project()
+        return self.rendered(
             request,
             "tree.html",
-            tree=Tree.over(backlog.live(), terminal=project.terminal_statuses),
+            tree=Tree.over(self.backlog.live(), terminal=project.terminal_statuses),
             selection=Selection(),
         )
 
-    @app.get("/queue/{which}", response_class=HTMLResponse)
-    async def queue(request: Request, which: str) -> HTMLResponse:
+    async def queue(self, request: Request, which: str) -> HTMLResponse:
         """One of knot's own queues: what is ready to start, or what is waiting on something."""
-        queues = {"ready": backlog.ready, "blocked": backlog.blocked}
+        queues = {"ready": self.backlog.ready, "blocked": self.backlog.blocked}
         if which not in queues:
-            return rendered(
+            return self.rendered(
                 request,
                 "unknown.html",
-                looking_for=f"a queue called {which}",
+                looking_for=f"queue called {which}",
                 selection=Selection(),
             )
-        return rendered(
+        return self.rendered(
             request,
             "queue.html",
             which=which,
@@ -121,33 +117,65 @@ def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
             selection=Selection(),
         )
 
-    @app.get("/ticket/{identifier}", response_class=HTMLResponse)
-    async def ticket(request: Request, identifier: str) -> HTMLResponse:
+    async def ticket(self, request: Request, identifier: str) -> HTMLResponse:
         """One ticket in full: its sections, its criteria, its graph and its notes."""
-        return rendered(
-            request, "ticket.html", ticket=backlog.ticket(identifier), selection=Selection()
+        return self.rendered(
+            request,
+            "ticket.html",
+            ticket=self.backlog.ticket(identifier),
+            selection=Selection(),
         )
 
-    @app.get("/digest", response_class=PlainTextResponse)
-    async def digest() -> str:
+    async def digest(self) -> str:
         """What the backlog looks like right now, as one short value the page can compare."""
-        return backlog.digest()
+        return self.backlog.digest()
 
-    @app.get("/live")
-    async def live() -> StreamingResponse:
+    async def live(self) -> StreamingResponse:
         """A one-way stream that says when the backlog changed, and never what to do about it.
 
         One direction by construction: a stream that cannot carry a command keeps the read-only
-        guarantee structural rather than conventional. It sends the digest, and the page decides to
-        reload; the server never pushes markup, so there is one rendering path whether a reader
-        arrived, refreshed, or was told something moved.
+        guarantee structural rather than conventional. It sends the digest, and the page decides
+        to reload; the server never pushes markup, so there is one rendering path whether a
+        reader arrived, refreshed, or was told something moved.
         """
         return StreamingResponse(
-            _changes(backlog, heartbeat),
+            _changes(self.backlog, self.heartbeat),
             media_type="text/event-stream",
             headers={"cache-control": "no-store", "x-accel-buffering": "no"},
         )
 
+
+# The route table, written out as data so the surface can be read in one place and asserted by
+# a test. The third column is the response class, or None where the handler returns a Response
+# itself; the keyword is passed only when set, because FastAPI accepts None at registration and
+# fails at request time on the next handler that returns a plain value.
+ROUTES: tuple[tuple[str, str, type[Response] | None], ...] = (
+    ("/", "overview", HTMLResponse),
+    ("/tickets", "tickets", HTMLResponse),
+    ("/tree", "tree", HTMLResponse),
+    ("/queue/{which}", "queue", HTMLResponse),
+    ("/ticket/{identifier}", "ticket", HTMLResponse),
+    ("/digest", "digest", PlainTextResponse),
+    ("/live", "live", None),
+)
+
+
+def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
+    """The panel over one backlog.
+
+    Built around an injected backlog rather than reaching for knot itself, which is what lets
+    every page be tested against a backlog declared in a test while the real one drives a real
+    project. This assembles; Pages renders.
+    """
+    app = FastAPI(title="knotview", docs_url=None, redoc_url=None, openapi_url=None)
+    templates = Jinja2Templates(directory=str(HERE / "templates"))
+    templates.env.filters["humanise"] = _humanise
+    app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
+    pages = Pages(backlog, templates=templates, heartbeat=heartbeat)
+    app.add_exception_handler(UnreadableBacklog, pages.unreadable)
+    for path, name, response_class in ROUTES:
+        chosen = {"response_class": response_class} if response_class else {}
+        app.add_api_route(path, getattr(pages, name), methods=["GET"], **chosen)
     return app
 
 

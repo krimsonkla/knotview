@@ -15,6 +15,4 @@ def test_an_unknown_queue_is_a_page_that_says_so_at_200(client):
     response = client(DeclaredBacklog()).get("/queue/soon")
 
     assert response.status_code == 200
-    # "no a queue" is app.py's wording today; the grammar fix waits on the lint story, since any
-    # commit touching app.py trips its pre-existing complexity finding.
-    assert "This panel has no a queue called soon." in response.text
+    assert "This panel has no queue called soon." in response.text
