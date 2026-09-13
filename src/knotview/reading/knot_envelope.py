@@ -21,6 +21,32 @@ def answered(payload: dict[str, Any], *, attempting: str) -> Any:
     The refusal carries knot's own message where it gave one, because knot already says the useful
     thing: which id was not found, which project is missing, which value was not allowed.
     """
+    _versioned(payload, attempting=attempting)
+    if not payload.get("ok"):
+        raise _refused(payload, attempting=attempting)
+    return payload.get("data")
+
+
+def verdict(payload: dict[str, Any], *, attempting: str) -> Any:
+    """The data out of knot's check, whose ok is a health verdict rather than a success flag.
+
+    knot documents one carve-out from the envelope rule: check emits ok:false together with data
+    whenever the project has issues, because ok answers "is the project healthy" there. So a
+    not-ok check that carries a non-empty issues list is an answer, and the issues are what the
+    reader came for. A not-ok check with no issues is a scan that failed, and stays a refusal:
+    reading it as a clean project would hide exactly the failure the check exists to report.
+    """
+    _versioned(payload, attempting=attempting)
+    if payload.get("ok"):
+        return payload.get("data")
+    stated = payload.get("data")
+    if isinstance(stated, dict) and isinstance(stated.get("issues"), list) and stated["issues"]:
+        return stated
+    raise _refused(payload, attempting=attempting)
+
+
+def _versioned(payload: Any, *, attempting: str) -> None:
+    """Refuse anything that is not an envelope of the version this panel was written against."""
     if not isinstance(payload, dict):
         raise UnreadableBacklog(
             f"{attempting} answered with {type(payload).__name__} rather than an envelope",
@@ -32,14 +58,16 @@ def answered(payload: dict[str, Any], *, attempting: str) -> Any:
             f"rather than {SCHEMA}",
             advice="check whether knot's answer shape moved, and update this panel deliberately",
         )
-    if not payload.get("ok"):
-        stated = payload.get("error") or {}
-        said = stated.get("message") if isinstance(stated, dict) else None
-        raise UnreadableBacklog(
-            f"{attempting} was refused: {said or 'knot gave no reason'}",
-            advice="run the same knot command in that directory to see it in full",
-        )
-    return payload.get("data")
+
+
+def _refused(payload: dict[str, Any], *, attempting: str) -> UnreadableBacklog:
+    """The refusal for a not-ok envelope, carrying knot's message where it gave one."""
+    stated = payload.get("error") or {}
+    said = stated.get("message") if isinstance(stated, dict) else None
+    return UnreadableBacklog(
+        f"{attempting} was refused: {said or 'knot gave no reason'}",
+        advice="run the same knot command in that directory to see it in full",
+    )
 
 
 def project_from(stated: Any) -> Project:
