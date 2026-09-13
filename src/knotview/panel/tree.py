@@ -48,13 +48,16 @@ class Branch:
 class Tree:
     """Every parent with its children, and the tickets belonging to nobody.
 
-    Both halves are shown on purpose. A backlog's orphans are where work goes missing: a ticket
+    All three parts are shown on purpose. A backlog's orphans are where work goes missing: a ticket
     filed under nothing is not visible in any epic, and a view that only drew the branches would
-    leave it out of the picture entirely while looking complete.
+    leave it out of the picture entirely while looking complete. The strays are the other way work
+    goes missing: filed under a parent that is closed or gone, so no live branch holds them.
+    Every live ticket appears on the page exactly once.
     """
 
     branches: tuple[Branch, ...]
     orphans: tuple[Ticket, ...]
+    strays: tuple[Ticket, ...]
 
     @classmethod
     def over(cls, live: tuple[Ticket, ...], *, terminal: tuple[str, ...]) -> "Tree":
@@ -79,7 +82,18 @@ class Tree:
             orphans=tuple(
                 sorted(
                     (ticket for ticket in live if not ticket.parent and ticket.id not in filed),
-                    key=lambda one: (one.priority, one.id),
+                    key=_by_priority,
+                )
+            ),
+            strays=tuple(
+                sorted(
+                    (ticket for ticket in live if ticket.parent and ticket.parent not in held),
+                    key=_by_priority,
                 )
             ),
         )
+
+
+def _by_priority(ticket: Ticket) -> tuple[int, str]:
+    """The order every list on the page uses: priority, then id for a stable tie."""
+    return (ticket.priority, ticket.id)

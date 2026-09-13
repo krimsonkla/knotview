@@ -28,7 +28,19 @@
   {% endif %} {% set tickets = branch.children %} {% include
   "_ticket_table.html" %}
 </section>
-{% endfor %} {% if tree.orphans %}
+{% endfor %} {% if tree.strays %}
+<section class="card">
+  <h2>
+    filed under a parent that is not live
+    <span class="num">{{ tree.strays | length }}</span>
+  </h2>
+  <p class="muted">
+    Each names a parent that is closed or missing, so no branch above holds it.
+    The parent it claims is shown on its own page.
+  </p>
+  {% set tickets = tree.strays %} {% include "_ticket_table.html" %}
+</section>
+{% endif %} {% if tree.orphans %}
 <section class="card">
   <h2>
     filed under nothing <span class="num">{{ tree.orphans | length }}</span>

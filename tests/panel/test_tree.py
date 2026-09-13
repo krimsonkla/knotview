@@ -20,16 +20,22 @@ def test_a_complete_branch_that_is_still_open_says_so(client):
     assert "children 1/1" in page
 
 
-def test_a_child_whose_parent_is_not_live_vanishes_from_the_tree():
-    """Current behaviour, asserted rather than endorsed: a ticket naming a parent that is not in
-    the live set is neither a branch child nor an orphan. Recorded as a finding for a follow-up
-    that shows it under "filed under nothing"."""
+def test_a_child_whose_parent_is_not_live_is_a_stray_and_every_live_ticket_appears_once():
     stray = ticket("pro-01m2eeeeeeee", parent="pro-01m2gone")
 
     shape = Tree.over((CHILD, ORPHAN, stray), terminal=("closed",))
 
     assert not shape.branches
     assert [one.id for one in shape.orphans] == ["pro-01m2dddddddd"]
+    assert [one.id for one in shape.strays] == ["pro-01m2bbbbbbbb", "pro-01m2eeeeeeee"]
+
+
+def test_strays_are_listed_on_the_tree_page(client):
+    stray = ticket("pro-01m2eeeeeeee", title="The stray", parent="pro-01m2gone")
+    page = client(DeclaredBacklog(live_value=(PARENT, CHILD, ORPHAN, stray))).get("/tree").text
+
+    assert "filed under a parent that is not live" in page
+    assert "The stray" in page
 
 
 def test_branches_and_children_are_ordered_by_priority_then_id():
