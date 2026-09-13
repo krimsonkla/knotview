@@ -1,13 +1,14 @@
 ---
 id: kno-01m2ehjcf8fb
 title: '[P2] README examples use the author''s personal project name and paths'
-status: open
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:49.224699Z'
-updated: '2026-09-13T23:27:49.347763Z'
-assignee: ''
+updated: '2026-09-13T23:46:51.053712Z'
+closed: '2026-09-13T23:46:51.053712Z'
+assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
 
@@ -29,3 +30,9 @@ Evidence: /Users/krimsonkla/git/krimsonkla/knotview/README.md:14-16 use `--repos
 Recommendation: Polish only: swap `outcry` for a generic name like `myproject` in README so the first outside reader is not pointed at a path that exists only on the author's machine; the test usages are harmless.
 
 Verifier (P2, blocks public: no): Confirmed: /Users/krimsonkla/git/krimsonkla/knotview/README.md lines 14, 16 and 20 use `~/git/outcry` / `--save outcry` / `knotview outcry` as the worked example, paired with a generic `~/git/other`; `outcry` appears nowhere in src/, only in README.md and the two test files (tests/entry/test_console.py, tests/entry/test_saved_projects.py), where it is just a registry key under tmp_path and never a real path. `~/git/outcry` does not even exist on this machine (ls fails), so it is not a leaked path to anything real, and the README is clearly showing an illustrative name alongside `other`. Nothing is sensitive, nothing breaks for a reader (they substitute their own path exactly as with `/path/to/a/knot/project` on line 7), and `knot` itself is already a public GitHub project. This is cosmetic: a personal-sounding example name is mildly odd next to the generic placeholders around it, so P2 polish is the right rating and it does not block going public; a one-word swap to e.g. `myproject`/`~/git/one` would make the example self-consistent, and the test fixtures can stay.
+
+## Notes
+
+**2026-09-13T23:46:50.449164Z**
+
+Task completed: the README's examples were rewritten under the install ticket (~/git/one, ~/git/two); the only remaining personal token is the repository URL itself. The test data keeps 'outcry' as a saved-project name, which is a fixture value, not a path.
