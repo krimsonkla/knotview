@@ -45,7 +45,7 @@ class Pages:
         self.templates = templates
         self.heartbeat = heartbeat
 
-    def rendered(self, request: Request, template: str, **context: object) -> HTMLResponse:
+    def _rendered(self, request: Request, template: str, **context: object) -> HTMLResponse:
         """One page, with what every page needs already in it."""
         project = self.backlog.project()
         return self.templates.TemplateResponse(
@@ -69,7 +69,7 @@ class Pages:
 
     async def overview(self, request: Request) -> HTMLResponse:
         """The backlog counted by type, by status and by priority, with the queues beside it."""
-        return self.rendered(
+        return self._rendered(
             request,
             "overview.html",
             overview=Overview.over(Snapshot.read(self.backlog)),
@@ -81,7 +81,7 @@ class Pages:
         project = self.backlog.project()
         selection = Selection.asked(project, dict(request.query_params))
         held = self.backlog.live() + (self.backlog.closed() if selection.closed else ())
-        return self.rendered(
+        return self._rendered(
             request,
             "tickets.html",
             selection=selection,
@@ -92,7 +92,7 @@ class Pages:
     async def tree(self, request: Request) -> HTMLResponse:
         """What is filed under what, with each parent's progress counted."""
         project = self.backlog.project()
-        return self.rendered(
+        return self._rendered(
             request,
             "tree.html",
             tree=Tree.over(self.backlog.live(), terminal=project.terminal_statuses),
@@ -103,13 +103,13 @@ class Pages:
         """One of knot's own queues: what is ready to start, or what is waiting on something."""
         queues = {"ready": self.backlog.ready, "blocked": self.backlog.blocked}
         if which not in queues:
-            return self.rendered(
+            return self._rendered(
                 request,
                 "unknown.html",
                 looking_for=f"queue called {which}",
                 selection=Selection(),
             )
-        return self.rendered(
+        return self._rendered(
             request,
             "queue.html",
             which=which,
@@ -119,7 +119,7 @@ class Pages:
 
     async def ticket(self, request: Request, identifier: str) -> HTMLResponse:
         """One ticket in full: its sections, its criteria, its graph and its notes."""
-        return self.rendered(
+        return self._rendered(
             request,
             "ticket.html",
             ticket=self.backlog.ticket(identifier),
