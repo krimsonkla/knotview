@@ -172,10 +172,11 @@ def test_only_the_command_module_reaches_outside_the_process():
     is handed comes from READS, and READS holds no write verb. So the guard is on who may run a
     process at all, not on which words appear in the package: "status" is also a field name."""
     source = Path(__import__("knotview").__file__).resolve().parent
+    spawning = ("subprocess", "os.system", "os.popen", "os.exec", "os.spawn", "pty.")
     running = {
         path.relative_to(source).as_posix()
         for path in source.rglob("*.py")
-        if "subprocess" in path.read_text(encoding="utf-8")
+        if any(token in path.read_text(encoding="utf-8") for token in spawning)
     }
     assert running == {"reading/knot_command.py"}
 

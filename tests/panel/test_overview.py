@@ -1,5 +1,7 @@
 """The first page: the backlog counted the ways a reader asks about it."""
 
+import re
+
 from knotview.reading.knot_command import _described
 from tests.panel.declared import DeclaredBacklog, ticket
 from tests.reading.envelopes import envelope
@@ -25,7 +27,7 @@ def test_statuses_priorities_and_queues_are_counted(client):
 def test_the_live_total_is_the_sum_over_statuses(client):
     page = client(DeclaredBacklog()).get("/").text
 
-    assert '<a href="/tickets">live</a' in page and ">3</span>" in page
+    assert re.search(r'<a href="/tickets">live</a\s*><span class="num">3</span>', page)
 
 
 def test_parents_are_whatever_something_is_filed_under_and_closed_work_is_listed(client):
