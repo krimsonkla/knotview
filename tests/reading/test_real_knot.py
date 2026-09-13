@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from knotview.reading.knot_command import KnotCommand
+from knotview.values.unreadable_backlog import UnreadableBacklog
 from tests.reading.envelopes import envelope
 
 pytestmark = [
@@ -170,4 +171,6 @@ def test_the_reader_over_the_binary_agrees_with_the_reader_over_the_recording(pr
     assert list(parent.sections) == ["", "description", "design", "notes"]
     (line,) = command.integrity()
     assert line.startswith("pro-01m2bbbbbbbb unknown_id:")
+    with pytest.raises(UnreadableBacklog, match="no ticket matching -x"):
+        command.ticket("-x")
     assert command.digest() != "absent"

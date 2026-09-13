@@ -208,6 +208,14 @@ def test_only_the_command_module_reaches_outside_the_process():
 
 
 def test_the_command_only_speaks_the_verb_it_was_given(fake):
-    """_spoken is the one place argv is built, and it puts the READS verb first and --json last."""
-    assert fake()._spoken("list", ())[1:] == ["list", "--json"]
-    assert fake()._spoken("show", ("x",))[1:] == ["show", "x", "--json"]
+    """_spoken is the one place argv is built: the READS verb first, then the JSON flag, then knot's
+    end-of-options marker before anything a reader typed."""
+    spoken = fake()._spoken
+    assert spoken("list", ())[1:] == ["list", "--json"]
+    assert spoken("show", ("x",))[1:] == ["show", "--json", "--", "x"]
+
+
+def test_an_identifier_starting_with_a_dash_reaches_knot_as_an_identifier(fake):
+    """knot would otherwise read it as an option; through the fake it is simply unknown."""
+    with pytest.raises(UnreadableBacklog, match="no ticket matching"):
+        fake().ticket("-x")
