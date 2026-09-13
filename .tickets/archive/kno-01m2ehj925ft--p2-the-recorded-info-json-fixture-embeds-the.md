@@ -1,12 +1,13 @@
 ---
 id: kno-01m2ehj925ft
 title: '[P2] The recorded info.json fixture embeds the author''s machine path, username and a Claude session id'
-status: in_progress
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:45.732880Z'
-updated: '2026-09-13T23:46:57.665977Z'
+updated: '2026-09-13T23:48:57.218690Z'
+closed: '2026-09-13T23:48:57.218690Z'
 assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
@@ -45,3 +46,9 @@ Evidence: /Users/krimsonkla/git/krimsonkla/knotview/tests/reading/envelopes/info
 Recommendation: Re-record or hand-edit info.json to use a neutral path such as `/tmp/probe`, and keep the shape-only comparison in test_real_knot.py (which already drops values).
 
 Verifier (P2, blocks public: no): Reproduced: /Users/krimsonkla/git/krimsonkla/knotview/tests/reading/envelopes/info.json lines 12-17 embed `/private/tmp/claude-501/-Users-krimsonkla-git-krimsonkla-knotview/d0ad9ed2-6e54-486b-9b6b-5e82fd325168/scratchpad/probe` (username, machine layout, and a Claude session UUID) in cwd/project_root/config_path/tickets_path/archive_path; the file is tracked (commit cfab810) and is the only file outside .git matching that path. Line 21 also carries the author's name as effective_create_assignee, which the report did not mention but is the same class of leak (the name is already the public git author, so it adds little). Nothing asserts on these values: test_knot_envelope.py only checks `tickets_path.endswith("/.tickets")`, and test_real_knot.py compares via shape(), which drops values, so rewriting the paths to `/tmp/probe` is safe and breaks no test. No secret or credential is exposed, so P2/polish is the right severity and it does not block going public.
+
+## Notes
+
+**2026-09-13T23:48:56.623903Z**
+
+Task completed: the envelopes were re-recorded through the recorder; info.json now reads /probe for every path and someone for the effective assignee, and no recording carries a home directory, user name or session id (grep clean).
