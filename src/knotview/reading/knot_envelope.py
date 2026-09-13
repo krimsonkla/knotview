@@ -157,9 +157,9 @@ def _words(stated: dict[str, Any], field: str) -> tuple[str, ...]:
 def _text(stated: dict[str, Any], field: str) -> str | None:
     """One string, or nothing, with an empty string read as nothing.
 
-    knot writes an unset assignee as an empty string in a listing and as null in a read, and a panel
-    that showed one of them as a name assigned to nobody would be showing a difference that is not
-    there.
+    knot omits an unset assignee from both the listing and the read, and writes a blank one as an
+    empty string in both, so absent and blank are the two shapes of "nobody". A panel that showed a
+    blank string as a name assigned to nobody would be showing a difference that is not there.
     """
     held = stated.get(field)
     if not isinstance(held, str) or not held.strip():

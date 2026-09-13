@@ -11,6 +11,7 @@ from knotview.reading.knot_envelope import (
     project_from,
     ticket_from,
     tickets_from,
+    verdict,
 )
 from knotview.values.project import Project
 from knotview.values.ticket import Ticket
@@ -96,7 +97,7 @@ class KnotCommand:
         hide
         the very thing the reader came to see.
         """
-        stated = self._read("check")
+        stated = self._read("check", verdict_read=True)
         issues = stated.get("issues") if isinstance(stated, dict) else None
         if not isinstance(issues, list):
             return ()
@@ -121,8 +122,12 @@ class KnotCommand:
         )
         return hashlib.sha256("\n".join(stamped).encode("utf-8")).hexdigest()[:16]
 
-    def _read(self, command: str, *arguments: str) -> object:
-        """One knot read, as data, refusing anything this panel was not written to run."""
+    def _read(self, command: str, *arguments: str, verdict_read: bool = False) -> object:
+        """One knot read, as data, refusing anything this panel was not written to run.
+
+        The check is read through the verdict reader, because its ok is a health verdict rather
+        than a success flag; every other read goes through the plain envelope rule.
+        """
         if command not in READS:
             raise UnreadableBacklog(
                 f"{command} is not one of the reads this panel runs",
@@ -148,7 +153,8 @@ class KnotCommand:
                 f"{self._knot} {command} did not answer within {self._patience} seconds",
                 advice="run the same command in that directory to see what it is waiting for",
             ) from waited
-        return answered(_data_in(answer, spoken), attempting=f"{self._knot} {command}")
+        wrap = verdict if verdict_read else answered
+        return wrap(_data_in(answer, spoken), attempting=f"{self._knot} {command}")
 
     def _spoken(self, command: str, arguments: Sequence[str]) -> list[str]:
         """The argument list knot is handed.
@@ -181,14 +187,22 @@ def _data_in(answer: subprocess.CompletedProcess[str], spoken: Sequence[str]) ->
 def _described(issue: object) -> str:
     """One integrity issue as a line, however knot chose to shape it.
 
-    knot's check reports a list whose entries are its own business, so this states what it was given
-    rather than insisting on a shape: a panel that refused to show an issue because the issue was
-    shaped unexpectedly would be hiding exactly the thing worth showing.
+    knot's check reports entries carrying ids (plural: an issue can span two tickets), a code, a
+    message and sometimes a path. This states what it was given rather than insisting on that
+    shape: a panel that refused to show an issue because the issue was shaped unexpectedly would
+    be hiding exactly the thing worth showing.
     """
     if isinstance(issue, str):
         return issue
-    if isinstance(issue, dict):
-        named = issue.get("message") or issue.get("error") or issue.get("kind")
-        where = issue.get("id") or issue.get("path")
-        return " ".join(str(part) for part in (where, named) if part) or json.dumps(issue)
-    return str(issue)
+    if not isinstance(issue, dict):
+        return str(issue)
+    ids = issue.get("ids")
+    where = " ".join(str(one) for one in ids) if isinstance(ids, list) else ""
+    code = issue.get("code")
+    message = issue.get("message")
+    path = issue.get("path")
+    if not (where or code or message):
+        return json.dumps(issue)
+    head = " ".join(part for part in (where, str(code) if code else "") if part)
+    line = f"{head}: {message}" if head and message else (head or str(message))
+    return f"{line} ({path})" if path else line
