@@ -9,10 +9,10 @@ def test_criteria_are_counted_and_the_unmet_ones_named():
     assert (CHILD.met, CHILD.criteria, CHILD.unmet) == (0, 0, ())
 
 
-def test_only_blockers_that_are_not_closed_are_open_and_a_missing_one_counts_as_open():
-    """A missing blocker arrives with no status. Counting it as open is the current behaviour and
-    is asserted as such; showing it as missing is a follow-up."""
-    assert [one.id for one in CHILD.open_blockers] == ["pro-01m2zzzzzzzz"]
+def test_only_blockers_that_are_still_open_are_open_and_a_missing_one_is_neither():
+    """A missing blocker has no status: nothing can close it, so it does not count as blocking."""
+    assert not CHILD.open_blockers
+    assert [one.id for one in CHILD.blockers if one.missing] == ["pro-01m2zzzzzzzz"]
 
 
 def test_the_notes_are_named_and_kept_out_of_the_narrative():

@@ -62,7 +62,7 @@ CHILD = ticket(
     updated="2026-09-04T10:00:00.000000Z",
     blockers=(
         Reference(id="pro-01m2cccccccc", title="The closed one", status="closed"),
-        Reference(id="pro-01m2zzzzzzzz", title="", status=""),
+        Reference(id="pro-01m2zzzzzzzz", title="", status="", missing=True),
     ),
     linked=(Reference(id="pro-01m2dddddddd", title="The orphan", status="open"),),
     external_refs=("https://example.test/1",),

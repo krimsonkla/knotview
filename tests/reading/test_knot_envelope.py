@@ -158,12 +158,12 @@ def test_an_empty_section_is_dropped():
     assert read.sections == {"kept": "text"}
 
 
-def test_a_missing_blocker_arrives_with_a_blank_status_and_a_closed_one_with_its_title():
+def test_a_missing_blocker_is_marked_missing_and_a_closed_one_carries_its_title():
     child = ticket_from(envelope("show-child")["data"])
 
-    assert [(b.id, b.status, b.title) for b in child.blockers] == [
-        ("pro-01m2cccccccc", "closed", "The closed one"),
-        ("pro-01m2zzzzzzzz", "", ""),
+    assert [(b.id, b.status, b.title, b.missing) for b in child.blockers] == [
+        ("pro-01m2cccccccc", "closed", "The closed one", False),
+        ("pro-01m2zzzzzzzz", "", "", True),
     ]
     assert [one.id for one in child.linked] == ["pro-01m2dddddddd"]
 

@@ -190,6 +190,7 @@ def _references(stated: dict[str, Any], field: str) -> tuple[Reference, ...]:
             id=str(one.get("id") or ""),
             title=str(one.get("title") or ""),
             status=str(one.get("status") or ""),
+            missing=bool(one.get("missing")),
         )
         for one in held
         if isinstance(one, dict) and one.get("id")

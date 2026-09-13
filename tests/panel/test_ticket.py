@@ -28,6 +28,7 @@ def test_every_graph_direction_and_the_external_refs_are_listed(client):
     parent = client(DeclaredBacklog()).get("/ticket/pro-01m2aaaaaaaa").text
 
     assert "blocked by" in page and "The closed one" in page
+    assert "missing" in page and "no ticket has this id" in page
     assert "linked" in page and "The orphan" in page
     assert "https://example.test/1" in page
     assert "children" in parent

@@ -61,8 +61,16 @@ class Ticket:  # pylint: disable=too-many-instance-attributes
 
     @property
     def open_blockers(self) -> tuple[Reference, ...]:
-        """The blockers that are not closed, which are the ones actually blocking."""
-        return tuple(blocker for blocker in self.blockers if blocker.status != "closed")
+        """The blockers that are not closed, which are the ones actually blocking.
+
+        A missing blocker is not among them: nothing can close it, and the integrity check is
+        what reports it.
+        """
+        return tuple(
+            blocker
+            for blocker in self.blockers
+            if blocker.status != "closed" and not blocker.missing
+        )
 
     @property
     def notes(self) -> str | None:

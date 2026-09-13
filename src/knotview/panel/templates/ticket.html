@@ -63,12 +63,17 @@ block main %}
       <ul class="refs">
         {% for reference in references %}
         <li>
+          {% if reference.missing %}
+          <span class="chip muted">missing</span>
+          <span class="muted">no ticket has this id</span>
+          {% else %}
           <a
             class="chip status-{{ reference.status }}"
             href="/ticket/{{ reference.id }}"
             >{{ reference.status }}</a
           >
           <a href="/ticket/{{ reference.id }}">{{ reference.title }}</a>
+          {% endif %}
           <span class="id">{{ reference.id }}</span>
         </li>
         {% endfor %}
