@@ -137,8 +137,8 @@ class Selection:  # pylint: disable=too-many-instance-attributes
 
         The id, the title and the tags, which is what somebody typing into a search box means. Not
         the body: a panel that matched a word buried in a design section would answer with tickets
-        whose
-        titles have nothing to do with the question, and the reader cannot see why they are there.
+        whose titles have nothing to do with the question, and the reader cannot see why they are
+        there.
         """
         if not self.query:
             return True
@@ -154,9 +154,8 @@ def _known(given: str | None, allowed: tuple[str, ...], *, fallback: str = ANY) 
     """That value if the project declares it, and otherwise everything.
 
     Dropping an unknown value rather than refusing it is deliberate. A panel is navigated by hand
-    and
-    by link, and a stale bookmark naming a status somebody renamed should show the backlog rather
-    than an error page.
+    and by link, and a stale bookmark naming a status somebody renamed should show the backlog
+    rather than an error page.
     """
     if given is None:
         return fallback

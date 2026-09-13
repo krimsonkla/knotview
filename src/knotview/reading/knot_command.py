@@ -95,8 +95,7 @@ class KnotCommand:
 
         Shown rather than enforced. This panel is a reader: a backlog with a dangling reference is
         something its author wants to know about, and refusing to render until it is fixed would
-        hide
-        the very thing the reader came to see.
+        hide the very thing the reader came to see.
         """
         stated = self._read("check", verdict_read=True)
         issues = stated.get("issues") if isinstance(stated, dict) else None
