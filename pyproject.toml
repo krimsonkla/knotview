@@ -4,9 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "knotview"
-version = "0.0.0"
+version = "0.1.0"
 description = "A read-only panel over a knot backlog, dynamic over the project's own configuration."
 readme = "README.md"
+authors = [{ name = "Jason Risch" }]
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
@@ -31,6 +32,10 @@ dependencies = [
     "jinja2>=3.1",
     "uvicorn>=0.30",
 ]
+
+[project.urls]
+Repository = "https://github.com/krimsonkla/knotview"
+Changelog = "https://github.com/krimsonkla/knotview/blob/main/CHANGELOG.md"
 
 [project.scripts]
 knotview = "knotview.entry.console:main"

@@ -4,6 +4,10 @@ All notable changes are recorded here. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [0.1.0] - unreleased
+
+The first version. Tag `v0.1.0` at the commit that is published.
+
 ### Added
 
 - The panel: overview, tickets with filters, tree, knot's ready and blocked queues, one ticket in
