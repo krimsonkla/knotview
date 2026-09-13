@@ -1,13 +1,14 @@
 ---
 id: kno-01m2ehj58mrp
 title: '[P1] README has no install or prerequisites section and never says knot must be installed'
-status: open
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:41.844002Z'
-updated: '2026-09-13T23:27:42.011801Z'
-assignee: ''
+updated: '2026-09-13T23:37:51.985985Z'
+closed: '2026-09-13T23:37:51.985985Z'
+assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
 
@@ -29,3 +30,9 @@ Evidence: /Users/krimsonkla/git/krimsonkla/knotview/README.md contains no pip/uv
 Recommendation: Add Installation and Requirements sections to README (`pip install .` / `uv tool install`, Python >= 3.12, knot installed from https://github.com/UniSoma/knot and on PATH or passed via `--knot`), note that `pytest -m 'not slow'` / the skip behaviour, catch UnreadableBacklog in `main()` and print a one-line message with exit code 1, and reword the message to name knot's upstream instead of the devenv 'tickets layer'.
 
 Verifier (P1, blocks public: yes): Reproduced. README.md has no Installation/Requirements section: every command is `devenv shell -- knotview ...`, and nothing says knot must be installed or how to get it (the only knot mention is a link in the first sentence); pyproject.toml declares requires-python >=3.12 and a `knotview` console script but the README never surfaces either. Running `devenv shell -- knotview --knot /nonexistent/knot --repository .` prints a full Python traceback ending `UnreadableBacklog: /nonexistent/knot is not on the path. run this inside the devenv shell, where the tickets layer supplies knot` (raised at src/knotview/reading/knot_command.py:147); grep of src/knotview/entry/ finds no reference to UnreadableBacklog, so main() in console.py:86-101 catches nothing despite its docstring promising to "say why it cannot be read". The advice text names a devenv-internal 'tickets layer', meaningless to anyone outside this repo's devenv config. tests/reading/test_real_knot.py:16-19 skips the real-knot tests when knot is absent, so an outside contributor's first `pytest` silently skips fidelity coverage. This is exactly what a first outside user hits on their first command, so P1 is right; not P0 because the tool still works once knot is installed and the exit code is 1.
+
+## Notes
+
+**2026-09-13T23:37:50.966757Z**
+
+Task completed: README now leads with prerequisites (Python 3.12, knot on PATH or --knot, a knot project) and a plain uv/pip install and run path; the devenv shell is presented as the maintainer environment that depends on a private layer repository, with everything else runnable from uv sync --all-groups. The other half of this finding, making krimsonkla/devenv-layers public or switching the input from git+ssh, is the maintainer's decision and is left as is.
