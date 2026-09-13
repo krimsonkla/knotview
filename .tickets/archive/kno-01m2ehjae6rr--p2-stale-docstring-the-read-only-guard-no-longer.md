@@ -1,13 +1,14 @@
 ---
 id: kno-01m2ehjae6rr
 title: '[P2] Stale docstring: the read-only guard no longer reads the source for write verbs'
-status: open
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:47.142681Z'
-updated: '2026-09-13T23:27:47.268119Z'
-assignee: ''
+updated: '2026-09-13T23:41:09.093845Z'
+closed: '2026-09-13T23:41:09.093845Z'
+assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
 
@@ -21,3 +22,9 @@ Evidence: src/knotview/reading/knot_command.py:29-31 says "knot's write verbs ar
 Recommendation: Reword knot_command.py:29-31 to match the structural guard (READS is disjoint from the write verbs; only this module may spawn a process) and align backlog.py:19 with the README wording.
 
 Verifier (P2, blocks public: no): Reproduced at fcc6b66. src/knotview/reading/knot_command.py:29-31 claims the write verbs appear nowhere "here or anywhere else in this package" and that "a guard reads the source and says so"; the actual guards in tests/reading/test_knot_command.py:166-181 assert set(READS).isdisjoint(WRITE_VERBS) and that reading/knot_command.py is the only module containing a process-spawning token, and the test docstring (171-173) explicitly says the guard is NOT on which words appear because "status" is also a field name. A grep confirms "status" occurs in ten modules of the package (ticket.py, project.py, tree.py, overview.py, app.py, etc.), so the comment's "none of them appears anywhere else in this package" is literally false as well as stale; the class docstring at line 44 ("Nothing in this package holds a write verb") has the same defect. The secondary point also reproduces: backlog.py:19 says "the backlog stays AI-driven" while README.md:26 (and the egg-info copy) says "driven by whatever drives it". Both are comment/docstring wording only; the enforced guarantee is correct and tested, so this is polish, not a blocker.
+
+## Notes
+
+**2026-09-13T23:41:08.473075Z**
+
+Task completed: the two comments in knot_command.py now describe the structural guard the tests actually assert (READS disjoint from the write verbs; only this module can start a process) instead of a source scan.

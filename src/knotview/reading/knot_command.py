@@ -28,7 +28,8 @@ PATIENCE = 20
 
 # Only these are ever run. Every one is a read: knot's write verbs are create, start, status, close,
 # reopen, delete, dep, undep, link, unlink, add-note, edit and update, and none of them appears here
-# or anywhere else in this package. A guard reads the source and says so.
+# or anywhere else in this package. A test asserts that READS holds none of them, and that this is
+# the only module in the package that can start a process.
 READS = ("info", "list", "closed", "ready", "blocked", "show", "check")
 
 
@@ -40,7 +41,7 @@ class KnotCommand:
     would be a second schema, and it would drift on the first release that adds a field. Asking
     knot means the panel is wrong only when knot is.
 
-    Every command it runs is a read, and the list is declared above so a guard can assert it.
+    Every command it runs is a read, and the list is declared above so a test can assert it.
     Nothing in this package holds a write verb, which is what makes read-only structural rather
     than polite.
 
