@@ -146,7 +146,8 @@ class KnotCommand:
         except FileNotFoundError as missing:
             raise UnreadableBacklog(
                 f"{self._knot} is not on the path",
-                advice="run this inside the devenv shell, where the tickets layer supplies knot",
+                advice="install knot (github.com/UniSoma/knot) and put it on PATH, or pass "
+                "--knot with the path to it",
             ) from missing
         except subprocess.TimeoutExpired as waited:
             raise UnreadableBacklog(

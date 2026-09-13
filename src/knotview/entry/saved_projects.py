@@ -44,7 +44,13 @@ class SavedProjects:
                 advice=f"saved: {known}; save one with knotview --repository PATH --save NAME",
             )
         entry = saved[name]
-        return SavedProject(repository=Path(entry["repository"]), port=int(entry["port"]))
+        try:
+            return SavedProject(repository=Path(entry["repository"]), port=int(entry["port"]))
+        except (KeyError, TypeError, ValueError) as broken:
+            raise UnknownProject(
+                f"the project saved as {name!r} in {self._path} is missing a repository or a port",
+                advice="give it both, or save it again with knotview --repository PATH --save NAME",
+            ) from broken
 
     def save(self, name: str, project: SavedProject) -> None:
         """Record that project under that name, replacing what the name held before."""
@@ -61,7 +67,13 @@ class SavedProjects:
         """The file as tables by name, or nothing where no file exists yet."""
         if not self._path.is_file():
             return {}
-        return tomllib.loads(self._path.read_text(encoding="utf-8"))
+        try:
+            return tomllib.loads(self._path.read_text(encoding="utf-8"))
+        except tomllib.TOMLDecodeError as broken:
+            raise UnknownProject(
+                f"{self._path} is not valid TOML: {broken}",
+                advice="fix the file by hand, or delete it and save the projects again",
+            ) from broken
 
 
 def _rendered(saved: dict[str, dict]) -> str:

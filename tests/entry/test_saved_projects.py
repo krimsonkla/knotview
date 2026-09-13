@@ -114,3 +114,27 @@ def test_the_registry_lives_under_the_configuration_home_the_environment_names(t
 
 def test_the_registry_lives_under_the_home_dot_config_otherwise():
     assert default_registry_path({}) == Path.home() / ".config" / "knotview" / "projects.toml"
+
+
+def _written(tmp_path: Path, text: str) -> SavedProjects:
+    """A registry whose file already holds that text, as a person editing it might leave it."""
+    path = tmp_path / "config" / "knotview" / "projects.toml"
+    path.parent.mkdir(parents=True)
+    path.write_text(text, encoding="utf-8")
+    return SavedProjects(path)
+
+
+def test_a_file_that_is_not_toml_is_refused_with_its_path_and_advice(tmp_path: Path):
+    registry = _written(tmp_path, "[x\n")
+
+    with pytest.raises(UnknownProject, match="is not valid TOML") as refused:
+        registry.named("outcry")
+
+    assert "delete it" in refused.value.advice
+
+
+def test_a_saved_project_missing_a_field_is_refused_rather_than_a_key_error(tmp_path: Path):
+    registry = _written(tmp_path, '["outcry"]\nport = 7778\n')
+
+    with pytest.raises(UnknownProject, match="missing a repository or a port"):
+        registry.named("outcry")

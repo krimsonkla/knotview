@@ -1,13 +1,14 @@
 ---
 id: kno-01m2ehj5xney
 title: '[P1] Ordinary CLI failures print Python tracebacks instead of the refusal page''s advice'
-status: open
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:42.517557Z'
-updated: '2026-09-13T23:27:42.633082Z'
-assignee: ''
+updated: '2026-09-13T23:35:36.074473Z'
+closed: '2026-09-13T23:35:36.074473Z'
+assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
 
@@ -37,3 +38,9 @@ Evidence: README.md lines 43-44 invite editing `~/.config/knotview/projects.toml
 Recommendation: Wrap parsing and field access in SavedProjects and raise UnknownProject with the file path and advice; combine with the main() handler from the P1 finding so the user sees one line, not a stack.
 
 Verifier (P2, blocks public: no): Confirmed by reproduction. I read /Users/krimsonkla/git/krimsonkla/knotview/src/knotview/entry/saved_projects.py: `_read` (line 64) calls `tomllib.loads` with no guard and `named` (line 47) does `entry["repository"]` / `int(entry["port"])` unguarded; the only place it is called is `main()` in src/knotview/entry/console.py, which has no exception handler at all. Running `main(['x'])` with XDG_CONFIG_HOME pointing at a scratch config produced: `[x` -> full traceback ending `tomllib.TOMLDecodeError: Expected ']' at the end of a table declaration (at line 1, column 3)`; a table missing `repository` -> `KeyError: 'repository'` traceback; `port = "abc"` -> `ValueError: invalid literal for int()` traceback (a third unguarded case the reporter did not list). The README invitation to hand-edit the file is real, though it is at README.md lines 21-22 ("plain TOML a person can edit"), not 43-44 as cited. Note the reporter's P1 sibling is what actually matters here: even the deliberately raised `UnknownProject` for an unknown name currently prints as a traceback because main() catches nothing, so this finding is largely subsumed by adding that handler. Severity P2 is right: it requires the user to corrupt their own config file by hand, the tomllib traceback already names the line and column, and nothing is exposed or damaged. Does not block going public.
+
+## Notes
+
+**2026-09-13T23:35:35.419167Z**
+
+Task completed: main() catches UnreadableBacklog and UnknownProject, prints the message and the advice to stderr as two knotview: lines and exits 1; the missing-knot advice now says to install knot or pass --knot; SavedProjects refuses a malformed projects.toml and a table missing a field with the path and advice instead of a traceback. Four tests added; suite 149 at 100 percent.

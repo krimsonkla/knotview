@@ -12,6 +12,7 @@ from knotview.entry.saved_projects import SavedProjects, default_registry_path
 from knotview.reading.knot_command import KnotCommand
 from knotview.values.saved_project import SavedProject
 from knotview.values.unknown_project import UnknownProject
+from knotview.values.unreadable_backlog import UnreadableBacklog
 
 # Loopback, and not a default that can be overridden into something else. This panel shows a whole
 # backlog with no authentication of any kind, which is fine for one reader on one machine and is not
@@ -91,11 +92,17 @@ def main(given: Sequence[str] | None = None) -> int:
     being pointed at a directory that is not a knot project.
     """
     asked = arguments(sys.argv[1:] if given is None else given)
-    repository, port = settings_for(
-        asked, SavedProjects(default_registry_path()), cwd=Path.cwd().resolve()
-    )
-    backlog = KnotCommand(repository=repository, knot=asked.knot)
-    project = backlog.project()
+    try:
+        repository, port = settings_for(
+            asked, SavedProjects(default_registry_path()), cwd=Path.cwd().resolve()
+        )
+        backlog = KnotCommand(repository=repository, knot=asked.knot)
+        project = backlog.project()
+    except (UnknownProject, UnreadableBacklog) as refusal:
+        # The two refusals a person can act on, said in one line each rather than as a stack.
+        print(f"knotview: {refusal.message}.", file=sys.stderr)
+        print(f"knotview: {refusal.advice}.", file=sys.stderr)
+        return 1
     print(f"knotview — http://{ADDRESS}:{port}/  reading {project.name} at {repository}")
     uvicorn.run(panel(backlog), host=ADDRESS, port=port, log_level="warning")
     return 0

@@ -15,6 +15,7 @@ from knotview.entry.console import PORT, arguments, settings_for
 from knotview.entry.saved_projects import SavedProjects
 from knotview.values.saved_project import SavedProject
 from knotview.values.unknown_project import UnknownProject
+from knotview.values.unreadable_backlog import UnreadableBacklog
 
 
 def _registry(tmp_path: Path) -> SavedProjects:
@@ -123,3 +124,38 @@ def test_main_serves_the_saved_project_on_its_saved_port(tmp_path: Path, monkeyp
     assert served[0]["port"] == 7790 and served[0]["host"] == "127.0.0.1"
     assert _Backlog.built[-1] == (tmp_path / "outcry", "knot")
     assert "7790" in capsys.readouterr().out
+
+
+class _Refusing:
+    """Stands in for a knot reader pointed at a directory that is not a project."""
+
+    def __init__(self, *, repository: Path, knot: str) -> None:
+        del repository, knot
+
+    def project(self) -> None:
+        """Refuse, the way the real reader does when knot finds no project."""
+        raise UnreadableBacklog("knot info was refused: no project here", advice="point it at one")
+
+
+def test_main_says_why_the_backlog_cannot_be_read_and_exits_one(
+    tmp_path: Path, monkeypatch, capsys
+):
+    monkeypatch.setattr(console, "default_registry_path", lambda: tmp_path / "projects.toml")
+    monkeypatch.setattr(console, "KnotCommand", _Refusing)
+    monkeypatch.chdir(tmp_path)
+
+    assert console.main(["--repository", str(tmp_path)]) == 1
+
+    said = capsys.readouterr().err
+    assert "knotview: knot info was refused: no project here." in said
+    assert "knotview: point it at one." in said
+
+
+def test_main_says_which_name_is_unknown_and_exits_one(tmp_path: Path, monkeypatch, capsys):
+    _registry(tmp_path)
+    monkeypatch.setattr(console, "default_registry_path", lambda: tmp_path / "projects.toml")
+    monkeypatch.chdir(tmp_path)
+
+    assert console.main(["nowhere"]) == 1
+
+    assert "no project is saved as 'nowhere'" in capsys.readouterr().err
