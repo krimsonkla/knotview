@@ -1,0 +1,22 @@
+# devenv writes these; they are generated rather than authored.
+.devenv*
+devenv.local.nix
+.pre-commit-config.yaml
+.mcp.json
+.claude/
+.cache/
+
+# Python
+__pycache__/
+*.py[cod]
+.coverage
+.pytest_cache/
+*.egg-info/
+.venv/
+
+# Editors
+.idea/
+.direnv/
+
+# Tool caches
+.ruff_cache/

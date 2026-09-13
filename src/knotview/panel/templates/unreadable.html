@@ -1,0 +1,7 @@
+{% extends "bare.html" %} {% block main %}
+<section class="card warn">
+  <h1>the backlog could not be read</h1>
+  <p>{{ refusal.message }}.</p>
+  <p class="muted">{{ refusal.advice }}.</p>
+</section>
+{% endblock %}

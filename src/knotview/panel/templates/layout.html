@@ -1,0 +1,35 @@
+{# The frame every page shares: who we are looking at, how to get anywhere, and
+the live indicator. #}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}{{ project.name }}{% endblock %} · knotview</title>
+    <link rel="stylesheet" href="/static/panel.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/">{{ project.name }}</a>
+      <span class="muted"
+        >{{ project.prefix }} · knot {{ project.knot_version }}</span
+      >
+      <nav>
+        <a href="/">overview</a>
+        <a href="/tickets">tickets</a>
+        <a href="/tree">tree</a>
+        <a href="/queue/ready">ready</a>
+        <a href="/queue/blocked">blocked</a>
+      </nav>
+      <span id="live" class="live" title="following the backlog">live</span>
+    </header>
+
+    <main>{% block main %}{% endblock %}</main>
+
+    <footer class="muted">
+      {{ project.live_count }} live · {{ project.archive_count }} archived ·
+      read only
+    </footer>
+    <script src="/static/follow.js"></script>
+  </body>
+</html>

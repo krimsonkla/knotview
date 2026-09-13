@@ -1,0 +1,32 @@
+inputs:
+  devenv-layers:
+    url: git+ssh://git@github.com/krimsonkla/devenv-layers
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  claude-code-nix:
+    url: github:sadjow/claude-code-nix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  git-hooks:
+    url: github:cachix/git-hooks.nix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  nix-derivations:
+    url: github:krimsonkla/nix-derivations
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  nix-unstable:
+    url: github:NixOS/nixpkgs/nixpkgs-unstable
+  nixpkgs-python:
+    url: github:cachix/nixpkgs-python
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+allow_unfree: true
+nixpkgs:
+  permitted_unfree_packages:
+    - claude-code

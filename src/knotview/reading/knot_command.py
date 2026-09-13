@@ -1,0 +1,194 @@
+"""The backlog, read by running knot in the project it belongs to."""
+
+import hashlib
+import json
+import subprocess
+from collections.abc import Sequence
+from pathlib import Path
+
+from knotview.reading.knot_envelope import (
+    answered,
+    project_from,
+    ticket_from,
+    tickets_from,
+)
+from knotview.values.project import Project
+from knotview.values.ticket import Ticket
+from knotview.values.unreadable_backlog import UnreadableBacklog
+
+# The command, named rather than found, so the one place this panel reaches outside itself is one
+# constant somebody can see.
+KNOT = "knot"
+
+# How long any single read may take before the panel stops waiting. A backlog read is a local
+# process over a directory of small files; a read that takes longer than this is a knot that is
+# wedged, and a page that waited forever would hang rather than say so.
+PATIENCE = 20
+
+# Only these are ever run. Every one is a read: knot's write verbs are create, start, status, close,
+# reopen, delete, dep, undep, link, unlink, add-note, edit and update, and none of them appears here
+# or anywhere else in this package. A guard reads the source and says so.
+READS = ("info", "list", "closed", "ready", "blocked", "show", "check")
+
+
+class KnotCommand:
+    """A backlog read by invoking knot in a directory, and nothing else.
+
+    It reads knot's JSON rather than the ticket files, which is the decision this whole panel rests
+    on. The files are markdown with frontmatter and knot owns their schema; a second parser here
+    would be a second schema, and it would drift on the first release that adds a field. Asking
+    knot means the panel is wrong only when knot is.
+
+    Every command it runs is a read, and the list is declared above so a guard can assert it.
+    Nothing in this package holds a write verb, which is what makes read-only structural rather
+    than polite.
+
+    It caches nothing. A page is rendered per request and a request costs a few short processes over
+    small files, which is cheap enough that a cache would mostly be a way for the panel to be out of
+    date while looking current.
+    """
+
+    def __init__(self, *, repository: Path, knot: str = KNOT, patience: int = PATIENCE) -> None:
+        self._repository = repository
+        self._knot = knot
+        self._patience = patience
+
+    @property
+    def repository(self) -> Path:
+        """Which project this reads, which every page names so two panels cannot be confused."""
+        return self._repository
+
+    def project(self) -> Project:
+        """What the project says about itself: its types, statuses, modes and counts."""
+        return project_from(self._read("info"))
+
+    def live(self) -> tuple[Ticket, ...]:
+        """Every ticket that is not in a terminal status."""
+        return tickets_from(self._read("list"), attempting="listing the live tickets")
+
+    def closed(self) -> tuple[Ticket, ...]:
+        """Every terminal ticket, newest closed first."""
+        return tickets_from(self._read("closed"), attempting="listing the closed tickets")
+
+    def ready(self) -> tuple[Ticket, ...]:
+        """Every ticket whose blockers are all closed."""
+        return tickets_from(self._read("ready"), attempting="listing the ready tickets")
+
+    def blocked(self) -> tuple[Ticket, ...]:
+        """Every ticket with at least one open blocker."""
+        return tickets_from(self._read("blocked"), attempting="listing the blocked tickets")
+
+    def ticket(self, identifier: str) -> Ticket:
+        """One ticket in full, by the id or the partial id knot resolves."""
+        stated = self._read("show", identifier)
+        if not isinstance(stated, dict):
+            raise UnreadableBacklog(
+                f"reading {identifier} answered with {type(stated).__name__} rather than a ticket",
+                advice="check the id against knot list, since knot resolves a partial id",
+            )
+        return ticket_from(stated)
+
+    def integrity(self) -> tuple[str, ...]:
+        """What the project's own check reports, as lines, empty when it is clean.
+
+        Shown rather than enforced. This panel is a reader: a backlog with a dangling reference is
+        something its author wants to know about, and refusing to render until it is fixed would
+        hide
+        the very thing the reader came to see.
+        """
+        stated = self._read("check")
+        issues = stated.get("issues") if isinstance(stated, dict) else None
+        if not isinstance(issues, list):
+            return ()
+        return tuple(_described(issue) for issue in issues)
+
+    def digest(self) -> str:
+        """A value over the ticket files' names and modification times, so a change moves it.
+
+        Over the files rather than over the rendered pages, because it has to be cheap enough to
+        compute on a timer: this is what the live stream compares, and a digest that cost a full
+        read would make following the backlog more expensive than reading it.
+
+        Modification times rather than contents, for the same reason. A write that leaves a file
+        byte-identical changes nothing a reader would see.
+        """
+        tickets = Path(self.project().tickets_path)
+        if not tickets.is_dir():
+            return "absent"
+        stamped = sorted(
+            f"{path.relative_to(tickets)}:{path.stat().st_mtime_ns}"
+            for path in tickets.rglob("*.md")
+        )
+        return hashlib.sha256("\n".join(stamped).encode("utf-8")).hexdigest()[:16]
+
+    def _read(self, command: str, *arguments: str) -> object:
+        """One knot read, as data, refusing anything this panel was not written to run."""
+        if command not in READS:
+            raise UnreadableBacklog(
+                f"{command} is not one of the reads this panel runs",
+                advice=f"use one of {', '.join(READS)}, since this panel only ever reads",
+            )
+        spoken = self._spoken(command, arguments)
+        try:
+            answer = subprocess.run(
+                spoken,
+                cwd=self._repository,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=self._patience,
+            )
+        except FileNotFoundError as missing:
+            raise UnreadableBacklog(
+                f"{self._knot} is not on the path",
+                advice="run this inside the devenv shell, where the tickets layer supplies knot",
+            ) from missing
+        except subprocess.TimeoutExpired as waited:
+            raise UnreadableBacklog(
+                f"{self._knot} {command} did not answer within {self._patience} seconds",
+                advice="run the same command in that directory to see what it is waiting for",
+            ) from waited
+        return answered(_data_in(answer, spoken), attempting=f"{self._knot} {command}")
+
+    def _spoken(self, command: str, arguments: Sequence[str]) -> list[str]:
+        """The argument list knot is handed.
+
+        The JSON flag goes last, so the command reads as the one a person would run.
+        """
+        return [self._knot, command, *arguments, "--json"]
+
+
+def _data_in(answer: subprocess.CompletedProcess[str], spoken: Sequence[str]) -> dict:
+    """The envelope knot printed, refusing output that is not one.
+
+    knot prints its envelope on standard output and its diagnostics on standard error, and it
+    answers with a failed envelope rather than with nothing when it refuses. So output that will
+    not parse is
+    a different thing from a non-zero exit: the first means the shape moved, and the second usually
+    arrives with a readable envelope anyway.
+    """
+    try:
+        return json.loads(answer.stdout)
+    except json.JSONDecodeError as unreadable:
+        said = (answer.stderr or answer.stdout or "").strip().splitlines()
+        raise UnreadableBacklog(
+            f"{' '.join(spoken)} printed nothing this panel can read"
+            + (f": {said[0]}" if said else ""),
+            advice="run that command in the directory the panel was pointed at",
+        ) from unreadable
+
+
+def _described(issue: object) -> str:
+    """One integrity issue as a line, however knot chose to shape it.
+
+    knot's check reports a list whose entries are its own business, so this states what it was given
+    rather than insisting on a shape: a panel that refused to show an issue because the issue was
+    shaped unexpectedly would be hiding exactly the thing worth showing.
+    """
+    if isinstance(issue, str):
+        return issue
+    if isinstance(issue, dict):
+        named = issue.get("message") or issue.get("error") or issue.get("kind")
+        where = issue.get("id") or issue.get("path")
+        return " ".join(str(part) for part in (where, named) if part) or json.dumps(issue)
+    return str(issue)

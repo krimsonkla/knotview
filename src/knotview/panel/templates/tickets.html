@@ -1,0 +1,105 @@
+{% extends "layout.html" %} {% block title %}tickets{% endblock %} {% block main
+%}
+<form class="filters" method="get" action="/tickets">
+  <label
+    >type
+    <select name="type">
+      <option value="{{ any }}">any</option>
+      {% for one in project.types %}
+      <option
+        value="{{ one }}"
+        {% if selection.type == one %}selected{% endif %}
+      >
+        {{ one }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+  <label
+    >status
+    <select name="status">
+      <option value="{{ any }}">any</option>
+      {% for one in project.statuses %}
+      <option
+        value="{{ one }}"
+        {% if selection.status == one %}selected{% endif %}
+      >
+        {{ one }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+  <label
+    >priority
+    <select name="priority">
+      <option value="{{ any }}">any</option>
+      {% for one in project.priorities %}
+      <option
+        value="{{ one }}"
+        {% if selection.priority == one | string %}selected{% endif %}
+      >
+        {{ one }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+  <label
+    >mode
+    <select name="mode">
+      <option value="{{ any }}">any</option>
+      {% for one in project.modes %}
+      <option
+        value="{{ one }}"
+        {% if selection.mode == one %}selected{% endif %}
+      >
+        {{ one }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+  <label
+    >order
+    <select name="order">
+      {% for one in orders %}
+      <option
+        value="{{ one }}"
+        {% if selection.order == one %}selected{% endif %}
+      >
+        {{ one }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+  <label
+    >matching
+    <input
+      type="search"
+      name="q"
+      value="{{ selection.query }}"
+      placeholder="id, title or tag"
+  /></label>
+  <label class="check"
+    ><input
+      type="checkbox"
+      name="closed"
+      value="1"
+      {%
+      if
+      selection.closed
+      %}checked{%
+      endif
+      %}
+    />
+    include closed</label
+  >
+  <button type="submit">apply</button>
+  {% if selection.filtering %}<a class="clear" href="/tickets">clear</a>{% endif
+  %}
+</form>
+
+<p class="muted">
+  {{ tickets | length }} of {{ counted }} {%- for field, value in
+  selection.applied() %} · {{ field }} {{ value }}{% endfor %}
+</p>
+
+{% include "_ticket_table.html" %} {% endblock %}

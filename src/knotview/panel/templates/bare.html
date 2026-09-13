@@ -1,0 +1,15 @@
+{# A frame for a page that cannot assume a project was read, which the layout
+needs. #}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>knotview</title>
+    <link rel="stylesheet" href="/static/panel.css" />
+  </head>
+  <body>
+    <header class="bar"><span class="brand">knotview</span></header>
+    <main>{% block main %}{% endblock %}</main>
+  </body>
+</html>

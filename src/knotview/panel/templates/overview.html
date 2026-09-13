@@ -1,0 +1,97 @@
+{% extends "layout.html" %} {% block main %} {% if overview.integrity %}
+<section class="card warn">
+  <h2>integrity</h2>
+  <p class="muted">
+    What the project's own check reports. Shown rather than enforced: this panel
+    reads.
+  </p>
+  <ul>
+    {% for issue in overview.integrity %}
+    <li>{{ issue }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="counts">
+  <div class="card">
+    <h2>by type</h2>
+    <ul class="tally">
+      {% for tally in overview.by_type %}
+      <li>
+        <a href="/tickets?{{ tally.filter }}={{ tally.value }}"
+          >{{ tally.label }}</a
+        >
+        <span class="num">{{ tally.count }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card">
+    <h2>by status</h2>
+    <ul class="tally">
+      {% for tally in overview.by_status %}
+      <li>
+        <a href="/tickets?{{ tally.filter }}={{ tally.value }}"
+          >{{ tally.label }}</a
+        >
+        <span class="num">{{ tally.count }}</span>
+      </li>
+      {% endfor %}
+      <li class="muted">
+        terminal
+        <span class="num"
+          ><a href="/tickets?closed=1">{{ project.archive_count }}</a></span
+        >
+      </li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>by priority</h2>
+    <ul class="tally">
+      {% for tally in overview.by_priority %}
+      <li>
+        <a href="/tickets?{{ tally.filter }}={{ tally.value }}"
+          >{{ tally.label }}</a
+        >
+        <span class="num">{{ tally.count }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card">
+    <h2>queues</h2>
+    <ul class="tally">
+      {% for tally in overview.by_queue %}
+      <li>
+        {% if tally.filter == "queue" %}
+        <a href="/queue/{{ tally.value }}">{{ tally.label }}</a>
+        {% else %}
+        <span>{{ tally.label }}</span>
+        {% endif %}
+        <span class="num">{{ tally.count }}</span>
+      </li>
+      {% endfor %}
+      <li>
+        <a href="/tickets">live</a
+        ><span class="num">{{ overview.live_total }}</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="card">
+  <h2>parents</h2>
+  <p class="muted">
+    Everything something else is filed under, whatever this project calls that
+    type.
+  </p>
+  {% set tickets = overview.parents %} {% include "_ticket_table.html" %}
+</section>
+
+<section class="card">
+  <h2>recently closed</h2>
+  {% set tickets = overview.recently_closed %} {% include "_ticket_table.html"
+  %}
+</section>
+{% endblock %}

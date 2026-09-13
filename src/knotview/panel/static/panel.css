@@ -1,0 +1,325 @@
+/* One stylesheet, no build step, no framework. The panel is a handful of pages of dense text, and
+   the job here is making a table of tickets scannable rather than making anything look designed. */
+
+:root {
+  color-scheme: light dark;
+  --ink: #16181d;
+  --faint: #6b7280;
+  --line: #d9dce3;
+  --card: #ffffff;
+  --ground: #f4f5f7;
+  --accent: #2b5fd9;
+  --warn: #9a3412;
+  --warn-ground: #fff4ed;
+  --done: #0f7b4f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e6e8ec;
+    --faint: #9aa1ad;
+    --line: #2c313a;
+    --card: #15181d;
+    --ground: #0e1013;
+    --accent: #7aa2f7;
+    --warn: #f0a878;
+    --warn-ground: #241a14;
+    --done: #5fd3a0;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font:
+    14px/1.5 ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+}
+.bar nav {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.muted {
+  color: var(--faint);
+}
+
+.live {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.live.following {
+  color: var(--done);
+  border-color: currentColor;
+}
+.live.stale {
+  color: var(--warn);
+  border-color: currentColor;
+}
+
+main {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  overflow-x: auto;
+}
+.card.warn {
+  background: var(--warn-ground);
+  border-color: var(--warn);
+}
+.card h1,
+.card h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.card h1 {
+  font-size: 18px;
+}
+
+.counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.tally {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tally li {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--line);
+}
+.tally li:last-child {
+  border-bottom: 0;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+
+table.tickets {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+table.tickets th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--faint);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line);
+}
+table.tickets td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+table.tickets tr:last-child td {
+  border-bottom: 0;
+}
+td.num,
+th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.title {
+  font-weight: 600;
+}
+.id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--faint);
+  margin-left: 6px;
+}
+
+.chip,
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--faint);
+}
+.tag {
+  margin-left: 4px;
+}
+.status-in_progress {
+  color: var(--accent);
+  border-color: currentColor;
+}
+.status-closed {
+  color: var(--done);
+  border-color: currentColor;
+}
+
+.pri {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.p0 {
+  color: var(--warn);
+}
+.p1 {
+  color: #c2410c;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  flex-wrap: wrap;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.filters label {
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  color: var(--faint);
+  gap: 3px;
+}
+.filters label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+.filters select,
+.filters input {
+  font: inherit;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--ground);
+  color: var(--ink);
+}
+.filters button {
+  font: inherit;
+  padding: 4px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+.criteria {
+  margin: 0;
+  padding-left: 18px;
+}
+.criteria li.met {
+  color: var(--done);
+}
+.criteria li.unmet .box {
+  color: var(--faint);
+}
+.box {
+  font-family: ui-monospace, monospace;
+}
+
+.prose {
+  white-space: pre-wrap;
+  font-size: 13px;
+}
+.graph {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.refs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.refs li {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--line);
+}
+.refs li:last-child {
+  border-bottom: 0;
+}
+
+.branch.complete h2 a:first-child {
+  color: var(--done);
+}
+.ticket header h1 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+.meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0 0 4px;
+}
+.clear {
+  align-self: center;
+  font-size: 12px;
+}

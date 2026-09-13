@@ -1,0 +1,11 @@
+{% extends "layout.html" %} {% block title %}{{ which }}{% endblock %} {% block
+main %}
+<section class="card">
+  <h2>{{ which }}</h2>
+  <p class="muted">
+    {% if which == "ready" %}Every blocker closed, so nothing outside the ticket
+    is in the way. {% else %}At least one blocker still open.{% endif %}
+  </p>
+  {% include "_ticket_table.html" %}
+</section>
+{% endblock %}

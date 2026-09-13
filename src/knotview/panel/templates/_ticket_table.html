@@ -1,0 +1,71 @@
+{# One table of tickets, used by every list so they cannot drift apart. #}
+<table class="tickets">
+  <thead>
+    <tr>
+      <th>
+        <a href="/tickets?{{ selection.query_string(order='priority') }}"
+          >pri</a
+        >
+      </th>
+      <th>type</th>
+      <th>status</th>
+      <th>
+        <a href="/tickets?{{ selection.query_string(order='title') }}">title</a>
+      </th>
+      <th>acceptance</th>
+      <th>blocked by</th>
+      <th>assignee</th>
+      <th>
+        <a href="/tickets?{{ selection.query_string(order='updated') }}"
+          >updated</a
+        >
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for ticket in tickets %}
+    <tr>
+      <td class="pri p{{ ticket.priority }}">{{ ticket.priority }}</td>
+      <td>
+        <a class="chip" href="/tickets?type={{ ticket.type }}"
+          >{{ ticket.type }}</a
+        >
+      </td>
+      <td>
+        <a
+          class="chip status-{{ ticket.status }}"
+          href="/tickets?status={{ ticket.status }}"
+        >
+          {{ ticket.status }}</a
+        >
+      </td>
+      <td>
+        <a class="title" href="/ticket/{{ ticket.id }}">{{ ticket.title }}</a>
+        <span class="id">{{ ticket.id }}</span>
+        {% for tag in ticket.tags %}<a class="tag" href="/tickets?tag={{ tag }}"
+          >{{ tag }}</a
+        >{% endfor %}
+      </td>
+      <td class="num">
+        {% if ticket.criteria %}{{ ticket.met }}/{{ ticket.criteria }}{% else
+        %}—{% endif %}
+      </td>
+      <td class="num">
+        {% if ticket.open_blockers %}{{ ticket.open_blockers | length }}{% else
+        %}—{% endif %}
+      </td>
+      <td>
+        {% if ticket.assignee %}<a
+          href="/tickets?assignee={{ ticket.assignee }}"
+          >{{ ticket.assignee }}</a
+        >{% else %}<span class="muted">nobody</span>{% endif %}
+      </td>
+      <td class="muted">{{ ticket.updated | humanise }}</td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="8" class="muted">nothing here</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

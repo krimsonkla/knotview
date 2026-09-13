@@ -1,0 +1,96 @@
+{% extends "layout.html" %} {% block title %}{{ ticket.id }}{% endblock %} {%
+block main %}
+<article class="ticket">
+  <header>
+    <h1>{{ ticket.title }}</h1>
+    <p class="meta">
+      <span class="id">{{ ticket.id }}</span>
+      <a class="chip" href="/tickets?type={{ ticket.type }}"
+        >{{ ticket.type }}</a
+      >
+      <a
+        class="chip status-{{ ticket.status }}"
+        href="/tickets?status={{ ticket.status }}"
+        >{{ ticket.status }}</a
+      >
+      <span class="pri p{{ ticket.priority }}">p{{ ticket.priority }}</span>
+      {% if ticket.mode %}<a class="chip" href="/tickets?mode={{ ticket.mode }}"
+        >{{ ticket.mode }}</a
+      >{% endif %} {% if ticket.assignee %}<a
+        class="chip"
+        href="/tickets?assignee={{ ticket.assignee }}"
+        >{{ ticket.assignee }}</a
+      >
+      {% else %}<span class="chip muted">nobody</span>{% endif %} {% for tag in
+      ticket.tags %}<a class="tag" href="/tickets?tag={{ tag }}">{{ tag }}</a>{%
+      endfor %}
+    </p>
+    <p class="muted">
+      created {{ ticket.created | humanise }} · updated {{ ticket.updated |
+      humanise }} {% if ticket.closed %} · closed {{ ticket.closed | humanise
+      }}{% endif %} {% if ticket.parent %} · under
+      <a href="/ticket/{{ ticket.parent }}">{{ ticket.parent }}</a>{% endif %}
+    </p>
+  </header>
+
+  {% if ticket.acceptance %}
+  <section class="card">
+    <h2>
+      acceptance <span class="num">{{ ticket.met }}/{{ ticket.criteria }}</span>
+    </h2>
+    <ol class="criteria">
+      {% for criterion in ticket.acceptance %}
+      <li class="{% if criterion.done %}met{% else %}unmet{% endif %}">
+        <span class="box">{% if criterion.done %}✓{% else %}○{% endif %}</span>
+        {{ criterion.title }}
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %} {% for heading, text in ticket.narrative() %}
+  <section class="card">
+    <h2>{{ heading }}</h2>
+    <div class="prose">{{ text }}</div>
+  </section>
+  {% endfor %}
+
+  <section class="graph">
+    {% for label, references in (("blocked by", ticket.blockers), ("blocking",
+    ticket.blocking), ("children", ticket.children), ("linked", ticket.linked))
+    %} {% if references %}
+    <div class="card">
+      <h2>{{ label }} <span class="num">{{ references | length }}</span></h2>
+      <ul class="refs">
+        {% for reference in references %}
+        <li>
+          <a
+            class="chip status-{{ reference.status }}"
+            href="/ticket/{{ reference.id }}"
+            >{{ reference.status }}</a
+          >
+          <a href="/ticket/{{ reference.id }}">{{ reference.title }}</a>
+          <span class="id">{{ reference.id }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %} {% endfor %}
+  </section>
+
+  {% if ticket.external_refs %}
+  <section class="card">
+    <h2>external</h2>
+    <ul class="refs">
+      {% for ref in ticket.external_refs %}
+      <li>{{ ref }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %} {% if ticket.notes %}
+  <section class="card notes">
+    <h2>notes</h2>
+    <div class="prose">{{ ticket.notes }}</div>
+  </section>
+  {% endif %}
+</article>
+{% endblock %}

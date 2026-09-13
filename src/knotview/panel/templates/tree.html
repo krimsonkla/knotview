@@ -1,0 +1,42 @@
+{% extends "layout.html" %} {% block title %}tree{% endblock %} {% block main %}
+<p class="muted">
+  What is filed under what. A parent is a ticket something else names as its
+  parent, so this is the project's own shape rather than a search for a type
+  called epic.
+</p>
+
+{% for branch in tree.branches %}
+<section class="card branch {% if branch.complete %}complete{% endif %}">
+  <h2>
+    <a href="/ticket/{{ branch.parent.id }}">{{ branch.parent.title }}</a>
+    <a
+      class="chip status-{{ branch.parent.status }}"
+      href="/ticket/{{ branch.parent.id }}"
+      >{{ branch.parent.status }}</a
+    >
+    <span class="num">children {{ branch.done }}/{{ branch.total }}</span>
+    {% if branch.criteria %}<span class="num"
+      >criteria {{ branch.met }}/{{ branch.criteria }}</span
+    >{% endif %}
+  </h2>
+  {% if branch.complete and not branch.parent.status in
+  project.terminal_statuses %}
+  <p class="muted">
+    Every child is done and this is still open, which is either its own criteria
+    or nobody noticing.
+  </p>
+  {% endif %} {% set tickets = branch.children %} {% include
+  "_ticket_table.html" %}
+</section>
+{% endfor %} {% if tree.orphans %}
+<section class="card">
+  <h2>
+    filed under nothing <span class="num">{{ tree.orphans | length }}</span>
+  </h2>
+  <p class="muted">
+    Not in any parent, so not visible in the branches above. This is where work
+    goes missing.
+  </p>
+  {% set tickets = tree.orphans %} {% include "_ticket_table.html" %}
+</section>
+{% endif %} {% endblock %}

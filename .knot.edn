@@ -1,0 +1,16 @@
+;; Knot project config for knotview's own backlog, which is also the fixture this
+;; panel is developed against: a viewer whose own tickets it can read is a viewer
+;; somebody notices is broken.
+{
+    :project-name "knotview"
+    :tickets-dir ".tickets"
+    :default-type "task"
+    :default-priority 2
+    :statuses ["open" "in_progress" "closed"]
+    :terminal-statuses #{"closed"}
+    :active-status "in_progress"
+    :types ["bug" "feature" "task" "epic" "chore"]
+    :modes ["afk" "hitl"]
+    :default-mode "hitl"
+    :afk-mode "afk"
+}

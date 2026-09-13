@@ -1,0 +1,32 @@
+# knotview — devenv-layers role selection.
+#
+# No secrets provider and no cloud: this repository holds no credentials and
+# deploys nowhere. The panel it builds binds to loopback and reads a backlog
+# through the knot command line, so the only external thing it needs is knot,
+# which the tickets layer supplies.
+
+[vcs]
+provider = "github"
+
+[tickets]
+provider = "knot"
+
+[wiki]
+provider = "none"
+
+[ai_review]
+provider = "none"
+
+[secrets]
+provider = "none"
+
+# No binary cache: this repository has no secrets provider to hold a push token, and it
+# builds nothing expensive. The shared cache is a later decision rather than a default.
+[binary_cache]
+provider = "none"
+
+[cloud]
+providers = []
+
+[code_graph]
+provider = "none"
