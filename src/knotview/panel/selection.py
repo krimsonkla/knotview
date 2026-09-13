@@ -15,7 +15,7 @@ ANY = "any"
 
 
 @dataclass(frozen=True, kw_only=True)
-class Selection:
+class Selection:  # pylint: disable=too-many-instance-attributes
     """One reader's filters, as a value rather than a handful of arguments.
 
     A value because every page shares them and because the panel has to hand them back: a filtered
@@ -24,6 +24,11 @@ class Selection:
     not declare is dropped rather than obeyed. A status that no longer exists would otherwise
     silently select nothing, and an empty page reads as a quiet backlog rather than as a stale
     link.
+
+    It holds more attributes than the linter's default allows because the fields are the query
+    string this panel defines, one per filter the URL carries, and query_string and matches
+    read them in one place; a split would move the filter list away from the code that keeps
+    every link honest.
     """
 
     type: str = ANY

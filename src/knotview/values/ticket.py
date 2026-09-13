@@ -7,7 +7,7 @@ from knotview.values.reference import Reference
 
 
 @dataclass(frozen=True, kw_only=True)
-class Ticket:
+class Ticket:  # pylint: disable=too-many-instance-attributes
     """A ticket and everything the panel shows about it.
 
     Assembled from whichever knot command answered, which is why so much is optional. A listing
@@ -19,6 +19,9 @@ class Ticket:
     ticket is a small document with headings its author chose, and flattening it would lose the
     distinction between what a ticket is for and how it was designed, which is most of what a reader
     came for.
+
+    It holds more attributes than the linter's default allows because the fields are knot's
+    record shape; grouping them into nested values would hide the schema this reader mirrors.
     """
 
     id: str

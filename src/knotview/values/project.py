@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True, kw_only=True)
-class Project:
+class Project:  # pylint: disable=too-many-instance-attributes
     """The configuration the panel is shaped by, read from the project rather than assumed.
 
     Every list here is the project's own. A panel with its own idea of which types exist is a panel
@@ -15,6 +15,10 @@ class Project:
     The active and terminal statuses matter more than they look. They are what lets the panel say
     "in progress" and "closed" without knowing those words: one project's active status may be
     `doing` and another's `in_progress`, and a panel that hardcoded either would mislabel the other.
+
+    It holds more attributes than the linter's default allows because the fields are what knot
+    info reports; grouping them into nested values would hide the configuration this panel
+    mirrors.
     """
 
     name: str
