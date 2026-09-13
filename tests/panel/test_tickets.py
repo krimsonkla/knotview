@@ -1,0 +1,98 @@
+"""Every ticket the filters admit, in the order asked for, with every filter kept in the links."""
+
+import pytest
+
+from knotview.panel.selection import ANY, Selection
+from tests.panel.declared import CHILD, ORPHAN, PARENT, PROJECT, DeclaredBacklog, ticket
+
+NAMES = ("The parent", "The child", "The orphan", "The closed one")
+
+
+def titles(page: str) -> list[str]:
+    """Which of the declared tickets the page shows, in the page's order of first mention."""
+    return [name for name in NAMES if name in page]
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("", ["The parent", "The child", "The orphan"]),
+        ("type=bug", ["The orphan"]),
+        ("status=in_progress", ["The child"]),
+        ("priority=1", ["The parent"]),
+        ("mode=afk", ["The child"]),
+        ("assignee=someone", ["The orphan"]),
+        ("tag=auth", ["The parent"]),
+        ("q=orphan", ["The orphan"]),
+        ("q=pro-01m2bbbb", ["The child"]),
+        ("q=p0", ["The parent"]),
+        ("type=nonsense", ["The parent", "The child", "The orphan"]),
+        ("closed=1", ["The parent", "The child", "The orphan", "The closed one"]),
+        ("closed=1&status=closed", ["The closed one"]),
+    ],
+)
+def test_each_filter_narrows_and_an_undeclared_value_is_dropped(client, query, expected):
+    page = client(DeclaredBacklog()).get(f"/tickets?{query}").text
+
+    assert titles(page) == expected
+
+
+def test_the_summary_counts_shown_of_held_and_the_clear_link_appears_only_when_filtering(client):
+    plain = client(DeclaredBacklog()).get("/tickets").text
+    narrowed = client(DeclaredBacklog()).get("/tickets?type=bug").text
+
+    assert "3 of 3" in plain and "clear" not in plain
+    assert "1 of 3" in narrowed and '<a class="clear" href="/tickets">clear</a>' in narrowed
+    assert "type bug" in narrowed
+
+
+def test_orders_priority_first_by_default_and_newest_first_by_update(client):
+    by_priority = client(DeclaredBacklog()).get("/tickets").text
+    by_update = client(DeclaredBacklog()).get("/tickets?order=updated").text
+
+    assert (
+        by_priority.index("The parent")
+        < by_priority.index("The child")
+        < by_priority.index("The orphan")
+    )
+    assert by_update.index("The child") < by_update.index("The parent")
+
+
+def test_ties_break_on_id_and_title_order_ignores_case(client):
+    first = ticket("pro-01m2zzzzzzzz", title="alpha")
+    second = ticket("pro-01m2yyyyyyyy", title="Beta")
+    backlog = DeclaredBacklog(live_value=(first, second))
+
+    by_priority = client(backlog).get("/tickets").text
+    by_title = client(backlog).get("/tickets?order=title").text
+    by_created = client(backlog).get("/tickets?order=created").text
+    by_id = client(backlog).get("/tickets?order=id").text
+
+    assert by_priority.index("Beta") < by_priority.index("alpha")
+    assert by_title.index("alpha") < by_title.index("Beta")
+    # A descending order reverses the id tie-break with it, so the higher id leads on a tie.
+    assert by_created.index("alpha") < by_created.index("Beta")
+    assert by_id.index("Beta") < by_id.index("alpha")
+
+
+def test_a_selection_round_trips_through_its_query_string_and_omits_the_defaults():
+    asked = Selection.asked(
+        PROJECT, {"type": "bug", "order": "priority", "closed": "yes", "q": " x "}
+    )
+
+    assert asked.query_string() == "type=bug&q=x&closed=1"
+    assert asked.query_string(order="title") == "type=bug&q=x&order=title&closed=1"
+    assert not Selection().query_string()
+    assert Selection.asked(PROJECT, {"assignee": " "}).assignee == ANY
+
+
+def test_the_applied_filters_are_named_for_the_summary():
+    assert Selection(type="bug", query="x").applied() == (("type", "bug"), ("matching", "x"))
+    assert Selection().filtering is False
+
+
+def test_matching_and_ordering_as_values():
+    narrowed = Selection(tag="auth")
+    assert narrowed.matches(PARENT) and not narrowed.matches(CHILD)
+    assert Selection(query="nothing").matches(ORPHAN) is False
+    assert Selection(order="id").ordered((ORPHAN, PARENT))[0] is PARENT

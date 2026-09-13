@@ -26,6 +26,12 @@ def test_a_check_with_issues_reports_each_as_a_line_naming_the_ticket_and_the_co
     assert line.startswith("pro-01m2bbbbbbbb unknown_id: unknown id")
 
 
+def test_a_check_that_answers_ok_with_no_issues_list_is_read_as_clean(fake):
+    """knot does not emit this shape; the reader tolerates it rather than refusing a healthy
+    project over a key it does not need."""
+    assert fake(check="bare").integrity() == ()
+
+
 def test_a_failed_scan_with_no_issues_is_refused_rather_than_read_as_clean(fake):
     with pytest.raises(UnreadableBacklog, match="was refused"):
         fake(check="empty").integrity()

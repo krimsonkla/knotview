@@ -59,6 +59,9 @@ if verb == "check":
         sys.exit(1)
     if which == "error":
         say("not-found", 1)
+    if which == "bare":
+        print(json.dumps({{"schema_version": 1, "ok": True, "data": {{}}}}))
+        sys.exit(0)
     say("check-clean")
 if verb == "show":
     wanted = sys.argv[2]
