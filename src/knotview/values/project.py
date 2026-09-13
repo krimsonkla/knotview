@@ -44,7 +44,3 @@ class Project:  # pylint: disable=too-many-instance-attributes
         """Every priority the project permits, lowest number first, which is highest first."""
         lowest, highest = self.priority_range
         return tuple(range(lowest, highest + 1))
-
-    def is_terminal(self, status: str) -> bool:
-        """Whether that status means a ticket is done with, whatever the project calls it."""
-        return status in self.terminal_statuses
