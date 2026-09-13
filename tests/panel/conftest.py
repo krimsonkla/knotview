@@ -14,6 +14,6 @@ def client() -> Callable[..., TestClient]:
 
     def build(backlog, **options) -> TestClient:
         """A client over the panel built on that backlog, with any panel options passed through."""
-        return TestClient(panel(backlog, **options))
+        return TestClient(panel(backlog, **options), base_url="http://127.0.0.1")
 
     return build

@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from knotview.panel.overview import Overview
 from knotview.panel.selection import ANY, ORDERS, Selection
@@ -22,6 +23,11 @@ HERE = Path(__file__).resolve().parent
 # without being a busy loop. The stream sends the digest rather than the data: the page asks for
 # what it needs, which keeps one code path for rendering whether a reader arrived or refreshed.
 HEARTBEAT = 1.0
+
+# The names a browser may address the panel by. It binds loopback, but a page on any other site
+# can still make a browser send requests to a loopback port under that site's own host name, and
+# the backlog would answer; refusing every host but these closes that door.
+HOSTS = ("127.0.0.1", "localhost", "[::1]")
 
 # What the stream sends when nothing has changed, so a proxy or a sleeping laptop does not decide
 # the connection is dead. A comment line is the server-sent-events way of saying nothing.
@@ -168,6 +174,7 @@ def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
     project. This assembles; Pages renders.
     """
     app = FastAPI(title="knotview", docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(HOSTS))
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.filters["humanise"] = _humanise
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")

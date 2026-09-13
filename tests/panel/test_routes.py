@@ -42,3 +42,16 @@ def test_the_digest_answers_as_text(client):
     response = client(DeclaredBacklog()).get("/digest")
 
     assert response.headers["content-type"].startswith("text/plain")
+
+
+def test_a_request_addressed_to_another_host_is_refused(client):
+    """DNS rebinding: a page elsewhere can point a browser at this loopback port under its own
+    name, and the backlog must not answer it."""
+    response = client(DeclaredBacklog()).get("/", headers={"host": "evil.example"})
+
+    assert response.status_code == 400
+    assert "The parent" not in response.text
+
+
+def test_localhost_is_an_accepted_name(client):
+    assert client(DeclaredBacklog()).get("/", headers={"host": "localhost:7778"}).status_code == 200
