@@ -1,12 +1,13 @@
 ---
 id: kno-01m2ebf5sxdb
 title: Audit what must be completed before the repository is made public
-status: in_progress
+status: closed
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T21:41:12.637442Z'
-updated: '2026-09-13T23:27:55.843323Z'
+updated: '2026-09-13T23:50:17.051502Z'
+closed: '2026-09-13T23:50:17.051502Z'
 assignee: Jason Risch
 deps:
 - kno-01m2ebf3c8mx
@@ -34,3 +35,7 @@ Audit complete: the review workflow ran six lenses (legal, docs, security, packa
 Refuted, not filed: devenv input krimsonkla/nix-derivations is public but carries no licence (legal): Refuted. I confirmed the evidence chain as far as it goes: /Users/krimsonkla/git/krimsonkla/knotview/devenv.yaml:18 declares `nix-derivations: url: github:krimsonkla/nix-derivations`, devenv.lock references it at lines 171/214 (devenv-layers pulls it in too), and `gh api repos/krimsonkla/nix-derivations` does return `license: NOASSERTION / "Other"`. But the conclusion "carries no licence" is wrong: `gh api repos/krimsonkla/nix-derivations/contents` lists a top-level LICENSE file, and decoding it shows a full MIT License, Copyright (c) 2026 krimsonkla, prefixed by a one-line scoping note ("This license covers the packaging expressions in this repository only. Packaged upstream sources and patches retain their own licenses."). That preamble is exactly what defeats GitHub's licensee template matcher, hence NOASSERTION; the repository is nonetheless clearly and permissively licensed, so knotview's dev environment does not depend on an unlicensed repo. The only residual item is cosmetic (GitHub's licence badge won't render; moving the scoping note to README or below the MIT text would fix detection), which is not a knotview issue and does not block going public.
 
 Lens coverage statements and the full result are kept with the workflow run wf_93012288-758.
+
+**2026-09-13T23:50:16.446045Z**
+
+All 24 findings are closed on main: 21 fixed, 3 recorded as decisions. The four follow-ups the audit and the earlier stories deferred are filed as their own tickets. Remaining before publishing, for the maintainer: choose or confirm the MIT licence text, decide whether krimsonkla/devenv-layers becomes public, tag v0.1.0 at the published commit, and watch the first CI run since it has never executed.
