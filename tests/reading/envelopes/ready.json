@@ -12,8 +12,14 @@
             "created": "2026-09-01T10:00:00.000000Z",
             "updated": "2026-09-02T10:00:00.000000Z",
             "acceptance": [
-                { "title": "first thing", "done": true },
-                { "title": "second thing", "done": false }
+                {
+                    "title": "first thing",
+                    "done": true
+                },
+                {
+                    "title": "second thing",
+                    "done": false
+                }
             ],
             "tags": ["p0", "auth"],
             "deps": [],

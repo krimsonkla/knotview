@@ -33,7 +33,11 @@ untested branch there is a branch that will drift from knot silently.
 Tests are driven by envelopes recorded from a real knot under `tests/reading/envelopes/`; a fake
 `knot` script replays them so the suite never needs the binary. The `slow` test replays the same
 tickets through the real binary and compares shapes, so a new knot release that changes its
-output fails there first.
+output fails there first. To re-record the envelopes after upgrading knot:
+
+```bash
+uv run python -m tests.reading.record_envelopes
+```
 
 ## Conventions
 

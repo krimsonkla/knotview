@@ -14,7 +14,7 @@ import pytest
 
 from knotview.reading.knot_command import KnotCommand
 from knotview.values.unreadable_backlog import UnreadableBacklog
-from tests.reading.envelopes import envelope
+from tests.reading.envelopes import RECORDINGS, envelope
 
 pytestmark = [
     pytest.mark.slow,
@@ -140,20 +140,7 @@ def shape(value: object) -> object:
     return type(value).__name__
 
 
-@pytest.mark.parametrize(
-    ("name", "verb"),
-    [
-        ("info", ("info",)),
-        ("list", ("list",)),
-        ("closed", ("closed",)),
-        ("ready", ("ready",)),
-        ("blocked", ("blocked",)),
-        ("show-parent", ("show", "pro-01m2aaaaaaaa")),
-        ("show-child", ("show", "pro-01m2bbbbbbbb")),
-        ("check-issues", ("check",)),
-        ("not-found", ("show", "nope")),
-    ],
-)
+@pytest.mark.parametrize(("name", "verb"), RECORDINGS)
 def test_the_binary_still_emits_the_recorded_shape(probe: Path, name: str, verb: tuple[str, ...]):
     assert shape(raw(probe, *verb)) == shape(envelope(name))
 

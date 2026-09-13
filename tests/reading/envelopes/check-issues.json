@@ -12,6 +12,9 @@
                 "message": "unknown id \"pro-01m2zzzzzzzz\" referenced by \"pro-01m2bbbbbbbb\" via :deps"
             }
         ],
-        "scanned": { "live": 3, "archive": 1 }
+        "scanned": {
+            "live": 3,
+            "archive": 1
+        }
     }
 }

@@ -1,13 +1,13 @@
 ---
 id: kno-01m2ehj925ft
 title: '[P2] The recorded info.json fixture embeds the author''s machine path, username and a Claude session id'
-status: open
+status: in_progress
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-13T23:27:45.732880Z'
-updated: '2026-09-13T23:27:45.862563Z'
-assignee: ''
+updated: '2026-09-13T23:46:57.665977Z'
+assignee: Jason Risch
 parent: kno-01m2ebf5sxdb
 ---
 

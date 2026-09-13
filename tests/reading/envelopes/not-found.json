@@ -1,5 +1,8 @@
 {
     "schema_version": 1,
     "ok": false,
-    "error": { "code": "not_found", "message": "no ticket matching nope" }
+    "error": {
+        "code": "not_found",
+        "message": "no ticket matching nope"
+    }
 }

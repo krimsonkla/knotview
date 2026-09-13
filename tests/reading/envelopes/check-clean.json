@@ -1,5 +1,11 @@
 {
     "schema_version": 1,
     "ok": true,
-    "data": { "issues": [], "scanned": { "live": 6, "archive": 0 } }
+    "data": {
+        "issues": [],
+        "scanned": {
+            "live": 1,
+            "archive": 1
+        }
+    }
 }

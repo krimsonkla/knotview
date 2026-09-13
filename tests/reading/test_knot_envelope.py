@@ -54,7 +54,7 @@ def test_the_verdict_refuses_something_that_is_not_an_envelope():
 
 
 def test_answered_returns_the_data():
-    assert answered(envelope("check-clean"), attempting="x")["scanned"]["live"] == 6
+    assert answered(envelope("check-clean"), attempting="x")["scanned"]["live"] == 1
 
 
 def test_answered_refuses_a_not_ok_envelope_with_knots_own_message():

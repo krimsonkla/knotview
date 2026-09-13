@@ -17,14 +17,19 @@
         "tags": [],
         "external_refs": [],
         "body": "## Description\nThe child does a thing.\n",
-        "sections": { "description": "\nThe child does a thing.\n" },
+        "sections": {
+            "description": "\nThe child does a thing.\n"
+        },
         "blockers": [
             {
                 "id": "pro-01m2cccccccc",
                 "title": "The closed one",
                 "status": "closed"
             },
-            { "id": "pro-01m2zzzzzzzz", "missing": true }
+            {
+                "id": "pro-01m2zzzzzzzz",
+                "missing": true
+            }
         ],
         "blocking": [],
         "children": [],
