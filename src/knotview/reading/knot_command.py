@@ -160,9 +160,13 @@ class KnotCommand:
     def _spoken(self, command: str, arguments: Sequence[str]) -> list[str]:
         """The argument list knot is handed.
 
-        The JSON flag goes last, so the command reads as the one a person would run.
+        Anything a reader typed goes after knot's own end-of-options marker, so an identifier that
+        happens to start with a dash reaches knot as an identifier and never as an option. The
+        JSON flag comes before the marker for the same reason: knot must read it as a flag.
         """
-        return [self._knot, command, *arguments, "--json"]
+        if not arguments:
+            return [self._knot, command, "--json"]
+        return [self._knot, command, "--json", "--", *arguments]
 
 
 def _data_in(answer: subprocess.CompletedProcess[str], spoken: Sequence[str]) -> dict:

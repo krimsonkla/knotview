@@ -64,7 +64,7 @@ if verb == "check":
         sys.exit(0)
     say("check-clean")
 if verb == "show":
-    wanted = sys.argv[2]
+    wanted = sys.argv[-1]
     if wanted == "pro-01m2aaaaaaaa":
         say("show-parent")
     if wanted == "pro-01m2bbbbbbbb":
