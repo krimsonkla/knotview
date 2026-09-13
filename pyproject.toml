@@ -57,6 +57,13 @@ knotview = ["panel/templates/*.html", "panel/static/*"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "--cov=knotview --cov-report=term-missing --cov-fail-under=100"
+# Two deprecations from the test client's own dependencies, not from this code: starlette's
+# testclient prefers a newer httpx, and anyio moved BlockingPortal. Both go away with those
+# libraries' next releases; until then they would print on every run and say nothing about knotview.
+filterwarnings = [
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+    "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]
 markers = [
     "slow: drives a real knot project on disk; kept in the default run but named so it can be skipped",
 ]
