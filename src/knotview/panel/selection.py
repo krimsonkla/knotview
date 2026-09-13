@@ -13,6 +13,10 @@ ORDERS = ("priority", "updated", "created", "title", "id")
 # reader can see in the URL that a filter is deliberately unset.
 ANY = "any"
 
+# What the assignee filter is set to and mean "nobody". An assignee is a name, and no name is
+# spelled as an empty string in a query, so nobody needs a word of its own to be a link.
+NOBODY = "nobody"
+
 
 @dataclass(frozen=True, kw_only=True)
 class Selection:  # pylint: disable=too-many-instance-attributes
@@ -110,7 +114,7 @@ class Selection:  # pylint: disable=too-many-instance-attributes
                 self.status in (ANY, ticket.status),
                 self.priority in (ANY, str(ticket.priority)),
                 self.mode in (ANY, ticket.mode),
-                self.assignee in (ANY, ticket.assignee),
+                self._assigned(ticket),
                 self.tag == ANY or self.tag in ticket.tags,
                 self._mentions(ticket),
             )
@@ -131,6 +135,14 @@ class Selection:  # pylint: disable=too-many-instance-attributes
         }
         descending = self.order in ("updated", "created")
         return tuple(sorted(tickets, key=keys[self.order], reverse=descending))
+
+    def _assigned(self, ticket: Ticket) -> bool:
+        """Whether the ticket is assigned the way the filter asks: to anyone, nobody, or a name."""
+        if self.assignee == ANY:
+            return True
+        if self.assignee == NOBODY:
+            return not ticket.assignee
+        return ticket.assignee == self.assignee
 
     def _mentions(self, ticket: Ticket) -> bool:
         """Whether the text asked for appears anywhere a reader would look for it.

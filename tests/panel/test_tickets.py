@@ -22,6 +22,7 @@ def titles(page: str) -> list[str]:
         ("priority=1", ["The parent"]),
         ("mode=afk", ["The child"]),
         ("assignee=someone", ["The orphan"]),
+        ("assignee=nobody", ["The parent", "The child"]),
         ("tag=auth", ["The parent"]),
         ("q=orphan", ["The orphan"]),
         ("q=pro-01m2bbbb", ["The child"]),

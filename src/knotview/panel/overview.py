@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from knotview.panel.selection import NOBODY
 from knotview.reading.snapshot import Snapshot
 from knotview.values.ticket import Ticket
 
@@ -79,7 +80,7 @@ class Overview:
                     label="unassigned",
                     count=sum(1 for held in live if not held.assignee),
                     filter="assignee",
-                    value="",
+                    value=NOBODY,
                 ),
             ),
             parents=_parents(live),

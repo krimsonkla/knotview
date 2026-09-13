@@ -20,7 +20,7 @@ def test_statuses_priorities_and_queues_are_counted(client):
     assert '<a href="/tickets?status=in_progress"' in page
     assert '<a href="/tickets?priority=3"' in page
     assert '<a href="/queue/ready">ready</a>' in page
-    assert "unassigned" in page
+    assert '<a href="/tickets?assignee=nobody">unassigned</a>' in page
     assert '<a href="/tickets?closed=1">1</a>' in page
 
 

@@ -67,7 +67,7 @@
         {% if tally.filter == "queue" %}
         <a href="/queue/{{ tally.value }}">{{ tally.label }}</a>
         {% else %}
-        <span>{{ tally.label }}</span>
+        <a href="/tickets?{{ tally.filter }}={{ tally.value }}">{{ tally.label }}</a>
         {% endif %}
         <span class="num">{{ tally.count }}</span>
       </li>
