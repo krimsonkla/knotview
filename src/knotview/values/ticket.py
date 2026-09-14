@@ -43,6 +43,14 @@ class Ticket:  # pylint: disable=too-many-instance-attributes
     children: tuple[Reference, ...] = ()
     linked: tuple[Reference, ...] = ()
     sections: dict[str, str] = field(default_factory=dict)
+    # knot's graph metrics, on listing rows only. Leverage is how much waiting structure closing
+    # this ticket dissolves; level is how many rounds of closing stand before it can start;
+    # coupling is how much surrounding context it needs; component names its live island. Each is
+    # None where knot reports null: on a read of one ticket, on a closed row, or on a cycle.
+    leverage: int | None = None
+    coupling: int | None = None
+    level: int | None = None
+    component: int | None = None
 
     @property
     def met(self) -> int:

@@ -97,3 +97,27 @@ def test_matching_and_ordering_as_values():
     assert narrowed.matches(PARENT) and not narrowed.matches(CHILD)
     assert Selection(query="nothing").matches(ORPHAN) is False
     assert Selection(order="id").ordered((ORPHAN, PARENT))[0] is PARENT
+
+
+def test_leverage_orders_highest_first_and_level_lowest_first_with_unknowns_last(client):
+    high = ticket("pro-01m2zzzzzzzz", title="High leverage", leverage=3, level=2)
+    low = ticket("pro-01m2yyyyyyyy", title="Low leverage", leverage=1, level=0)
+    unknown = ticket("pro-01m2xxxxxxxx", title="No metrics")
+    backlog = DeclaredBacklog(live_value=(unknown, low, high))
+
+    by_leverage = client(backlog).get("/tickets?order=leverage").text
+    by_level = client(backlog).get("/tickets?order=level").text
+
+    assert by_leverage.index("High leverage") < by_leverage.index("Low leverage")
+    assert by_leverage.index("Low leverage") < by_leverage.index("No metrics")
+    assert by_level.index("Low leverage") < by_level.index("High leverage")
+    assert by_level.index("High leverage") < by_level.index("No metrics")
+
+
+def test_the_metric_columns_show_the_number_or_a_dash(client):
+    backlog = DeclaredBacklog(live_value=(ticket("pro-01m2zzzzzzzz", leverage=3, level=2), PARENT))
+    page = client(backlog).get("/tickets").text
+
+    assert 'href="/tickets?order=leverage">lev</a>' in page
+    assert 'href="/tickets?order=level">lvl</a>' in page
+    assert "—" in page and ">3<" in page.replace("\n", "").replace(" ", "")

@@ -31,11 +31,11 @@ def probe(root: Path, tickets: dict[str, str]) -> None:
         path.write_text(text, encoding="utf-8")
 
 
-def answer(root: Path, verb: tuple[str, ...]) -> str:
-    """knot's stdout for that command, whatever its exit status."""
-    arguments = [*verb[:1], "--json", "--", *verb[1:]] if len(verb) > 1 else [*verb, "--json"]
+def answer(root: Path, command: str, arguments: tuple[str, ...]) -> str:
+    """knot's stdout for that command, whatever its exit status, spoken as the reader speaks it."""
+    spoken = [*command.split(), "--json", *(["--", *arguments] if arguments else [])]
     return subprocess.run(
-        ["knot", *arguments], cwd=root, capture_output=True, text=True, check=False
+        ["knot", *spoken], cwd=root, capture_output=True, text=True, check=False
     ).stdout
 
 
@@ -73,11 +73,13 @@ def main() -> int:
             clean,
             {name: text for name, text in TICKETS.items() if "parent" in name or "closed" in name},
         )
-        for name, verb in RECORDINGS:
-            (HERE / f"{name}.json").write_text(scrubbed(name, answer(root, verb), root))
+        for name, command, arguments in RECORDINGS:
+            (HERE / f"{name}.json").write_text(
+                scrubbed(name, answer(root, command, arguments), root)
+            )
             print(f"recorded {name}.json")
         (HERE / "check-clean.json").write_text(
-            scrubbed("check-clean", answer(clean, ("check",)), clean)
+            scrubbed("check-clean", answer(clean, "check", ()), clean)
         )
         print("recorded check-clean.json")
     return 0

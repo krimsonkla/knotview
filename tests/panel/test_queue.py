@@ -8,6 +8,7 @@ def test_ready_and_blocked_list_their_tickets(client):
     blocked = client(DeclaredBacklog()).get("/queue/blocked").text
 
     assert "Every blocker closed" in ready and "The parent" in ready and "The child" not in ready
+    assert "highest leverage" in ready and "rounds of closing" in blocked
     assert "At least one blocker still open" in blocked and "The child" in blocked
 
 

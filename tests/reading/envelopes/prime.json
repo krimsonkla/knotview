@@ -1,0 +1,58 @@
+{
+    "schema_version": 1,
+    "ok": true,
+    "data": {
+        "project": {
+            "found": true,
+            "prefix": "pro",
+            "live_count": 3,
+            "archive_count": 1
+        },
+        "in_progress": [
+            {
+                "updated": "2026-09-04T10:00:00.000000Z",
+                "mode": "afk",
+                "type": "task",
+                "created": "2026-09-03T10:00:00.000000Z",
+                "title": "The child",
+                "priority": 2,
+                "status": "in_progress",
+                "id": "pro-01m2bbbbbbbb",
+                "assignee": ""
+            }
+        ],
+        "ready_to_close": [],
+        "ready": [
+            {
+                "id": "pro-01m2aaaaaaaa",
+                "title": "The parent",
+                "status": "open",
+                "type": "epic",
+                "priority": 1,
+                "mode": "hitl",
+                "updated": "2026-09-02T10:00:00.000000Z",
+                "created": "2026-09-01T10:00:00.000000Z"
+            },
+            {
+                "updated": "2026-09-05T10:00:00.000000Z",
+                "mode": "hitl",
+                "type": "bug",
+                "created": "2026-09-05T10:00:00.000000Z",
+                "title": "The orphan",
+                "priority": 3,
+                "status": "open",
+                "id": "pro-01m2dddddddd",
+                "assignee": "someone"
+            }
+        ],
+        "ready_truncated": false,
+        "ready_remaining": 0,
+        "recently_closed": [
+            {
+                "id": "pro-01m2cccccccc",
+                "title": "The closed one",
+                "closed": "2026-08-02T10:00:00.000000Z"
+            }
+        ]
+    }
+}

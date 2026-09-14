@@ -1,0 +1,21 @@
+{
+    "schema_version": 1,
+    "ok": true,
+    "data": {
+        "id": "pro-01m2bbbbbbbb",
+        "title": "The child",
+        "status": "in_progress",
+        "deps": [
+            {
+                "id": "pro-01m2cccccccc",
+                "title": "The closed one",
+                "status": "closed",
+                "deps": []
+            },
+            {
+                "id": "pro-01m2zzzzzzzz",
+                "missing": true
+            }
+        ]
+    }
+}

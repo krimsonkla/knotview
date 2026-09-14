@@ -123,10 +123,11 @@ def probe_project(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return root
 
 
-def raw(probe: Path, *verb: str) -> dict:
-    """One envelope straight from the binary."""
+def raw(probe: Path, command: str, arguments: tuple[str, ...]) -> dict:
+    """One envelope straight from the binary, spoken as the reader speaks it."""
+    spoken = [*command.split(), "--json", *(["--", *arguments] if arguments else [])]
     answer = subprocess.run(
-        ["knot", *verb, "--json"], cwd=probe, capture_output=True, text=True, check=False
+        ["knot", *spoken], cwd=probe, capture_output=True, text=True, check=False
     )
     return json.loads(answer.stdout)
 
@@ -140,9 +141,11 @@ def shape(value: object) -> object:
     return type(value).__name__
 
 
-@pytest.mark.parametrize(("name", "verb"), RECORDINGS)
-def test_the_binary_still_emits_the_recorded_shape(probe: Path, name: str, verb: tuple[str, ...]):
-    assert shape(raw(probe, *verb)) == shape(envelope(name))
+@pytest.mark.parametrize(("name", "command", "arguments"), RECORDINGS)
+def test_the_binary_still_emits_the_recorded_shape(
+    probe: Path, name: str, command: str, arguments: tuple[str, ...]
+):
+    assert shape(raw(probe, command, arguments)) == shape(envelope(name))
 
 
 def test_the_reader_over_the_binary_agrees_with_the_reader_over_the_recording(probe: Path):

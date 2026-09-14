@@ -173,3 +173,20 @@ def test_a_closed_row_carries_its_closing_instant_and_untitled_reads_as_such():
 
     assert closed.closed == "2026-08-02T10:00:00.000000Z"
     assert ticket_from({"id": "x"}).title == "(untitled)"
+
+
+def test_graph_metrics_are_read_from_a_listing_row_and_absent_from_a_read():
+    parent, child, _ = tickets_from(envelope("list")["data"], attempting="listing")
+    read = ticket_from(envelope("show-parent")["data"])
+
+    assert (parent.leverage, parent.level, parent.component) == (0, 0, 1)
+    assert (child.leverage, child.coupling, child.level) == (0, 1, 1)
+    assert (read.leverage, read.coupling, read.level, read.component) == (None,) * 4
+
+
+def test_a_null_metric_reads_as_nothing_and_a_boolean_is_not_a_number():
+    (closed,) = tickets_from(envelope("closed")["data"], attempting="closed")
+    odd = ticket_from({"id": "x", "leverage": True, "level": "3"})
+
+    assert (closed.leverage, closed.coupling) == (None, None)
+    assert (odd.leverage, odd.level) == (None, None)

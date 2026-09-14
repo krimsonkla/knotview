@@ -21,18 +21,21 @@ from typing import Any
 
 HERE = Path(__file__).resolve().parent
 
-# Which command each recording is the answer to. The clean check comes from a second probe that
-# holds no dangling dependency, since the first exists to make the check report one.
+# Which command each recording is the answer to: the recording's name, knot's command (one or two
+# words), and the arguments after it. The clean check comes from a second probe that holds no
+# dangling dependency, since the first exists to make the check report one.
 RECORDINGS = (
-    ("info", ("info",)),
-    ("list", ("list",)),
-    ("closed", ("closed",)),
-    ("ready", ("ready",)),
-    ("blocked", ("blocked",)),
-    ("show-parent", ("show", "pro-01m2aaaaaaaa")),
-    ("show-child", ("show", "pro-01m2bbbbbbbb")),
-    ("check-issues", ("check",)),
-    ("not-found", ("show", "nope")),
+    ("info", "info", ()),
+    ("list", "list", ()),
+    ("closed", "closed", ()),
+    ("ready", "ready", ()),
+    ("blocked", "blocked", ()),
+    ("show-parent", "show", ("pro-01m2aaaaaaaa",)),
+    ("show-child", "show", ("pro-01m2bbbbbbbb",)),
+    ("check-issues", "check", ()),
+    ("not-found", "show", ("nope",)),
+    ("prime", "prime", ()),
+    ("dep-tree", "dep tree", ("pro-01m2bbbbbbbb",)),
 )
 
 

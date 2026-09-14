@@ -4,7 +4,9 @@ main %}
   <h2>{{ which }}</h2>
   <p class="muted">
     {% if which == "ready" %}Every blocker closed, so nothing outside the ticket
-    is in the way. {% else %}At least one blocker still open.{% endif %}
+    is in the way. When several are ready, the highest leverage dissolves the
+    most waiting work. {% else %}At least one blocker still open. The level is
+    how many rounds of closing stand before each can start.{% endif %}
   </p>
   {% include "_ticket_table.html" %}
 </section>

@@ -138,6 +138,10 @@ def ticket_from(stated: dict[str, Any]) -> Ticket:
         children=_references(stated, "children"),
         linked=_references(stated, "linked"),
         sections=_sections(stated),
+        leverage=_number(stated, "leverage"),
+        coupling=_number(stated, "coupling"),
+        level=_number(stated, "level"),
+        component=_number(stated, "cc"),
     )
 
 
@@ -153,6 +157,12 @@ def _words(stated: dict[str, Any], field: str) -> tuple[str, ...]:
     if not isinstance(held, list):
         return ()
     return tuple(str(word) for word in held if isinstance(word, str | int))
+
+
+def _number(stated: dict[str, Any], field: str) -> int | None:
+    """One integer, or nothing where knot wrote null or left the key out."""
+    held = stated.get(field)
+    return held if isinstance(held, int) and not isinstance(held, bool) else None
 
 
 def _text(stated: dict[str, Any], field: str) -> str | None:

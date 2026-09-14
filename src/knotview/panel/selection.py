@@ -7,7 +7,7 @@ from knotview.values.ticket import Ticket
 
 # How a list may be ordered. Priority first is the backlog's own order: knot numbers zero highest,
 # so ascending priority is descending urgency, which is why this is not simply a sort direction.
-ORDERS = ("priority", "updated", "created", "title", "id")
+ORDERS = ("priority", "leverage", "level", "updated", "created", "title", "id")
 
 # What a filter may be set to and mean "everything". Declared rather than an empty string, so a
 # reader can see in the URL that a filter is deliberately unset.
@@ -128,6 +128,10 @@ class Selection:  # pylint: disable=too-many-instance-attributes
         """
         keys = {
             "priority": lambda held: (held.priority, held.id),
+            # Highest leverage first and lowest level first, with the rows knot gave no number
+            # (a closed row, a cycle) after every row it did.
+            "leverage": lambda held: (held.leverage is None, -(held.leverage or 0), held.id),
+            "level": lambda held: (held.level is None, held.level or 0, held.id),
             "updated": lambda held: (held.updated or "", held.id),
             "created": lambda held: (held.created or "", held.id),
             "title": lambda held: (held.title.lower(), held.id),

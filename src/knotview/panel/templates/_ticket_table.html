@@ -14,6 +14,12 @@
       </th>
       <th>acceptance</th>
       <th>blocked by</th>
+      <th title="how much waiting work closing this dissolves">
+        <a href="/tickets?{{ selection.query_string(order='leverage') }}">lev</a>
+      </th>
+      <th title="how many rounds of closing stand before this can start">
+        <a href="/tickets?{{ selection.query_string(order='level') }}">lvl</a>
+      </th>
       <th>assignee</th>
       <th>
         <a href="/tickets?{{ selection.query_string(order='updated') }}"
@@ -54,6 +60,12 @@
         {% if ticket.open_blockers %}{{ ticket.open_blockers | length }}{% else
         %}—{% endif %}
       </td>
+      <td class="num">
+        {% if ticket.leverage is not none %}{{ ticket.leverage }}{% else %}—{% endif %}
+      </td>
+      <td class="num">
+        {% if ticket.level is not none %}{{ ticket.level }}{% else %}—{% endif %}
+      </td>
       <td>
         {% if ticket.assignee %}<a
           href="/tickets?assignee={{ ticket.assignee }}"
@@ -64,7 +76,7 @@
     </tr>
     {% else %}
     <tr>
-      <td colspan="8" class="muted">nothing here</td>
+      <td colspan="10" class="muted">nothing here</td>
     </tr>
     {% endfor %}
   </tbody>
