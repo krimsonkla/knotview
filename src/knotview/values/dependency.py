@@ -20,7 +20,9 @@ class Dependency:
     seen_before: bool = False
     deps: tuple["Dependency", ...] = ()
 
-    @property
-    def open(self) -> bool:
-        """Whether this node still stands in the way: present and not closed."""
-        return not self.missing and self.status != "closed"
+    def blocks(self, terminal: tuple[str, ...]) -> bool:
+        """Whether this node still stands in the way: present, and not in a terminal status.
+
+        The terminal statuses are the project's own, never assumed to be spelled `closed`.
+        """
+        return not self.missing and self.status not in terminal

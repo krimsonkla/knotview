@@ -221,8 +221,12 @@ def test_a_primer_with_no_report_is_refused_and_a_bare_one_is_empty():
 def test_the_dependency_tree_is_read_recursively_with_its_flags():
     tree = dependency_from(envelope("dep-tree")["data"])
 
-    assert (tree.id, tree.status, tree.open) == ("pro-01m2bbbbbbbb", "in_progress", True)
-    assert [(d.id, d.missing, d.open) for d in tree.deps] == [
+    assert (tree.id, tree.status, tree.blocks(("closed",))) == (
+        "pro-01m2bbbbbbbb",
+        "in_progress",
+        True,
+    )
+    assert [(d.id, d.missing, d.blocks(("closed",))) for d in tree.deps] == [
         ("pro-01m2cccccccc", False, False),
         ("pro-01m2zzzzzzzz", True, False),
     ]

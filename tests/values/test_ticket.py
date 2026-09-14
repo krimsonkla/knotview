@@ -1,6 +1,7 @@
 """What a ticket derives from what it holds."""
 
-from tests.panel.declared import CHILD, PARENT, ticket
+from knotview.values.reference import Reference
+from tests.panel.declared import CHILD, PARENT, PROJECT, ticket
 
 
 def test_criteria_are_counted_and_the_unmet_ones_named():
@@ -9,10 +10,24 @@ def test_criteria_are_counted_and_the_unmet_ones_named():
     assert (CHILD.met, CHILD.criteria, CHILD.unmet) == (0, 0, ())
 
 
-def test_only_blockers_that_are_still_open_are_open_and_a_missing_one_is_neither():
+def test_only_blockers_outside_the_projects_terminal_statuses_are_open():
     """A missing blocker has no status: nothing can close it, so it does not count as blocking."""
-    assert not CHILD.open_blockers
+    assert not CHILD.open_blockers(PROJECT.terminal_statuses)
     assert [one.id for one in CHILD.blockers if one.missing] == ["pro-01m2zzzzzzzz"]
+
+
+def test_the_terminal_statuses_are_the_projects_own_not_the_word_closed():
+    """One project closes with `done`; its finished blocker must not count as open, and a
+    blocker that happens to be called `closed` there is still in the way."""
+    held = ticket(
+        "x",
+        blockers=(
+            Reference(id="a", title="Finished", status="done"),
+            Reference(id="b", title="Oddly named", status="closed"),
+        ),
+    )
+
+    assert [one.id for one in held.open_blockers(("done",))] == ["b"]
 
 
 def test_the_notes_are_named_and_kept_out_of_the_narrative():

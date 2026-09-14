@@ -72,17 +72,18 @@ class Ticket:  # pylint: disable=too-many-instance-attributes
         """The criteria still open, which is what a reader asking "what is left" wants."""
         return tuple(criterion for criterion in self.acceptance if not criterion.done)
 
-    @property
-    def open_blockers(self) -> tuple[Reference, ...]:
-        """The blockers that are not closed, which are the ones actually blocking.
+    def open_blockers(self, terminal: tuple[str, ...]) -> tuple[Reference, ...]:
+        """The blockers still in the way: not in one of the project's terminal statuses.
 
-        A missing blocker is not among them: nothing can close it, and the integrity check is
-        what reports it.
+        The terminal statuses are the project's own, from its configuration, since one project
+        closes with `closed` and another with `done`, and a panel that assumed the word would
+        count a finished blocker as open. A missing blocker is not among them either: nothing can
+        close it, and the integrity check is what reports it.
         """
         return tuple(
             blocker
             for blocker in self.blockers
-            if blocker.status != "closed" and not blocker.missing
+            if blocker.status not in terminal and not blocker.missing
         )
 
     @property

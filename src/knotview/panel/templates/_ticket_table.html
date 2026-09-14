@@ -77,8 +77,8 @@
         %}—{% endif %}
       </td>
       <td class="num">
-        {% if ticket.open_blockers %}{{ ticket.open_blockers | length }}{% else
-        %}—{% endif %}
+        {% set blocking = ticket.open_blockers(project.terminal_statuses) %}
+        {% if blocking %}{{ blocking | length }}{% else %}—{% endif %}
       </td>
       <td class="num">
         {% if ticket.leverage is not none %}{{ ticket.leverage }}{% else %}—{% endif %}
