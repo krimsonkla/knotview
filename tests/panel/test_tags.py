@@ -64,6 +64,8 @@ def test_the_bar_shows_the_chosen_tags_with_a_drop_link_and_the_known_tags(clien
 
     assert 'href="/tags?drop=p0&back=/tree"' in page
     assert '<option value="auth"></option>' in page
+    assert 'form class="addtag" method="get" action="/tags"' in page
+    assert '<button type="submit" title="see every view through this tag">see</button>' in page
     assert 'href="/tags?clear=1&back=/tree"' in page
 
     browser.get("/tags?drop=p0&back=/")
