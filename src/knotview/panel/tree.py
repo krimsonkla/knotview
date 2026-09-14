@@ -1,4 +1,4 @@
-"""The backlog as a shape: what is filed under what, and how far each parent has got."""
+"""The backlog as a shape: what is filed under what, to any depth, and what is filed nowhere."""
 
 from dataclasses import dataclass
 
@@ -6,92 +6,88 @@ from knotview.values.ticket import Ticket
 
 
 @dataclass(frozen=True, kw_only=True)
-class Branch:
-    """One parent and the tickets filed under it, with what is left counted rather than guessed."""
+class Node:
+    """One ticket and the live tickets filed under it, each of those a node of its own.
 
-    parent: Ticket
-    children: tuple[Ticket, ...]
-    terminal: tuple[str, ...]
+    Counts are of live children only, because that is what a listing holds: a child that closed
+    is in the archive and not here. The parent's own acceptance criteria are the other progress a
+    parent has, and they are counted separately since a parent can be done with its children and
+    still owe its own criteria.
+    """
 
-    @property
-    def done(self) -> int:
-        """How many children are in a terminal status, whatever this project calls one."""
-        return sum(1 for child in self.children if child.status in self.terminal)
+    ticket: Ticket
+    children: tuple["Node", ...]
 
     @property
     def total(self) -> int:
-        """How many children there are."""
+        """How many live tickets are filed directly under this one."""
         return len(self.children)
 
     @property
+    def beneath(self) -> int:
+        """How many live tickets are filed under this one at any depth."""
+        return sum(1 + child.beneath for child in self.children)
+
+    @property
     def met(self) -> int:
-        """How many of the parent's own acceptance criteria are ticked."""
-        return self.parent.met
+        """How many of this ticket's own acceptance criteria are ticked."""
+        return self.ticket.met
 
     @property
     def criteria(self) -> int:
-        """How many criteria the parent states, which is the figure its progress is read against."""
-        return self.parent.criteria
-
-    @property
-    def complete(self) -> bool:
-        """Whether every child is done, which is not the same as the parent being closed.
-
-        Worth separating, because the gap between them is the interesting state: a parent whose
-        children are all closed and which is still open is either waiting on its own criteria or
-        waiting on somebody to notice.
-        """
-        return bool(self.children) and self.done == self.total
+        """How many criteria this ticket states."""
+        return self.ticket.criteria
 
 
 @dataclass(frozen=True, kw_only=True)
 class Tree:
-    """Every parent with its children, and the tickets belonging to nobody.
+    """Every parent as a nested tree, plus the tickets filed under nothing and under nothing live.
 
     All three parts are shown on purpose. A backlog's orphans are where work goes missing: a ticket
     filed under nothing is not visible in any epic, and a view that only drew the branches would
     leave it out of the picture entirely while looking complete. The strays are the other way work
-    goes missing: filed under a parent that is closed or gone, so no live branch holds them.
-    Every live ticket appears on the page exactly once.
+    goes missing: filed under a parent that is closed or gone, so no live branch holds them. Every
+    live ticket appears in exactly one place, under the deepest live parent that holds it.
     """
 
-    branches: tuple[Branch, ...]
+    roots: tuple[Node, ...]
     orphans: tuple[Ticket, ...]
     strays: tuple[Ticket, ...]
 
     @classmethod
-    def over(cls, live: tuple[Ticket, ...], *, terminal: tuple[str, ...]) -> "Tree":
+    def over(cls, live: tuple[Ticket, ...]) -> "Tree":
         """The shape of one backlog, from the parents its tickets name."""
         held = {ticket.id: ticket for ticket in live}
         filed: dict[str, list[Ticket]] = {}
         for ticket in live:
             if ticket.parent in held:
                 filed.setdefault(ticket.parent, []).append(ticket)
-        branches = tuple(
-            Branch(
-                parent=held[parent],
-                children=tuple(sorted(children, key=lambda one: (one.priority, one.id))),
-                terminal=terminal,
-            )
-            for parent, children in sorted(
-                filed.items(), key=lambda pair: (held[pair[0]].priority, pair[0])
-            )
-        )
+
+        def node(ticket: Ticket) -> Node:
+            children = sorted(filed.get(ticket.id, ()), key=_by_priority)
+            return Node(ticket=ticket, children=tuple(node(child) for child in children))
+
+        top = [ticket for ticket in live if ticket.parent not in held]
         return cls(
-            branches=branches,
+            roots=tuple(node(t) for t in sorted(top, key=_by_priority) if t.id in filed),
             orphans=tuple(
-                sorted(
-                    (ticket for ticket in live if not ticket.parent and ticket.id not in filed),
-                    key=_by_priority,
-                )
+                sorted((t for t in top if not t.parent and t.id not in filed), key=_by_priority)
             ),
             strays=tuple(
-                sorted(
-                    (ticket for ticket in live if ticket.parent and ticket.parent not in held),
-                    key=_by_priority,
-                )
+                sorted((t for t in top if t.parent and t.id not in filed), key=_by_priority)
             ),
         )
+
+    def everything(self) -> tuple[Ticket, ...]:
+        """Every ticket the tree holds, in page order; a test uses it to prove each shows once."""
+
+        def walk(node: Node):
+            yield node.ticket
+            for child in node.children:
+                yield from walk(child)
+
+        nested = tuple(t for root in self.roots for t in walk(root))
+        return nested + self.strays + self.orphans
 
 
 def _by_priority(ticket: Ticket) -> tuple[int, str]:

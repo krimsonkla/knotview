@@ -364,3 +364,27 @@ th.num {
   font-size: 0.85em;
   font-weight: normal;
 }
+
+/* The tree: one details element per parent, children indented beneath, leaves as plain rows. */
+.branch-root > details > summary {
+  font-weight: 600;
+}
+details[data-fold] > summary {
+  cursor: pointer;
+  padding: 0.25em 0;
+}
+details[data-fold] > summary > * {
+  margin-right: 0.4em;
+}
+ul.branch {
+  list-style: none;
+  margin: 0.2em 0 0.4em 1.4em;
+  padding: 0;
+  border-left: 1px solid rgba(128, 128, 128, 0.3);
+}
+ul.branch > li {
+  padding: 0.15em 0 0.15em 0.8em;
+}
+.leaf > * {
+  margin-right: 0.4em;
+}

@@ -1,33 +1,54 @@
 {% extends "layout.html" %} {% block title %}tree{% endblock %} {% block main %}
 <p class="muted">
-  What is filed under what. A parent is a ticket something else names as its
-  parent, so this is the project's own shape rather than a search for a type
-  called epic.
+  What is filed under what, to any depth. A parent is a ticket something else
+  names as its parent, so this is the project's own shape rather than a search
+  for a type called epic. Fold a branch with its triangle; the page remembers.
 </p>
 
-{% for branch in tree.branches %}
-<section class="card branch {% if branch.complete %}complete{% endif %}">
-  <h2>
-    <a href="/ticket/{{ branch.parent.id }}">{{ branch.parent.title }}</a>
+{% macro node_row(node) %}
+<details open data-fold="{{ node.ticket.id }}">
+  <summary>
+    <span class="pri p{{ node.ticket.priority }}">{{ node.ticket.priority }}</span>
+    <a class="chip" href="/tickets?type={{ node.ticket.type }}">{{ node.ticket.type }}</a>
     <a
-      class="chip status-{{ branch.parent.status }}"
-      href="/ticket/{{ branch.parent.id }}"
-      >{{ branch.parent.status }}</a
+      class="chip status-{{ node.ticket.status }}"
+      href="/tickets?status={{ node.ticket.status }}"
+      >{{ node.ticket.status }}</a
     >
-    <span class="num">children {{ branch.done }}/{{ branch.total }}</span>
-    {% if branch.criteria %}<span class="num"
-      >criteria {{ branch.met }}/{{ branch.criteria }}</span
+    <a class="title" href="/ticket/{{ node.ticket.id }}">{{ node.ticket.title }}</a>
+    <span class="id">{{ node.ticket.id }}</span>
+    <span class="num">children {{ node.total }}</span>
+    {% if node.beneath != node.total %}<span class="num"
+      >beneath {{ node.beneath }}</span
+    >{% endif %} {% if node.criteria %}<span class="num"
+      >criteria {{ node.met }}/{{ node.criteria }}</span
     >{% endif %}
-  </h2>
-  {% if branch.complete and not branch.parent.status in
-  project.terminal_statuses %}
-  <p class="muted">
-    Every child is done and this is still open, which is either its own criteria
-    or nobody noticing.
-  </p>
-  {% endif %} {% set tickets = branch.children %} {% include
-  "_ticket_table.html" %}
-</section>
+  </summary>
+  <ul class="branch">
+    {% for child in node.children %}
+    <li>
+      {% if child.children %} {{ node_row(child) }} {% else %}
+      <div class="leaf">
+        <span class="pri p{{ child.ticket.priority }}">{{ child.ticket.priority }}</span>
+        <a class="chip" href="/tickets?type={{ child.ticket.type }}">{{ child.ticket.type }}</a>
+        <a
+          class="chip status-{{ child.ticket.status }}"
+          href="/tickets?status={{ child.ticket.status }}"
+          >{{ child.ticket.status }}</a
+        >
+        <a class="title" href="/ticket/{{ child.ticket.id }}">{{ child.ticket.title }}</a>
+        <span class="id">{{ child.ticket.id }}</span>
+        {% if child.criteria %}<span class="num"
+          >criteria {{ child.met }}/{{ child.criteria }}</span
+        >{% endif %}
+      </div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</details>
+{% endmacro %} {% for root in tree.roots %}
+<section class="card branch-root">{{ node_row(root) }}</section>
 {% endfor %} {% if tree.strays %}
 <section class="card">
   <h2>
@@ -51,4 +72,6 @@
   </p>
   {% set tickets = tree.orphans %} {% include "_ticket_table.html" %}
 </section>
-{% endif %} {% endblock %}
+{% endif %}
+<script src="/static/tree.js"></script>
+{% endblock %}

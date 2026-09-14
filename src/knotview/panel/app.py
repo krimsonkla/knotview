@@ -112,11 +112,10 @@ class Pages:
 
     async def tree(self, request: Request) -> HTMLResponse:
         """What is filed under what, with each parent's progress counted."""
-        project = self.backlog.project()
         return self._rendered(
             request,
             "tree.html",
-            tree=Tree.over(self.backlog.live(), terminal=project.terminal_statuses),
+            tree=Tree.over(self.backlog.live()),
             selection=Selection(),
         )
 
