@@ -61,6 +61,7 @@ modification times; the page reloads itself when it changes.
   `ok: false` with data), `ticket_from`, `project_from`.
 - `src/knotview/panel/app.py`: `Pages`, `ROUTES`, `panel()`, `HOSTS`, the stream generator.
 - `src/knotview/panel/selection.py`: every filter the URL carries, and the query-string builder.
+- `src/knotview/panel/tags.py`: the sticky tag choice, its cookie, and `narrow`.
 - `tests/reading/conftest.py`: the fake `knot` script the reading tests drive.
 - `tests/reading/record_envelopes.py`: regenerates the recorded envelopes from a real knot.
 
@@ -78,6 +79,7 @@ modification times; the page reloads itself when it changes.
 - Identifiers are passed after knot's `--` marker, so one starting with a dash is not an option.
 - The digest asks knot for the tickets directory once per `KnotCommand`; a panel pointed at a
   project whose `.knot.edn` moves the directory needs a restart.
-- An unknown ticket id renders the unreadable page at 503, not a 404; a missing blocker shows
-  as open; a live child of a non-live parent is absent from the tree. All three are open tickets.
+- The reader's chosen tags live in the `knotview_tags` cookie; `/tags` (a GET) changes it and
+  redirects back to a path on this panel only. Every list view narrows through `Tags.narrow`;
+  the ticket page does not.
 - The fidelity test skips without `knot` on PATH; the coverage gate still holds without it.
