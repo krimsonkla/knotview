@@ -27,6 +27,7 @@ def test_statuses_priorities_and_queues_are_counted(client):
     assert '<a href="/queue/ready">ready</a>' in page
     assert '<a href="/tickets?assignee=nobody">unassigned</a>' in page
     assert '<a href="/tickets?closed=1">1</a>' in page
+    assert "archive_count" not in page
 
 
 def test_the_live_total_is_the_sum_over_statuses(client):
@@ -129,3 +130,16 @@ def test_overview_cards_add_to_the_readers_current_selection(client):
 
     assert 'href="/tickets?type=task&amp;status=in_progress"' in page
     assert 'href="/tickets?type=task&amp;priority=3"' in page
+
+
+def test_the_terminal_count_narrows_with_the_chosen_tags(client):
+    closed_tagged = ticket("pro-01m2tttttttt", status="closed", tags=("auth",))
+    closed_plain = ticket("pro-01m2uuuuuuuu", status="closed")
+    browser = client(DeclaredBacklog(closed_value=(closed_tagged, closed_plain)))
+
+    before = browser.get("/").text
+    browser.get("/tags?add=auth&back=/")
+    after = browser.get("/").text
+
+    assert '<a href="/tickets?closed=1">2</a>' in before
+    assert '<a href="/tickets?closed=1">1</a>' in after

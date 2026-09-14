@@ -56,6 +56,9 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     by_queue: tuple[Tally, ...]
     parents: tuple[Ticket, ...]
     progress: tuple[Progress, ...]
+    # The closed tickets counted from the snapshot rather than from knot's raw archive count, so
+    # the number narrows with everything else when the reader has chosen tags.
+    terminal: int
     ready_to_close: tuple[Ticket, ...]
     stale: tuple[Ticket, ...]
     recently_changed: tuple[Ticket, ...]
@@ -108,6 +111,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
             ),
             parents=_parents(live),
             progress=_progress(live),
+            terminal=len(snapshot.closed),
             ready_to_close=snapshot.attention.ready_to_close,
             stale=snapshot.attention.stale,
             recently_changed=tuple(sorted(live, key=lambda t: t.updated or "", reverse=True))[
