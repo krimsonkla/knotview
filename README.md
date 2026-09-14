@@ -3,6 +3,15 @@
 A read-only panel over a [knot](https://github.com/UniSoma/knot) backlog, shaped by the project's own
 configuration rather than by this panel's idea of one.
 
+knotview exists because of knot. [knot](https://github.com/UniSoma/knot), by
+[UniSoma](https://github.com/UniSoma), is the ticket tracker this panel reads: markdown tickets
+with YAML frontmatter that live in the repository beside the code, a dependency graph with ready
+and blocked queues, acceptance criteria that gate closing, and a JSON protocol on every command
+built for handing work to an agent. Everything this panel shows is knot's data and knot's
+vocabulary; the panel adds pages, filters, a tree and a live view, and never a second copy of the
+schema. If you have not met knot, start there: its README explains the design, and `knot serve`
+ships a panel of its own that this one grew out of wanting more of.
+
 ## Two ways to run it
 
 **Without devenv**, which is how a user of the panel runs it. You need Python 3.12 or later,
