@@ -54,11 +54,12 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     by_status: tuple[Tally, ...]
     by_priority: tuple[Tally, ...]
     by_queue: tuple[Tally, ...]
+    # The terminal statuses counted from the snapshot's closed tickets rather than from knot's raw
+    # archive count, so they narrow with everything else when the reader has chosen tags, and
+    # each links to its own list the way the open statuses do.
+    by_terminal: tuple[Tally, ...]
     parents: tuple[Ticket, ...]
     progress: tuple[Progress, ...]
-    # The closed tickets counted from the snapshot rather than from knot's raw archive count, so
-    # the number narrows with everything else when the reader has chosen tags.
-    terminal: int
     ready_to_close: tuple[Ticket, ...]
     stale: tuple[Ticket, ...]
     recently_changed: tuple[Ticket, ...]
@@ -109,9 +110,17 @@ class Overview:  # pylint: disable=too-many-instance-attributes
                     value=NOBODY,
                 ),
             ),
+            by_terminal=tuple(
+                Tally(
+                    label=status,
+                    count=sum(1 for held in snapshot.closed if held.status == status),
+                    filter="status",
+                    value=status,
+                )
+                for status in project.terminal_statuses
+            ),
             parents=_parents(live),
             progress=_progress(live),
-            terminal=len(snapshot.closed),
             ready_to_close=snapshot.attention.ready_to_close,
             stale=snapshot.attention.stale,
             recently_changed=tuple(sorted(live, key=lambda t: t.updated or "", reverse=True))[

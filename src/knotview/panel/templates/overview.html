@@ -38,12 +38,14 @@
         <span class="num">{{ tally.count }}</span>
       </li>
       {% endfor %}
-      <li class="muted">
-        terminal
-        <span class="num"
-          ><a href="/tickets?closed=1">{{ overview.terminal }}</a></span
+      {% for tally in overview.by_terminal %}
+      <li>
+        <a href="/tickets?{{ selection.query_string(closed='1', status=tally.value) }}"
+          >{{ tally.label }}</a
         >
+        <span class="num">{{ tally.count }}</span>
       </li>
+      {% endfor %}
     </ul>
   </div>
   <div class="card">

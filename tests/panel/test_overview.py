@@ -26,7 +26,7 @@ def test_statuses_priorities_and_queues_are_counted(client):
     assert '<a href="/tickets?priority=3"' in page
     assert '<a href="/queue/ready">ready</a>' in page
     assert '<a href="/tickets?assignee=nobody">unassigned</a>' in page
-    assert '<a href="/tickets?closed=1">1</a>' in page
+    assert 'href="/tickets?status=closed&amp;closed=1"' in page and ">closed</a" in page
     assert "archive_count" not in page
 
 
@@ -141,5 +141,8 @@ def test_the_terminal_count_narrows_with_the_chosen_tags(client):
     browser.get("/tags?add=auth&back=/")
     after = browser.get("/").text
 
-    assert '<a href="/tickets?closed=1">2</a>' in before
-    assert '<a href="/tickets?closed=1">1</a>' in after
+    def closed_count(page: str) -> str:
+        start = page.index(">closed</a")
+        return page[start : start + 80].split('<span class="num">')[1].split("<")[0]
+
+    assert closed_count(before) == "2" and closed_count(after) == "1"
