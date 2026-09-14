@@ -41,6 +41,7 @@ class Selection:  # pylint: disable=too-many-instance-attributes
     mode: str = ANY
     assignee: str = ANY
     tag: str = ANY
+    component: str = ANY
     query: str = ""
     order: str = "priority"
     closed: bool = False
@@ -58,6 +59,7 @@ class Selection:  # pylint: disable=too-many-instance-attributes
             mode=_known(given.get("mode"), project.modes),
             assignee=(given.get("assignee") or ANY).strip() or ANY,
             tag=(given.get("tag") or ANY).strip() or ANY,
+            component=(given.get("component") or ANY).strip() or ANY,
             query=(given.get("q") or "").strip(),
             order=_known(given.get("order"), ORDERS, fallback="priority"),
             closed=(given.get("closed") or "").lower() in ("1", "true", "yes", "on"),
@@ -77,6 +79,7 @@ class Selection:  # pylint: disable=too-many-instance-attributes
             ("mode", self.mode),
             ("assignee", self.assignee),
             ("tag", self.tag),
+            ("component", self.component),
             ("matching", self.query),
         )
         return tuple((field, value) for field, value in named if value and value != ANY)
@@ -94,6 +97,7 @@ class Selection:  # pylint: disable=too-many-instance-attributes
             "mode": self.mode,
             "assignee": self.assignee,
             "tag": self.tag,
+            "component": self.component,
             "q": self.query,
             "order": self.order,
             "closed": "1" if self.closed else "",
@@ -116,6 +120,7 @@ class Selection:  # pylint: disable=too-many-instance-attributes
                 self.mode in (ANY, ticket.mode),
                 self._assigned(ticket),
                 self.tag == ANY or self.tag in ticket.tags,
+                self.component in (ANY, str(ticket.component)),
                 self._mentions(ticket),
             )
         )

@@ -23,6 +23,7 @@ def titles(page: str) -> list[str]:
         ("mode=afk", ["The child"]),
         ("assignee=someone", ["The orphan"]),
         ("assignee=nobody", ["The parent", "The child"]),
+        ("component=7", []),
         ("tag=auth", ["The parent"]),
         ("q=orphan", ["The orphan"]),
         ("q=pro-01m2bbbb", ["The child"]),
@@ -121,3 +122,12 @@ def test_the_metric_columns_show_the_number_or_a_dash(client):
     assert 'href="/tickets?order=leverage">lev</a>' in page
     assert 'href="/tickets?order=level">lvl</a>' in page
     assert "—" in page and ">3<" in page.replace("\n", "").replace(" ", "")
+
+
+def test_a_component_filter_keeps_one_island_and_shows_in_the_summary(client):
+    same = ticket("pro-01m2zzzzzzzz", title="Same island", component=3)
+    other = ticket("pro-01m2yyyyyyyy", title="Other island", component=4)
+    page = client(DeclaredBacklog(live_value=(same, other))).get("/tickets?component=3").text
+
+    assert "Same island" in page and "Other island" not in page
+    assert "component 3" in page

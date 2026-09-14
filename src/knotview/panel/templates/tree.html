@@ -3,6 +3,8 @@
   What is filed under what, to any depth. A parent is a ticket something else
   names as its parent, so this is the project's own shape rather than a search
   for a type called epic. Fold a branch with its triangle; the page remembers.
+  An island is knot's connected component: two roots on one island are joined
+  by a dependency or a link, and cannot be worked apart.
 </p>
 
 {% macro node_row(node) %}
@@ -17,6 +19,12 @@
     >
     <a class="title" href="/ticket/{{ node.ticket.id }}">{{ node.ticket.title }}</a>
     <span class="id">{{ node.ticket.id }}</span>
+    {% if node.ticket.component is not none %}<a
+      class="chip island"
+      href="/tickets?component={{ node.ticket.component }}"
+      title="knot's connected component: the live tickets this one is joined to by parents, dependencies and links"
+      >island {{ node.ticket.component }}</a
+    >{% endif %}
     <span class="num">children {{ node.total }}</span>
     {% if node.beneath != node.total %}<span class="num"
       >beneath {{ node.beneath }}</span

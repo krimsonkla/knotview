@@ -64,3 +64,11 @@ def test_the_page_nests_a_grandchild_inside_its_parent_and_lists_the_rest(client
     assert "filed under nothing" in page and "The orphan" in page
     assert 'src="/static/tree.js"' in page
     assert page.count("The grandchild") == 1
+
+
+def test_a_root_shows_its_island_as_a_link_to_that_component(client):
+    islanded = ticket("pro-01m2iiiiiiii", title="Islanded", component=2)
+    kid = ticket("pro-01m2jjjjjjjj", parent="pro-01m2iiiiiiii", component=2)
+    page = client(DeclaredBacklog(live_value=(islanded, kid))).get("/tree").text
+
+    assert 'href="/tickets?component=2"' in page and "island 2" in page

@@ -388,3 +388,8 @@ ul.branch > li {
 .leaf > * {
   margin-right: 0.4em;
 }
+
+/* An island chip names knot's connected component; the same number is the same island. */
+.chip.island {
+  border-style: dashed;
+}
