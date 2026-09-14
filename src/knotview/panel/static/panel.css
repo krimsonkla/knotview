@@ -398,3 +398,19 @@ h3.wave {
   margin: 1em 0 0.3em;
   font-size: 0.95em;
 }
+
+ul.progress {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+ul.progress li {
+  display: grid;
+  grid-template-columns: 1fr 12em auto auto;
+  gap: 0.6em;
+  align-items: center;
+  padding: 0.25em 0;
+}
+ul.progress progress {
+  width: 100%;
+}

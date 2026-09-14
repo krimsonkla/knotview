@@ -6,8 +6,9 @@ from datetime import UTC, datetime
 
 from knotview.panel.app import _ago
 from knotview.reading.knot_command import _described
+from knotview.values.criterion import Criterion
 from knotview.values.attention import Attention
-from tests.panel.declared import CHILD, DeclaredBacklog, ticket
+from tests.panel.declared import CHILD, PARENT, DeclaredBacklog, ticket
 from tests.reading.envelopes import envelope
 
 
@@ -98,3 +99,26 @@ def test_an_instant_reads_as_a_distance_from_now():
     assert (
         _ago("2026-09-14T11:59:59Z").endswith("ago") or _ago("2026-09-14T11:59:59Z") == "just now"
     )
+
+
+def test_progress_lists_parents_with_criteria_nearest_to_done_first(client):
+    far = ticket(
+        "pro-01m2ffffffff",
+        title="Far parent",
+        acceptance=tuple(Criterion(title=f"c{i}", done=False) for i in range(4)),
+    )
+    kid = ticket("pro-01m2kkkkkkkk", parent="pro-01m2ffffffff")
+    page = client(DeclaredBacklog(live_value=(far, kid, PARENT, CHILD))).get("/").text
+
+    section = page[page.index("<h2>progress</h2>") : page.index("<h2>parents</h2>")]
+    assert section.index("The parent") < section.index("Far parent")
+    assert '<progress value="1" max="2">' in section and "1/2 criteria" in section
+    assert "1 live beneath" in section
+
+
+def test_a_parent_without_criteria_is_not_in_progress(client):
+    bare = ticket("pro-01m2pppppppp", title="Bare parent")
+    kid = ticket("pro-01m2qqqqqqqq", parent="pro-01m2pppppppp")
+    page = client(DeclaredBacklog(live_value=(bare, kid))).get("/").text
+
+    assert "<h2>progress</h2>" not in page

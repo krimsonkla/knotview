@@ -100,6 +100,27 @@
 </section>
 {% endif %}
 
+{% if overview.progress %}
+<section class="card">
+  <h2>progress</h2>
+  <p class="muted">
+    Each parent's own criteria, nearest to done first, with the live tickets
+    still under it. A parent can be done with its children and still owe its
+    own criteria.
+  </p>
+  <ul class="progress">
+    {% for row in overview.progress %}
+    <li>
+      <a href="/ticket/{{ row.ticket.id }}">{{ row.ticket.title }}</a>
+      <progress value="{{ row.met }}" max="{{ row.criteria }}"></progress>
+      <span class="num">{{ row.met }}/{{ row.criteria }} criteria</span>
+      <span class="num">{{ row.children }} live beneath</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
 <section class="card">
   <h2>parents</h2>
   <p class="muted">
