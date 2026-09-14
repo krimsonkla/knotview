@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from knotview.panel.overview import Overview
+from knotview.panel.prose import rendered as prose
 from knotview.panel.selection import ANY, ORDERS, Selection
 from knotview.panel.tree import Tree
 from knotview.reading.backlog import Backlog
@@ -193,6 +194,7 @@ def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(HOSTS))
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.filters["humanise"] = _humanise
+    templates.env.filters["prose"] = prose
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
     pages = Pages(backlog, templates=templates, heartbeat=heartbeat)
     app.add_exception_handler(UnreadableBacklog, pages.unreadable)
