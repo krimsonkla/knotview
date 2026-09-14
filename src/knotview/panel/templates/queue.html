@@ -8,6 +8,14 @@ main %}
     most waiting work. {% else %}At least one blocker still open. The level is
     how many rounds of closing stand before each can start.{% endif %}
   </p>
-  {% include "_ticket_table.html" %}
+  {% if which == "blocked" and waves %} {% for level, tickets in waves %}
+  <h3 class="wave">
+    {% if level is none %}on a cycle, which no round reaches{% elif level == 1
+    %}next: ready once today's ready tickets close{% else %}{{ level }} rounds
+    away{% endif %}
+    <span class="num">{{ tickets | length }}</span>
+  </h3>
+  {% include "_ticket_table.html" %} {% endfor %} {% else %} {% include
+  "_ticket_table.html" %} {% endif %}
 </section>
 {% endblock %}

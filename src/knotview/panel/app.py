@@ -130,11 +130,13 @@ class Pages:
                 looking_for=f"queue called {which}",
                 selection=Selection(),
             )
+        tickets = queues[which]()
         return self._rendered(
             request,
             "queue.html",
             which=which,
-            tickets=queues[which](),
+            tickets=tickets,
+            waves=_waves(tickets) if which == "blocked" else (),
             selection=Selection(),
         )
 
@@ -235,6 +237,18 @@ async def _changes(backlog: Backlog, heartbeat: float):
         else:
             yield KEEPALIVE
         await asyncio.sleep(heartbeat)
+
+
+def _waves(tickets: tuple[Ticket, ...]) -> tuple[tuple[int | None, tuple[Ticket, ...]], ...]:
+    """The blocked tickets grouped by knot's level: the rounds of closing before each can start.
+
+    Level 1 becomes ready once today's ready tickets close, level 2 after those, and so on, which
+    is what makes the blocked queue a schedule rather than a list. A level knot gives as null is
+    a ticket on a dependency cycle, which no schedule reaches; it goes last, under its own name.
+    """
+    known = sorted({t.level for t in tickets if t.level is not None})
+    levels: list[int | None] = [*known, *([None] if any(t.level is None for t in tickets) else [])]
+    return tuple((level, tuple(t for t in tickets if t.level == level)) for level in levels)
 
 
 def _humanise(stamped: str | None) -> str:
