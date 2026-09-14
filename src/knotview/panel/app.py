@@ -109,6 +109,10 @@ class Pages:
         project = self.backlog.project()
         selection = Selection.asked(project, dict(request.query_params))
         held = self.backlog.live() + (self.backlog.closed() if selection.closed else ())
+        if selection.deep and selection.query:
+            # A deep search needs each ticket's text, which a listing does not carry, so every
+            # held ticket is read in full: one knot process per ticket, only when asked for.
+            held = tuple(self.backlog.ticket(one.id) for one in held)
         return self._rendered(
             request,
             "tickets.html",

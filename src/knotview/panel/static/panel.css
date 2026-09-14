@@ -434,3 +434,8 @@ th a.on {
   margin-left: 0.3em;
   text-decoration: none;
 }
+
+.excerpt {
+  display: block;
+  font-size: 0.85em;
+}

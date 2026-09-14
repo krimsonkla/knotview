@@ -1,9 +1,13 @@
 """What a reader asked to see, read from a query string and checked against the project."""
 
+import re
 from dataclasses import dataclass
 
 from knotview.values.project import Project
 from knotview.values.ticket import Ticket
+
+# Where one sentence ends and the next begins, for the excerpt a deep search shows.
+_SENTENCES = re.compile(r"(?<=[.!?])\s+|\n{2,}")
 
 # How a list may be ordered. Priority first is the backlog's own order: knot numbers zero highest,
 # so ascending priority is descending urgency, which is why this is not simply a sort direction.
@@ -43,6 +47,7 @@ class Selection:  # pylint: disable=too-many-instance-attributes
     tag: str = ANY
     component: str = ANY
     query: str = ""
+    deep: bool = False
     order: str = "priority"
     closed: bool = False
 
@@ -61,6 +66,7 @@ class Selection:  # pylint: disable=too-many-instance-attributes
             tag=(given.get("tag") or ANY).strip() or ANY,
             component=(given.get("component") or ANY).strip() or ANY,
             query=(given.get("q") or "").strip(),
+            deep=(given.get("deep") or "").lower() in ("1", "true", "yes", "on"),
             order=_known(given.get("order"), ORDERS, fallback="priority"),
             closed=(given.get("closed") or "").lower() in ("1", "true", "yes", "on"),
         )
@@ -108,6 +114,7 @@ class Selection:  # pylint: disable=too-many-instance-attributes
             "tag": self.tag,
             "component": self.component,
             "q": self.query,
+            "deep": "1" if self.deep else "",
             "order": self.order,
             "closed": "1" if self.closed else "",
         }
@@ -166,9 +173,9 @@ class Selection:  # pylint: disable=too-many-instance-attributes
         """Whether the text asked for appears anywhere a reader would look for it.
 
         The id, the title and the tags, which is what somebody typing into a search box means. Not
-        the body: a panel that matched a word buried in a design section would answer with tickets
-        whose titles have nothing to do with the question, and the reader cannot see why they are
-        there.
+        the body unless the reader asked for that too: a panel that matched a word buried in a
+        design section would answer with tickets whose titles have nothing to do with the question,
+        which is why a deep search shows the sentence that matched under each title.
         """
         if not self.query:
             return True
@@ -177,7 +184,19 @@ class Selection:  # pylint: disable=too-many-instance-attributes
             looking in ticket.id.lower()
             or looking in ticket.title.lower()
             or any(looking in tag.lower() for tag in ticket.tags)
+            or (self.deep and self.excerpt(ticket) is not None)
         )
+
+    def excerpt(self, ticket: Ticket) -> str | None:
+        """The first sentence of the ticket's text that holds the query, or nothing."""
+        if not self.query:
+            return None
+        looking = self.query.lower()
+        for text in ticket.sections.values():
+            for sentence in _SENTENCES.split(text):
+                if looking in sentence.lower():
+                    return " ".join(sentence.split())
+        return None
 
 
 def _known(given: str | None, allowed: tuple[str, ...], *, fallback: str = ANY) -> str:

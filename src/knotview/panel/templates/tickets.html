@@ -78,6 +78,10 @@
       value="{{ selection.query }}"
       placeholder="id, title or tag"
   /></label>
+  <label class="check" title="also match the ticket's text; reads every ticket in full"
+    ><input type="checkbox" name="deep" value="1" {% if selection.deep %}checked{% endif %} />
+    in text</label
+  >
   <label class="check"
     ><input
       type="checkbox"

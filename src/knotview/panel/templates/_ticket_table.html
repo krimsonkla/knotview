@@ -65,6 +65,9 @@
       <td>
         <a class="title" href="/ticket/{{ ticket.id }}">{{ ticket.title }}</a>
         <span class="id">{{ ticket.id }}</span>
+        {% if selection.deep and selection.excerpt(ticket) %}
+        <span class="excerpt muted">{{ selection.excerpt(ticket) }}</span>
+        {% endif %}
         {% for tag in ticket.tags %}<a class="tag" href="/tickets?tag={{ tag }}"
           >{{ tag }}</a
         >{% endfor %}

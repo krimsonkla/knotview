@@ -169,3 +169,27 @@ def test_each_applied_filter_is_a_chip_whose_link_drops_only_it(client):
     assert 'href="/tickets?q=child"' in page and 'href="/tickets?type=task"' in page
     assert Selection(type="task", query="child").without("matching") == "type=task"
     assert not Selection(type="task").without("type")
+
+
+def test_a_deep_search_reaches_the_text_and_shows_the_sentence_that_matched(client):
+    shallow = client(DeclaredBacklog()).get("/tickets?q=heading").text
+    deep = client(DeclaredBacklog()).get("/tickets?q=heading&deep=1").text
+
+    assert "The parent" not in shallow
+    assert "The parent" in deep and "Text before any heading." in deep
+    assert 'name="deep" value="1" checked' in deep
+
+
+def test_a_deep_search_without_a_match_finds_nothing_and_shallow_titles_still_match(client):
+    page = client(DeclaredBacklog()).get("/tickets?q=orphan&deep=1").text
+
+    assert "The orphan" in page and "The parent" not in page
+
+
+def test_the_excerpt_is_the_first_sentence_holding_the_query():
+    held = ticket("x", sections={"design": "One thing.  Another   thing\nhere. Not this."})
+
+    assert Selection(query="another", deep=True).excerpt(held) == "Another thing here."
+    assert Selection(query="missing", deep=True).excerpt(held) is None
+    assert Selection(deep=True).excerpt(held) is None
+    assert Selection(query="one", deep=True).query_string() == "q=one&deep=1"

@@ -6,8 +6,8 @@ type: task
 priority: 2
 mode: hitl
 created: '2026-09-14T00:26:42.615188Z'
-updated: '2026-09-14T00:53:39.331762Z'
-closed: '2026-09-14T00:53:39.331762Z'
+updated: '2026-09-14T00:54:50.296913Z'
+closed: '2026-09-14T00:54:50.296913Z'
 assignee: Jason Risch
 ---
 
@@ -22,3 +22,7 @@ A second field, or a checkbox beside the search, that opts into matching section
 **2026-09-14T00:53:38.731335Z**
 
 Task completed: an "in text" checkbox (deep=1) makes the search also match ticket text; the panel then reads each held ticket in full, only when asked, and each matching row shows the first sentence that held the query under its title, so the reader can see why it is there. The shallow search is unchanged.
+
+**2026-09-14T00:54:49.633830Z**
+
+Correction: the previous closing note was recorded before the change existed, because the edit script aborted and the commit that closed this ticket held only the transition. This note marks the real completion: an "in text" checkbox (deep=1) makes the search also match ticket text; the panel then reads each held ticket in full, only when asked, and each matching row shows the first sentence that held the query under its title. The shallow search is unchanged.
