@@ -75,6 +75,20 @@ def test_every_listing_read_answers_from_its_envelope(fake):
     assert [one.id for one in command.blocked()] == ["pro-01m2bbbbbbbb"]
 
 
+def test_the_dependency_tree_is_read_with_its_missing_leaf(fake):
+    tree = fake().dependencies("pro-01m2bbbbbbbb")
+
+    assert [(d.id, d.status, d.missing) for d in tree.deps] == [
+        ("pro-01m2cccccccc", "closed", False),
+        ("pro-01m2zzzzzzzz", "", True),
+    ]
+
+
+def test_the_dependency_tree_of_an_unknown_id_is_a_missing_root(fake):
+    """knot is tolerant here: a missing root is an answer, not a refusal."""
+    assert fake().dependencies("nope").missing is True
+
+
 def test_the_primer_is_read_for_what_wants_attention(fake):
     report = fake().attention()
 
@@ -232,6 +246,7 @@ def test_the_command_only_speaks_the_verb_it_was_given(fake):
     spoken = fake()._spoken
     assert spoken("list", ())[1:] == ["list", "--json"]
     assert spoken("show", ("x",))[1:] == ["show", "--json", "--", "x"]
+    assert spoken("dep tree", ("x",))[1:] == ["dep", "tree", "--json", "--", "x"]
 
 
 def test_an_identifier_starting_with_a_dash_reaches_knot_as_an_identifier(fake):

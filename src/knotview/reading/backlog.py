@@ -3,6 +3,7 @@
 from typing import Protocol, runtime_checkable
 
 from knotview.values.attention import Attention
+from knotview.values.dependency import Dependency
 from knotview.values.project import Project
 from knotview.values.ticket import Ticket
 
@@ -47,6 +48,10 @@ class Backlog(Protocol):
 
     def ticket(self, identifier: str) -> Ticket:
         """One ticket in full: its sections, its notes and both directions of its graph."""
+        raise NotImplementedError
+
+    def dependencies(self, identifier: str) -> Dependency:
+        """The tree of what one ticket waits on, as knot draws it."""
         raise NotImplementedError
 
     def integrity(self) -> tuple[str, ...]:

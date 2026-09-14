@@ -53,3 +53,17 @@ def test_an_unknown_id_is_a_page_that_is_not_there_at_404(client):
 def test_an_instant_is_shown_to_the_minute_and_nothing_as_a_dash():
     assert _humanise("2026-09-13T21:45:04.037646Z") == "2026-09-13 21:45"
     assert _humanise(None) == "—"
+
+
+def test_the_dependency_tree_is_drawn_under_the_ticket_with_a_missing_leaf(client):
+    page = client(DeclaredBacklog()).get("/ticket/pro-01m2bbbbbbbb").text
+
+    assert "depends on, all the way down" in page
+    assert page.count("pro-01m2zzzzzzzz") >= 2
+    assert "The closed one" in page
+
+
+def test_a_ticket_with_no_dependencies_has_no_tree_section(client):
+    page = client(DeclaredBacklog()).get("/ticket/pro-01m2dddddddd").text
+
+    assert "depends on, all the way down" not in page

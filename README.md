@@ -67,7 +67,8 @@ the linters all run from a plain `uv sync --all-groups`. See [CONTRIBUTING.md](C
   criteria counted separately, and the tickets filed under nothing listed at the bottom, because that
   is where work goes missing.
 - **Ticket.** The sections as the ticket wrote them, its acceptance criteria with what is met, both
-  directions of its graph, its links and its notes.
+  directions of its graph, its links, its notes, and knot's own dependency tree drawn all the way
+  down, with a missing dependency shown as such.
 - **Live.** A one-way stream says when the backlog changed and the page reloads itself. The stream
   carries a digest rather than markup, so what you see after a change is what a fresh visit shows.
 

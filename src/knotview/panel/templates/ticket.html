@@ -82,7 +82,36 @@ block main %}
     {% endif %} {% endfor %}
   </section>
 
-  {% if ticket.external_refs %}
+  {% if dependencies.deps %}
+  <section class="card">
+    <h2>depends on, all the way down</h2>
+    <p class="muted">
+      knot's own tree: what this waits on, and what those wait on. A node the
+      tree already drew is not drawn again.
+    </p>
+    <ul class="deps">
+      {% for node in dependencies.deps recursive %}
+      <li>
+        {% if node.missing %}
+        <span class="chip muted">missing</span>
+        <span class="id">{{ node.id }}</span>
+        {% else %}
+        <a class="chip status-{{ node.status }}" href="/ticket/{{ node.id }}"
+          >{{ node.status }}</a
+        >
+        <a href="/ticket/{{ node.id }}">{{ node.title }}</a>
+        <span class="id">{{ node.id }}</span>
+        {% if node.seen_before %}<span class="muted">drawn above</span>{% endif %}
+        {% if node.deps %}
+        <ul class="deps">
+          {{ loop(node.deps) }}
+        </ul>
+        {% endif %} {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %} {% if ticket.external_refs %}
   <section class="card">
     <h2>external</h2>
     <ul class="refs">

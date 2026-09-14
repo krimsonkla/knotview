@@ -34,6 +34,8 @@ def test_the_port_itself_answers_nothing(name: str):
         getattr(Backlog, name)(object())
 
 
-def test_the_port_itself_answers_no_ticket_either():
+def test_the_port_itself_answers_no_ticket_and_no_dependencies_either():
     with pytest.raises(NotImplementedError):
         Backlog.ticket(object(), "x")
+    with pytest.raises(NotImplementedError):
+        Backlog.dependencies(object(), "x")

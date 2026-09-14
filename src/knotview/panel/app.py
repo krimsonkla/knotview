@@ -139,10 +139,12 @@ class Pages:
 
     async def ticket(self, request: Request, identifier: str) -> HTMLResponse:
         """One ticket in full: its sections, its criteria, its graph and its notes."""
+        ticket = self.backlog.ticket(identifier)
         return self._rendered(
             request,
             "ticket.html",
-            ticket=self.backlog.ticket(identifier),
+            ticket=ticket,
+            dependencies=self.backlog.dependencies(ticket.id),
             selection=Selection(),
         )
 

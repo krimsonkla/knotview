@@ -9,6 +9,7 @@ from pathlib import Path
 from knotview.reading.knot_envelope import (
     answered,
     attention_from,
+    dependency_from,
     project_from,
     ticket_from,
     tickets_from,
@@ -16,6 +17,7 @@ from knotview.reading.knot_envelope import (
 )
 from knotview.values.project import Project
 from knotview.values.attention import Attention
+from knotview.values.dependency import Dependency
 from knotview.values.missing_ticket import MissingTicket
 from knotview.values.ticket import Ticket
 from knotview.values.unreadable_backlog import UnreadableBacklog
@@ -33,7 +35,9 @@ PATIENCE = 20
 # reopen, delete, dep, undep, link, unlink, add-note, edit and update, and none of them appears here
 # or anywhere else in this package. A test asserts that READS holds none of them, and that this is
 # the only module in the package that can start a process.
-READS = ("info", "list", "closed", "ready", "blocked", "show", "check", "prime")
+# "dep tree" is two words on purpose: knot's dep verb writes, its tree subcommand reads, and only
+# the read is spoken here.
+READS = ("info", "list", "closed", "ready", "blocked", "show", "check", "prime", "dep tree")
 
 
 class KnotCommand:
@@ -106,6 +110,10 @@ class KnotCommand:
                 advice="check the id against knot list, since knot resolves a partial id",
             )
         return ticket_from(stated)
+
+    def dependencies(self, identifier: str) -> Dependency:
+        """The tree of what one ticket waits on, as knot draws it, with a missing root as such."""
+        return dependency_from(self._read("dep tree", identifier))
 
     def integrity(self) -> tuple[str, ...]:
         """What the project's own check reports, as lines, empty when it is clean.
@@ -191,8 +199,8 @@ class KnotCommand:
         JSON flag comes before the marker for the same reason: knot must read it as a flag.
         """
         if not arguments:
-            return [self._knot, command, "--json"]
-        return [self._knot, command, "--json", "--", *arguments]
+            return [self._knot, *command.split(), "--json"]
+        return [self._knot, *command.split(), "--json", "--", *arguments]
 
 
 def _data_in(answer: subprocess.CompletedProcess[str], spoken: Sequence[str]) -> dict:

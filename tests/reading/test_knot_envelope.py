@@ -5,6 +5,7 @@ import pytest
 from knotview.reading.knot_envelope import (
     answered,
     attention_from,
+    dependency_from,
     project_from,
     ticket_from,
     tickets_from,
@@ -215,3 +216,22 @@ def test_a_primer_with_no_report_is_refused_and_a_bare_one_is_empty():
         attention_from(None)
     empty = attention_from({})
     assert (empty.in_progress, empty.ready_to_close, empty.stale) == ((), (), ())
+
+
+def test_the_dependency_tree_is_read_recursively_with_its_flags():
+    tree = dependency_from(envelope("dep-tree")["data"])
+
+    assert (tree.id, tree.status, tree.open) == ("pro-01m2bbbbbbbb", "in_progress", True)
+    assert [(d.id, d.missing, d.open) for d in tree.deps] == [
+        ("pro-01m2cccccccc", False, False),
+        ("pro-01m2zzzzzzzz", True, False),
+    ]
+    assert tree.deps[0].deps == ()
+
+
+def test_a_node_seen_before_is_flagged_and_a_node_with_no_id_is_refused():
+    node = dependency_from({"id": "a", "seen_before": True, "deps": "not a list"})
+
+    assert node.seen_before and not node.deps
+    with pytest.raises(UnreadableBacklog, match="no id"):
+        dependency_from({"title": "nameless"})

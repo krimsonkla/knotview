@@ -4,6 +4,7 @@ from typing import Any
 
 from knotview.values.attention import Attention
 from knotview.values.criterion import Criterion
+from knotview.values.dependency import Dependency
 from knotview.values.project import Project
 from knotview.values.reference import Reference
 from knotview.values.ticket import Ticket
@@ -123,6 +124,24 @@ def attention_from(stated: Any) -> Attention:
             [row for row in rows if isinstance(row, dict) and row.get("stale")],
             attempting="the primer's stale list",
         ),
+    )
+
+
+def dependency_from(stated: Any) -> Dependency:
+    """One node of knot's dependency tree, with its own dependencies read beneath it."""
+    if not isinstance(stated, dict) or not stated.get("id"):
+        raise UnreadableBacklog(
+            "a dependency was stated with no id",
+            advice="run knot check in that project to find the reference that cannot be read",
+        )
+    deps = stated.get("deps")
+    return Dependency(
+        id=str(stated["id"]),
+        title=str(stated.get("title") or ""),
+        status=str(stated.get("status") or ""),
+        missing=bool(stated.get("missing")),
+        seen_before=bool(stated.get("seen_before")),
+        deps=tuple(dependency_from(one) for one in (deps if isinstance(deps, list) else []) if one),
     )
 
 

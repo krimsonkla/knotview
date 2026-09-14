@@ -63,6 +63,12 @@ if verb == "check":
         print(json.dumps({{"schema_version": 1, "ok": True, "data": {{}}}}))
         sys.exit(0)
     say("check-clean")
+if verb == "dep" and len(sys.argv) > 2 and sys.argv[2] == "tree":
+    if sys.argv[-1] == "pro-01m2bbbbbbbb":
+        say("dep-tree")
+    absent = {{"id": sys.argv[-1], "missing": True}}
+    print(json.dumps({{"schema_version": 1, "ok": True, "data": absent}}))
+    sys.exit(0)
 if verb == "show":
     wanted = sys.argv[-1]
     if wanted == "pro-01m2aaaaaaaa":

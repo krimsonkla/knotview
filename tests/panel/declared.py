@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 from knotview.values.attention import Attention
 from knotview.values.criterion import Criterion
+from knotview.values.dependency import Dependency
 from knotview.values.missing_ticket import MissingTicket
 from knotview.values.project import Project
 from knotview.values.reference import Reference
@@ -80,6 +81,17 @@ CLOSED = ticket(
 )
 
 
+CHILD_DEPENDENCIES = Dependency(
+    id="pro-01m2bbbbbbbb",
+    title="The child",
+    status="in_progress",
+    deps=(
+        Dependency(id="pro-01m2cccccccc", title="The closed one", status="closed"),
+        Dependency(id="pro-01m2zzzzzzzz", title="", status="", missing=True),
+    ),
+)
+
+
 @dataclass(kw_only=True)
 class DeclaredBacklog:  # pylint: disable=too-many-instance-attributes
     """A Backlog over tuples, counting how often the digest is asked for.
@@ -133,6 +145,12 @@ class DeclaredBacklog:  # pylint: disable=too-many-instance-attributes
         """The declared primer report."""
         return self.attention_value
 
+    def dependencies(self, identifier: str) -> Dependency:
+        """The child's declared tree, and a leaf for anything else."""
+        if identifier == CHILD_DEPENDENCIES.id:
+            return CHILD_DEPENDENCIES
+        return Dependency(id=identifier, title="", status="open")
+
     def integrity(self) -> tuple[str, ...]:
         """The declared integrity lines."""
         return self.integrity_value
@@ -154,4 +172,5 @@ class RefusingBacklog:  # pylint: disable=too-few-public-methods
     def _refuse(self, *_: object) -> None:
         raise UnreadableBacklog("no knot project here", advice="run knot init, or point elsewhere")
 
-    project = live = closed = ready = blocked = ticket = attention = integrity = digest = _refuse
+    project = live = closed = ready = blocked = ticket = _refuse
+    dependencies = attention = integrity = digest = _refuse
