@@ -441,3 +441,19 @@ th a.on {
   display: block;
   font-size: 0.85em;
 }
+
+/* The reader's chosen tags, in the bar on every page. */
+.bar .tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-right: 0.8em;
+}
+.bar .addtag {
+  display: inline;
+}
+.bar .addtag input[type="text"] {
+  font: inherit;
+  font-size: 0.85em;
+  padding: 0.1em 0.4em;
+}

@@ -21,6 +21,40 @@ the live indicator. #}
         <a href="/queue/ready">ready</a>
         <a href="/queue/blocked">blocked</a>
       </nav>
+      <span class="tags">
+        {% for tag in tags.chosen %}
+        <span class="chip filter"
+          >{{ tag }}
+          <a
+            class="drop"
+            href="/tags?drop={{ tag | urlencode }}&back={{ here | urlencode }}"
+            title="drop this tag"
+            >×</a
+          ></span
+        >
+        {% endfor %}
+        <form class="addtag" method="get" action="/tags">
+          <input
+            type="text"
+            name="add"
+            list="known-tags"
+            placeholder="tag"
+            size="8"
+            title="see every view through this tag, until cleared"
+          />
+          <datalist id="known-tags">
+            {% for tag in known_tags %}
+            <option value="{{ tag }}"></option>
+            {% endfor %}
+          </datalist>
+          <input type="hidden" name="back" value="{{ here }}" />
+        </form>
+        {% if tags.chosen %}<a
+          class="muted"
+          href="/tags?clear=1&back={{ here | urlencode }}"
+          >clear</a
+        >{% endif %}
+      </span>
       <span id="since" class="since" hidden title="rows marked: updated since you last looked; click to clear"></span>
       <span id="live" class="live" title="following the backlog">live</span>
     </header>

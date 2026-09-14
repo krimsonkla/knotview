@@ -1,11 +1,18 @@
 """The panel: every route a GET, every answer a page or a stream."""
 
 import asyncio
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, Response, StreamingResponse
+from fastapi.responses import (
+    HTMLResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -13,6 +20,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from knotview.panel.overview import Overview
 from knotview.panel.prose import rendered as prose
 from knotview.panel.selection import ANY, ORDERS, Selection
+from knotview.panel.tags import COOKIE, Tags
 from knotview.panel.tree import Tree
 from knotview.reading.backlog import Backlog
 from knotview.reading.snapshot import Snapshot
@@ -58,14 +66,53 @@ class Pages:
     def _rendered(
         self, request: Request, template: str, *, status: int = 200, **context: object
     ) -> HTMLResponse:
-        """One page, with what every page needs already in it."""
+        """One page, with what every page needs already in it: the project and the reader's tags."""
         project = self.backlog.project()
+        known = sorted({tag for one in self.backlog.live() for tag in one.tags})
         return self.templates.TemplateResponse(
             request=request,
             name=template,
-            context={"project": project, "orders": ORDERS, "any": ANY, **context},
+            context={
+                "project": project,
+                "orders": ORDERS,
+                "any": ANY,
+                "tags": _tags(request),
+                "known_tags": known,
+                "here": request.url.path + (f"?{request.url.query}" if request.url.query else ""),
+                **context,
+            },
             status_code=status,
         )
+
+    def _narrowed(self, request: Request, tickets: tuple[Ticket, ...]) -> tuple[Ticket, ...]:
+        """Those tickets seen through the reader's chosen tags."""
+        return _tags(request).narrow(tickets)
+
+    async def tags(
+        self, request: Request, add: str = "", drop: str = "", clear: str = ""
+    ) -> Response:
+        """Change the reader's chosen tags and go back to the page they were on.
+
+        A GET like every other route, since it changes nothing about the backlog: the choice is
+        kept in a cookie in the reader's browser. The way back must be a path on this panel, so
+        a link from elsewhere cannot use it to send a reader somewhere else.
+        """
+        chosen = _tags(request)
+        if clear:
+            chosen = Tags()
+        if drop:
+            chosen = chosen.dropping(drop)
+        if add:
+            chosen = chosen.adding(add)
+        back = request.query_params.get("back") or "/"
+        if not back.startswith("/") or back.startswith("//"):
+            back = "/"
+        answer = RedirectResponse(back, status_code=303)
+        if chosen.chosen:
+            answer.set_cookie(COOKIE, chosen.cookie(), samesite="strict", httponly=True)
+        else:
+            answer.delete_cookie(COOKIE)
+        return answer
 
     async def missing(self, request: Request, refusal: MissingTicket) -> HTMLResponse:
         """The page for a ticket that is not there: a 404 offering the list, not a 503."""
@@ -97,10 +144,26 @@ class Pages:
         list and clicking a card narrows further instead of starting over.
         """
         project = self.backlog.project()
+        seen = Snapshot.read(self.backlog)
+        chosen = _tags(request)
+        if chosen.chosen:
+            seen = replace(
+                seen,
+                live=chosen.narrow(seen.live),
+                closed=chosen.narrow(seen.closed),
+                ready=chosen.narrow(seen.ready),
+                blocked=chosen.narrow(seen.blocked),
+                attention=replace(
+                    seen.attention,
+                    in_progress=chosen.narrow(seen.attention.in_progress),
+                    ready_to_close=chosen.narrow(seen.attention.ready_to_close),
+                    stale=chosen.narrow(seen.attention.stale),
+                ),
+            )
         return self._rendered(
             request,
             "overview.html",
-            overview=Overview.over(Snapshot.read(self.backlog)),
+            overview=Overview.over(seen),
             selection=Selection.asked(project, dict(request.query_params)),
         )
 
@@ -109,6 +172,7 @@ class Pages:
         project = self.backlog.project()
         selection = Selection.asked(project, dict(request.query_params))
         held = self.backlog.live() + (self.backlog.closed() if selection.closed else ())
+        held = self._narrowed(request, held)
         if selection.deep and selection.query:
             # A deep search needs each ticket's text, which a listing does not carry, so every
             # held ticket is read in full: one knot process per ticket, only when asked for.
@@ -126,7 +190,7 @@ class Pages:
         return self._rendered(
             request,
             "tree.html",
-            tree=Tree.over(self.backlog.live()),
+            tree=Tree.over(self._narrowed(request, self.backlog.live())),
             selection=Selection(),
         )
 
@@ -140,7 +204,7 @@ class Pages:
                 looking_for=f"queue called {which}",
                 selection=Selection(),
             )
-        tickets = queues[which]()
+        tickets = self._narrowed(request, queues[which]())
         return self._rendered(
             request,
             "queue.html",
@@ -207,6 +271,7 @@ ROUTES: tuple[tuple[str, str, type[Response] | None], ...] = (
     ("/ticket/{identifier}", "ticket", HTMLResponse),
     ("/digest", "digest", PlainTextResponse),
     ("/live", "live", None),
+    ("/tags", "tags", None),
 )
 
 
@@ -248,6 +313,11 @@ async def _changes(backlog: Backlog, heartbeat: float):
         else:
             yield KEEPALIVE
         await asyncio.sleep(heartbeat)
+
+
+def _tags(request: Request) -> Tags:
+    """The tags the reader's cookie carries."""
+    return Tags.from_cookie(request.cookies.get(COOKIE))
 
 
 def _waves(tickets: tuple[Ticket, ...]) -> tuple[tuple[int | None, tuple[Ticket, ...]], ...]:
