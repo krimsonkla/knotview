@@ -1,5 +1,6 @@
-/* One stylesheet, no build step, no framework. The panel is a handful of pages of dense text, and
-   the job here is making a table of tickets scannable rather than making anything look designed. */
+/* One stylesheet, no build step, no framework. The panel is a handful of pages of dense text, */
+/* and the job here is making a table of tickets scannable rather than making anything look */
+/* designed. */
 
 :root {
   color-scheme: light dark;
@@ -283,9 +284,11 @@ th.num {
   font-family: ui-monospace, monospace;
 }
 
+/* Ticket text is rendered markdown: soft line breaks join into paragraphs, so the hard wraps */
+/* the ticket files carry at a hundred columns do not become the page's line length. */
 .prose {
-  white-space: pre-wrap;
   font-size: 13px;
+  max-width: 80ch;
 }
 .graph {
   display: grid;
