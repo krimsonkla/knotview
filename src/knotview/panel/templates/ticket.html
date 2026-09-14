@@ -50,7 +50,7 @@ block main %}
   {% endif %} {% for heading, text in ticket.narrative() %}
   <section class="card">
     <h2>{{ heading }}</h2>
-    <div class="prose">{{ text }}</div>
+    <div class="prose">{{ text | prose | safe }}</div>
   </section>
   {% endfor %}
 
@@ -122,8 +122,17 @@ block main %}
   </section>
   {% endif %} {% if ticket.notes %}
   <section class="card notes">
-    <h2>notes</h2>
-    <div class="prose">{{ ticket.notes }}</div>
+    <h2>notes <span class="num">{{ ticket.timeline() | length }}</span></h2>
+    <ol class="timeline">
+      {% for note in ticket.timeline() %}
+      <li>
+        <h3 class="muted" title="{{ note.at or '' }}">
+          {% if note.at %}{{ note.at | humanise }}{% else %}undated{% endif %}
+        </h3>
+        <div class="prose">{{ note.text | prose | safe }}</div>
+      </li>
+      {% endfor %}
+    </ol>
   </section>
   {% endif %}
 </article>

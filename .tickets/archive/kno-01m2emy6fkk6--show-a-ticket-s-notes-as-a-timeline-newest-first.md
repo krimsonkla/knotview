@@ -6,7 +6,7 @@ type: task
 priority: 2
 mode: hitl
 created: '2026-09-14T00:26:42.035711Z'
-updated: '2026-09-14T00:35:49.056211Z'
+updated: '2026-09-14T00:37:53.701477Z'
 closed: '2026-09-14T00:35:49.056211Z'
 assignee: Jason Risch
 ---
@@ -22,3 +22,7 @@ Split the notes section on knot's timestamp lines, show each note as an entry wi
 **2026-09-14T00:35:48.400758Z**
 
 Task completed: Ticket.timeline splits the notes section on the bold instants knot writes above each note and returns them newest first, a hand-written note without an instant keeping its place; the ticket page shows them as a timeline with the humanised instant as each heading and the full instant on hover. Asserted as a value and on the page.
+
+**2026-09-14T00:37:53.701477Z**
+
+(see earlier note)

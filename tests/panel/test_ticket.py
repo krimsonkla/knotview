@@ -1,7 +1,7 @@
 """One ticket in full."""
 
 from knotview.panel.app import _humanise
-from tests.panel.declared import DeclaredBacklog
+from tests.panel.declared import DeclaredBacklog, ticket
 
 
 def test_the_header_carries_the_chips_the_instants_and_the_parent(client):
@@ -67,3 +67,17 @@ def test_a_ticket_with_no_dependencies_has_no_tree_section(client):
     page = client(DeclaredBacklog()).get("/ticket/pro-01m2dddddddd").text
 
     assert "depends on, all the way down" not in page
+
+
+def test_notes_are_shown_as_a_timeline_newest_first(client):
+    held = ticket(
+        "pro-01m2nnnnnnnn",
+        title="Noted",
+        sections={
+            "notes": "**2026-09-12T06:44:01Z**\n\nEarlier.\n\n**2026-09-13T07:42:11Z**\n\nLater."
+        },
+    )
+    page = client(DeclaredBacklog(live_value=(held,))).get("/ticket/pro-01m2nnnnnnnn").text
+
+    assert page.index("Later.") < page.index("Earlier.")
+    assert "2026-09-13 07:42" in page and 'title="2026-09-13T07:42:11Z"' in page

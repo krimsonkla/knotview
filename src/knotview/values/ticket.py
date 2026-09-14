@@ -1,9 +1,14 @@
 """One ticket, as this panel holds it."""
 
+import re
 from dataclasses import dataclass, field
 
 from knotview.values.criterion import Criterion
+from knotview.values.note import Note
 from knotview.values.reference import Reference
+
+# The line knot writes above each note: its instant, bold, alone on the line.
+_STAMP = re.compile(r"^\*\*(\S+)\*\*\s*$")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -89,6 +94,30 @@ class Ticket:  # pylint: disable=too-many-instance-attributes
         decision ends up.
         """
         return self.sections.get("notes")
+
+    def timeline(self) -> tuple[Note, ...]:
+        """The notes as entries, newest first, split on the instants knot writes above each.
+
+        Newest first because the latest note is the current state of the ticket, and on an epic
+        with seven notes it was at the bottom of the card.
+        """
+        held = self.notes
+        if not held:
+            return ()
+        entries: list[Note] = []
+        at: str | None = None
+        text: list[str] = []
+        for line in held.splitlines():
+            stamped = _STAMP.match(line)
+            if stamped:
+                if at or "".join(text).strip():
+                    entries.append(Note(at=at, text="\n".join(text).strip()))
+                at, text = stamped.group(1), []
+            else:
+                text.append(line)
+        # The section is not empty, so the loop leaves an instant or text behind, always a note.
+        entries.append(Note(at=at, text="\n".join(text).strip()))
+        return tuple(reversed(entries))
 
     def narrative(self) -> tuple[tuple[str, str], ...]:
         """Every section except the notes, in the order the ticket holds them.
