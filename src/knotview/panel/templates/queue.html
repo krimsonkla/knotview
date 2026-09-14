@@ -10,9 +10,8 @@ main %}
   </p>
   {% if which == "blocked" and waves %} {% for level, tickets in waves %}
   <h3 class="wave">
-    {% if level is none %}on a cycle, which no round reaches{% elif level == 1
-    %}next: ready once today's ready tickets close{% else %}{{ level }} rounds
-    away{% endif %}
+    {% if level is none %}on a cycle, which no round reaches{% elif level == 1 %}next:
+    ready once today's ready tickets close{% else %}{{ level }} rounds away{% endif %}
     <span class="num">{{ tickets | length }}</span>
   </h3>
   {% include "_ticket_table.html" %} {% endfor %} {% else %} {% include

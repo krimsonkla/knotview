@@ -26,7 +26,7 @@ def test_the_blocked_queue_is_grouped_by_level_with_cycles_last(client):
     looped = ticket("pro-01m2oooooooo", title="Looped")
     page = client(DeclaredBacklog(blocked_value=(later, looped, soon))).get("/queue/blocked").text
 
-    assert page.index("next: ready once") < page.index("Soon")
+    assert page.index("ready once today") < page.index("Soon")
     assert page.index("Soon") < page.index("3 rounds away") < page.index("Later")
     assert page.index("Later") < page.index("on a cycle") < page.index("Looped")
 
