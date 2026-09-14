@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 
+from knotview.values.attention import Attention
 from knotview.values.criterion import Criterion
 from knotview.values.missing_ticket import MissingTicket
 from knotview.values.project import Project
@@ -92,6 +93,9 @@ class DeclaredBacklog:  # pylint: disable=too-many-instance-attributes
     closed_value: tuple[Ticket, ...] = (CLOSED,)
     ready_value: tuple[Ticket, ...] = (PARENT, ORPHAN)
     blocked_value: tuple[Ticket, ...] = (CHILD,)
+    attention_value: Attention = field(
+        default_factory=lambda: Attention(in_progress=(CHILD,), ready_to_close=(), stale=())
+    )
     integrity_value: tuple[str, ...] = ()
     digests: list[str] = field(default_factory=lambda: ["d1"])
     digest_calls: int = 0
@@ -125,6 +129,10 @@ class DeclaredBacklog:  # pylint: disable=too-many-instance-attributes
             identifier, message=f"knot show was refused: no ticket matching {identifier}"
         )
 
+    def attention(self) -> Attention:
+        """The declared primer report."""
+        return self.attention_value
+
     def integrity(self) -> tuple[str, ...]:
         """The declared integrity lines."""
         return self.integrity_value
@@ -146,4 +154,4 @@ class RefusingBacklog:  # pylint: disable=too-few-public-methods
     def _refuse(self, *_: object) -> None:
         raise UnreadableBacklog("no knot project here", advice="run knot init, or point elsewhere")
 
-    project = live = closed = ready = blocked = ticket = integrity = digest = _refuse
+    project = live = closed = ready = blocked = ticket = attention = integrity = digest = _refuse

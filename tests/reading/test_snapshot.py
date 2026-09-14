@@ -17,6 +17,7 @@ def test_a_snapshot_carries_every_part_of_one_read():
     assert taken.closed == (CLOSED,)
     assert (taken.ready, taken.blocked) == ((PARENT, ORPHAN), (CHILD,))
     assert taken.integrity == ("a line",)
+    assert taken.attention is backlog.attention_value
 
 
 def test_the_declared_backlog_satisfies_the_port():
@@ -24,7 +25,7 @@ def test_the_declared_backlog_satisfies_the_port():
 
 
 @pytest.mark.parametrize(
-    "name", ["project", "live", "closed", "ready", "blocked", "integrity", "digest"]
+    "name", ["project", "live", "closed", "ready", "blocked", "attention", "integrity", "digest"]
 )
 def test_the_port_itself_answers_nothing(name: str):
     """The protocol's bodies are refusals, not defaults, so a class that inherits one by mistake

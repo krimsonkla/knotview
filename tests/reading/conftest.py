@@ -48,7 +48,7 @@ if verb == "info":
     }}
     print(json.dumps(held))
     sys.exit(0)
-if verb in ("list", "closed", "ready", "blocked"):
+if verb in ("list", "closed", "ready", "blocked", "prime"):
     say(verb)
 if verb == "check":
     which = os.environ.get("KNOTVIEW_FAKE_CHECK", "clean")

@@ -2,6 +2,7 @@
 
 from typing import Protocol, runtime_checkable
 
+from knotview.values.attention import Attention
 from knotview.values.project import Project
 from knotview.values.ticket import Ticket
 
@@ -38,6 +39,10 @@ class Backlog(Protocol):
 
     def blocked(self) -> tuple[Ticket, ...]:
         """Every ticket with at least one open blocker."""
+        raise NotImplementedError
+
+    def attention(self) -> Attention:
+        """What knot's primer says to look at first: the tickets ready to close, and the stale."""
         raise NotImplementedError
 
     def ticket(self, identifier: str) -> Ticket:

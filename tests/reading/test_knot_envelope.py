@@ -4,6 +4,7 @@ import pytest
 
 from knotview.reading.knot_envelope import (
     answered,
+    attention_from,
     project_from,
     ticket_from,
     tickets_from,
@@ -190,3 +191,27 @@ def test_a_null_metric_reads_as_nothing_and_a_boolean_is_not_a_number():
 
     assert (closed.leverage, closed.coupling) == (None, None)
     assert (odd.leverage, odd.level) == (None, None)
+
+
+def test_the_primer_reports_what_is_in_progress_and_nothing_stale_or_ready_to_close():
+    report = attention_from(envelope("prime")["data"])
+
+    assert [one.id for one in report.in_progress] == ["pro-01m2bbbbbbbb"]
+    assert not report.ready_to_close and not report.stale
+
+
+def test_a_stale_flag_on_an_in_progress_entry_makes_it_stale_and_ready_to_close_is_read():
+    row = {"id": "x", "title": "Old", "status": "in_progress", "stale": True}
+    done = {"id": "y", "title": "Done", "status": "in_progress"}
+
+    report = attention_from({"in_progress": [row, "junk"], "ready_to_close": [done]})
+
+    assert [one.id for one in report.stale] == ["x"]
+    assert [one.id for one in report.ready_to_close] == ["y"]
+
+
+def test_a_primer_with_no_report_is_refused_and_a_bare_one_is_empty():
+    with pytest.raises(UnreadableBacklog, match="no report"):
+        attention_from(None)
+    empty = attention_from({})
+    assert (empty.in_progress, empty.ready_to_close, empty.stale) == ((), (), ())

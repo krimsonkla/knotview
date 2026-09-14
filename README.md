@@ -60,6 +60,9 @@ the linters all run from a plain `uv sync --all-groups`. See [CONTRIBUTING.md](C
 - **Tickets.** Every ticket, filtered by type, status, priority, mode, assignee or tag, ordered by
   priority, update, creation, title or id, searched by id, title or tag, with the closed ones included
   on request. Every filter is a query parameter, so a view is a link somebody can keep.
+- **Attention.** What knot's own primer reports and nothing else does: the tickets in progress
+  with every criterion ticked, which are ready to close, and the ones in progress for two weeks
+  without a change, which are stale. Both come from `knot prime`, so the panel agrees with the CLI.
 - **Tree.** What is filed under what, with each parent's children counted and its own acceptance
   criteria counted separately, and the tickets filed under nothing listed at the bottom, because that
   is where work goes missing.

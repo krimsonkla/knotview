@@ -18,7 +18,7 @@ class Tally:
 
 
 @dataclass(frozen=True, kw_only=True)
-class Overview:
+class Overview:  # pylint: disable=too-many-instance-attributes
     """The backlog counted by type, by status and by priority, plus the queues and the parents.
 
     Counted from the project's own declared values rather than from whatever the tickets happen to
@@ -29,6 +29,9 @@ class Overview:
     The queues are knot's own: ready means every blocker closed, blocked means at least one open.
     They are counted here rather than listed, because the first page is a map and the lists are one
     click away.
+
+    It holds one attribute per card the page draws, which is more than the linter's default;
+    splitting them would only move the page's shape out of the one value that describes it.
     """
 
     by_type: tuple[Tally, ...]
@@ -36,6 +39,8 @@ class Overview:
     by_priority: tuple[Tally, ...]
     by_queue: tuple[Tally, ...]
     parents: tuple[Ticket, ...]
+    ready_to_close: tuple[Ticket, ...]
+    stale: tuple[Ticket, ...]
     recently_closed: tuple[Ticket, ...]
     integrity: tuple[str, ...]
 
@@ -84,6 +89,8 @@ class Overview:
                 ),
             ),
             parents=_parents(live),
+            ready_to_close=snapshot.attention.ready_to_close,
+            stale=snapshot.attention.stale,
             recently_closed=snapshot.closed[:showing],
             integrity=snapshot.integrity,
         )

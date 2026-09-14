@@ -3,7 +3,8 @@
 import re
 
 from knotview.reading.knot_command import _described
-from tests.panel.declared import DeclaredBacklog, ticket
+from knotview.values.attention import Attention
+from tests.panel.declared import CHILD, DeclaredBacklog, ticket
 from tests.reading.envelopes import envelope
 
 
@@ -58,3 +59,18 @@ def test_integrity_issues_are_listed_as_knot_reported_them_at_200(client):
 
     assert response.status_code == 200
     assert "pro-01m2bbbbbbbb unknown_id: unknown id" in response.text
+
+
+def test_ready_to_close_and_stale_are_shown_when_the_primer_reports_them(client):
+    old = ticket("pro-01m2oooooooo", title="Started and stopped", status="in_progress")
+    report = Attention(in_progress=(CHILD, old), ready_to_close=(CHILD,), stale=(old,))
+    page = client(DeclaredBacklog(attention_value=report)).get("/").text
+
+    assert "ready to close" in page and "close these before picking up new work" in page
+    assert "stale" in page and "Started and stopped" in page
+
+
+def test_neither_section_appears_when_the_primer_reports_nothing(client):
+    page = client(DeclaredBacklog()).get("/").text
+
+    assert "ready to close" not in page and "Started and stopped" not in page

@@ -75,6 +75,13 @@ def test_every_listing_read_answers_from_its_envelope(fake):
     assert [one.id for one in command.blocked()] == ["pro-01m2bbbbbbbb"]
 
 
+def test_the_primer_is_read_for_what_wants_attention(fake):
+    report = fake().attention()
+
+    assert [one.id for one in report.in_progress] == ["pro-01m2bbbbbbbb"]
+    assert report.stale == ()
+
+
 def test_one_ticket_is_read_in_full_by_its_id(fake):
     child = fake().ticket("pro-01m2bbbbbbbb")
 

@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from knotview.values.attention import Attention
 from knotview.values.criterion import Criterion
 from knotview.values.project import Project
 from knotview.values.reference import Reference
@@ -97,6 +98,31 @@ def project_from(stated: Any) -> Project:
         tickets_path=str(paths.get("tickets_path") or ""),
         live_count=int(counts.get("live_count") or 0),
         archive_count=int(counts.get("archive_count") or 0),
+    )
+
+
+def attention_from(stated: Any) -> Attention:
+    """What the primer reports: the tickets in progress, those ready to close, and the stale ones.
+
+    knot marks staleness on the in-progress entries only, so the stale tickets are read from
+    there rather than from any other list.
+    """
+    if not isinstance(stated, dict):
+        raise UnreadableBacklog(
+            "the primer answered with no report",
+            advice="check the knot version against the one this panel was written for",
+        )
+    in_progress = stated.get("in_progress")
+    rows = in_progress if isinstance(in_progress, list) else []
+    return Attention(
+        in_progress=tickets_from(rows, attempting="the primer's in-progress list"),
+        ready_to_close=tickets_from(
+            stated.get("ready_to_close") or [], attempting="the primer's ready-to-close list"
+        ),
+        stale=tickets_from(
+            [row for row in rows if isinstance(row, dict) and row.get("stale")],
+            attempting="the primer's stale list",
+        ),
     )
 
 

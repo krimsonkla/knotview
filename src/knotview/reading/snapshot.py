@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from knotview.reading.backlog import Backlog
+from knotview.values.attention import Attention
 from knotview.values.project import Project
 from knotview.values.ticket import Ticket
 
@@ -26,6 +27,7 @@ class Snapshot:
     closed: tuple[Ticket, ...]
     ready: tuple[Ticket, ...]
     blocked: tuple[Ticket, ...]
+    attention: Attention
     integrity: tuple[str, ...]
 
     @classmethod
@@ -37,5 +39,6 @@ class Snapshot:
             closed=backlog.closed(),
             ready=backlog.ready(),
             blocked=backlog.blocked(),
+            attention=backlog.attention(),
             integrity=backlog.integrity(),
         )

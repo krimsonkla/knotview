@@ -8,12 +8,14 @@ from pathlib import Path
 
 from knotview.reading.knot_envelope import (
     answered,
+    attention_from,
     project_from,
     ticket_from,
     tickets_from,
     verdict,
 )
 from knotview.values.project import Project
+from knotview.values.attention import Attention
 from knotview.values.missing_ticket import MissingTicket
 from knotview.values.ticket import Ticket
 from knotview.values.unreadable_backlog import UnreadableBacklog
@@ -31,7 +33,7 @@ PATIENCE = 20
 # reopen, delete, dep, undep, link, unlink, add-note, edit and update, and none of them appears here
 # or anywhere else in this package. A test asserts that READS holds none of them, and that this is
 # the only module in the package that can start a process.
-READS = ("info", "list", "closed", "ready", "blocked", "show", "check")
+READS = ("info", "list", "closed", "ready", "blocked", "show", "check", "prime")
 
 
 class KnotCommand:
@@ -81,6 +83,10 @@ class KnotCommand:
     def blocked(self) -> tuple[Ticket, ...]:
         """Every ticket with at least one open blocker."""
         return tickets_from(self._read("blocked"), attempting="listing the blocked tickets")
+
+    def attention(self) -> Attention:
+        """What knot's primer says to look at first: ready to close, and stale."""
+        return attention_from(self._read("prime"))
 
     def ticket(self, identifier: str) -> Ticket:
         """One ticket in full, by the id or the partial id knot resolves.
