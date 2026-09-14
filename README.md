@@ -3,28 +3,39 @@
 A read-only panel over a [knot](https://github.com/UniSoma/knot) backlog, shaped by the project's own
 configuration rather than by this panel's idea of one.
 
-## Prerequisites
+## Two ways to run it
 
-- Python 3.12 or later.
-- [knot](https://github.com/UniSoma/knot) on your `PATH`. knotview never reads the ticket files
-  itself; it runs `knot ... --json` in the project and shows what knot answers, so without knot
-  there is nothing to show. If knot lives somewhere unusual, pass `--knot /path/to/knot`.
-- A directory that is a knot project: it holds `.knot.edn` or `.tickets/`.
-
-## Install and run
-
-With [uv](https://docs.astral.sh/uv/):
+**Without devenv**, which is how a user of the panel runs it. You need Python 3.12 or later,
+[knot](https://github.com/UniSoma/knot) on your `PATH` (or `--knot /path/to/knot`), and a
+directory that is a knot project: one holding `.knot.edn` or `.tickets/`. knotview never reads the
+ticket files itself; it runs `knot ... --json` in the project and shows what knot answers.
 
 ```bash
 uv tool install git+https://github.com/krimsonkla/knotview
 knotview --repository /path/to/a/knot/project --port 7778
 ```
 
-or from a checkout, `uv sync` then `uv run knotview --repository /path/to/a/knot/project`. A plain
-`pip install .` works too and installs the `knotview` command.
+or from a checkout, `uv sync --all-groups` then `uv run knotview --repository /path/to/a/knot/project`.
+A plain `pip install .` works too and installs the `knotview` command.
 
-Then open <http://127.0.0.1:7778/>. The panel binds loopback only and has no authentication,
-because it shows a whole backlog to whoever can reach it; do not put it on a network.
+**With devenv**, which is how the panel is developed. The [devenv](https://devenv.sh) shell
+supplies Python, uv, knot, the formatters and the commit hooks, and `devenv up` serves the panel
+over this repository's own backlog, which is the fixture the panel is developed against:
+
+```bash
+devenv shell          # everything on PATH, uv sync already run
+devenv up             # serves http://127.0.0.1:7778/ over this repository
+KNOTVIEW_REPOSITORY=/path/to/another/project KNOTVIEW_PORT=7779 devenv up
+```
+
+Inside the shell, `knotview`, `pytest` and `prek run --all-files` all work as they do in
+[CONTRIBUTING.md](CONTRIBUTING.md). The shell pulls its hooks and knot from a private layer
+repository, so it evaluates only for the maintainer today; nothing in the package or the tests
+depends on it, and the uv path above runs the same checks.
+
+Either way, open <http://127.0.0.1:7778/>. The panel binds loopback only and has no
+authentication, because it shows a whole backlog to whoever can reach it; do not put it on a
+network.
 
 Two projects open at once is the ordinary case, and each needs its own port, so a project's path
 and port can be saved under a name and served by that name afterwards:
@@ -43,13 +54,6 @@ rather than in the project, because which port is free and where a checkout live
 the machine.
 
 It reads. Nothing here writes a ticket, and the backlog stays driven by whatever drives it.
-
-## The maintainer's environment
-
-This repository is developed inside a [devenv](https://devenv.sh) shell that supplies knot, the
-formatters and the commit hooks from a private layer repository, so `devenv shell` will not
-evaluate for anyone without access to it. Nothing above depends on it: the package, the tests and
-the linters all run from a plain `uv sync --all-groups`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What it shows
 

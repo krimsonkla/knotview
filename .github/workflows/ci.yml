@@ -44,7 +44,13 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.babashka/bbin/bin" >> "$GITHUB_PATH"
           export PATH="$HOME/.local/bin:$HOME/.babashka/bbin/bin:$PATH"
-          bbin install https://github.com/UniSoma/knot.git
+          bbin install https://github.com/UniSoma/knot.git --git/tag v0.12.0
           knot --help | head -1
+      - name: a git identity, which knot reads as the default assignee
+        run: |
+          git config --global user.name probe
+          git config --global user.email probe@example.invalid
       - run: uv sync --all-groups
       - run: uv run pytest -m slow --no-cov -v
+        env:
+          KNOT_VERSION: v0.12.0

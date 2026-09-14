@@ -141,11 +141,52 @@ def shape(value: object) -> object:
     return type(value).__name__
 
 
+def agrees(recorded: object, actual: object) -> list[str]:
+    """Where the binary's shape departs from the recording, as paths; empty when it agrees.
+
+    Additive: knot documents that new keys arrive without a version bump, so a key the binary
+    adds is not a departure, while a recorded key that is missing or changed type is. A value the
+    recording holds as a string may come back null, since the probe's git identity is the
+    recorder's and a runner has none.
+    """
+    return list(_departures(recorded, actual, ""))
+
+
+def _departures(recorded: object, actual: object, at: str):
+    if isinstance(recorded, dict):
+        yield from _mapping_departures(recorded, actual, at)
+    elif isinstance(recorded, list):
+        yield from _list_departures(recorded, actual, at)
+    elif recorded != actual and not (recorded == "str" and actual == "NoneType"):
+        yield f"{at}: {actual} where {recorded} was recorded"
+
+
+def _mapping_departures(recorded: dict, actual: object, at: str):
+    if not isinstance(actual, dict):
+        yield f"{at}: {type(actual).__name__} where a mapping was recorded"
+        return
+    for key, held in recorded.items():
+        if key not in actual:
+            yield f"{at}.{key}: missing"
+        else:
+            yield from _departures(held, actual[key], f"{at}.{key}")
+
+
+def _list_departures(recorded: list, actual: object, at: str):
+    if not isinstance(actual, list):
+        yield f"{at}: {type(actual).__name__} where a list was recorded"
+        return
+    for index, held in enumerate(recorded[: len(actual)]):
+        yield from _departures(held, actual[index], f"{at}[{index}]")
+    if len(actual) != len(recorded):
+        yield f"{at}: {len(actual)} entries where {len(recorded)} were recorded"
+
+
 @pytest.mark.parametrize(("name", "command", "arguments"), RECORDINGS)
 def test_the_binary_still_emits_the_recorded_shape(
     probe: Path, name: str, command: str, arguments: tuple[str, ...]
 ):
-    assert shape(raw(probe, command, arguments)) == shape(envelope(name))
+    assert not agrees(shape(envelope(name)), shape(raw(probe, command, arguments)))
 
 
 def test_the_reader_over_the_binary_agrees_with_the_reader_over_the_recording(probe: Path):
