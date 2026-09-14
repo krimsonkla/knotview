@@ -110,6 +110,25 @@
 </section>
 
 <section class="card">
+  <h2>recently changed</h2>
+  <p class="muted">
+    Live tickets by the instant knot last saved them: what is being touched now.
+  </p>
+  <ul class="refs">
+    {% for ticket in overview.recently_changed %}
+    <li>
+      <span class="muted" title="{{ ticket.updated }}">{{ ticket.updated | ago }}</span>
+      <a class="chip status-{{ ticket.status }}" href="/ticket/{{ ticket.id }}"
+        >{{ ticket.status }}</a
+      >
+      <a href="/ticket/{{ ticket.id }}">{{ ticket.title }}</a>
+      <span class="id">{{ ticket.id }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card">
   <h2>recently closed</h2>
   {% set tickets = overview.recently_closed %} {% include "_ticket_table.html"
   %}

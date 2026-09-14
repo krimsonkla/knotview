@@ -2,6 +2,9 @@
 
 import re
 
+from datetime import UTC, datetime
+
+from knotview.panel.app import _ago
 from knotview.reading.knot_command import _described
 from knotview.values.attention import Attention
 from tests.panel.declared import CHILD, DeclaredBacklog, ticket
@@ -74,3 +77,24 @@ def test_neither_section_appears_when_the_primer_reports_nothing(client):
     page = client(DeclaredBacklog()).get("/").text
 
     assert "ready to close" not in page and "Started and stopped" not in page
+
+
+def test_recently_changed_lists_live_tickets_newest_first_with_a_relative_time(client):
+    page = client(DeclaredBacklog()).get("/").text
+
+    section = page[page.index("recently changed") : page.index("recently closed")]
+    assert section.index("The child") < section.index("The parent") < section.index("The orphan")
+    assert 'title="2026-09-04T10:00:00.000000Z"' in section and "d ago" in section
+
+
+def test_an_instant_reads_as_a_distance_from_now():
+    now = datetime(2026, 9, 14, 12, 0, tzinfo=UTC)
+
+    assert _ago("2026-09-14T11:59:40Z", now) == "just now"
+    assert _ago("2026-09-14T11:15:00Z", now) == "45 min ago"
+    assert _ago("2026-09-14T03:00:00Z", now) == "9 h ago"
+    assert _ago("2026-09-01T10:00:00.000000Z", now) == "13 d ago"
+    assert _ago(None) == "—" and _ago("not an instant") == "not an instant"
+    assert (
+        _ago("2026-09-14T11:59:59Z").endswith("ago") or _ago("2026-09-14T11:59:59Z") == "just now"
+    )

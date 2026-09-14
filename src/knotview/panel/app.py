@@ -1,6 +1,7 @@
 """The panel: every route a GET, every answer a page or a stream."""
 
 import asyncio
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -212,6 +213,7 @@ def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.filters["humanise"] = _humanise
     templates.env.filters["prose"] = prose
+    templates.env.filters["ago"] = _ago
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
     pages = Pages(backlog, templates=templates, heartbeat=heartbeat)
     app.add_exception_handler(UnreadableBacklog, pages.unreadable)
@@ -249,6 +251,29 @@ def _waves(tickets: tuple[Ticket, ...]) -> tuple[tuple[int | None, tuple[Ticket,
     known = sorted({t.level for t in tickets if t.level is not None})
     levels: list[int | None] = [*known, *([None] if any(t.level is None for t in tickets) else [])]
     return tuple((level, tuple(t for t in tickets if t.level == level)) for level in levels)
+
+
+def _ago(stamped: str | None, now: datetime | None = None) -> str:
+    """An instant as a distance from now, which is how a reader following an agent reads it.
+
+    Coarse on purpose: minutes within the hour, hours within the day, then days. The exact instant
+    is one hover away on the same element.
+    """
+    if not stamped:
+        return "—"
+    try:
+        then = datetime.fromisoformat(stamped.replace("Z", "+00:00"))
+    except ValueError:
+        return stamped
+    passed = (now or datetime.now(UTC)) - then
+    minutes = int(passed.total_seconds() // 60)
+    if minutes < 1:
+        return "just now"
+    if minutes < 60:
+        return f"{minutes} min ago"
+    if minutes < 60 * 24:
+        return f"{minutes // 60} h ago"
+    return f"{minutes // (60 * 24)} d ago"
 
 
 def _humanise(stamped: str | None) -> str:

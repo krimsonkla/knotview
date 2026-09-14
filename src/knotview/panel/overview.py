@@ -41,6 +41,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     parents: tuple[Ticket, ...]
     ready_to_close: tuple[Ticket, ...]
     stale: tuple[Ticket, ...]
+    recently_changed: tuple[Ticket, ...]
     recently_closed: tuple[Ticket, ...]
     integrity: tuple[str, ...]
 
@@ -91,6 +92,9 @@ class Overview:  # pylint: disable=too-many-instance-attributes
             parents=_parents(live),
             ready_to_close=snapshot.attention.ready_to_close,
             stale=snapshot.attention.stale,
+            recently_changed=tuple(sorted(live, key=lambda t: t.updated or "", reverse=True))[
+                :showing
+            ],
             recently_closed=snapshot.closed[:showing],
             integrity=snapshot.integrity,
         )
