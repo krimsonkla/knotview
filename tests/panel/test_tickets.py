@@ -138,3 +138,18 @@ def test_rows_carry_their_updated_instant_and_the_bar_has_a_since_marker(client)
 
     assert 'data-updated="2026-09-04T10:00:00.000000Z"' in page
     assert 'id="since"' in page and 'src="/static/follow.js"' in page
+
+
+def test_an_assignee_column_with_one_value_is_dropped_and_said_once(client):
+    same = (ticket("pro-01m2zzzzzzzz"), ticket("pro-01m2yyyyyyyy"))
+    page = client(DeclaredBacklog(live_value=same)).get("/tickets").text
+
+    assert "all unassigned" in page and "<th>assignee</th>" not in page and "nobody" not in page
+
+
+def test_the_assignee_column_stays_when_values_differ_or_the_filter_is_on(client):
+    mixed = client(DeclaredBacklog()).get("/tickets").text
+    filtered = client(DeclaredBacklog(live_value=(ORPHAN,))).get("/tickets?assignee=someone").text
+
+    assert "<th>assignee</th>" in mixed and "nobody" in mixed
+    assert "<th>assignee</th>" in filtered and "all assigned to" not in filtered

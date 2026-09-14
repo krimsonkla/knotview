@@ -1,4 +1,12 @@
 {# One table of tickets, used by every list so they cannot drift apart. #}
+{# A column whose every row says the same thing says nothing; drop it and say the value once. #}
+{% set assignees = tickets | map(attribute="assignee") | unique | list %}
+{% set one_assignee = tickets and assignees | length == 1 and selection.assignee == any %}
+{% if one_assignee %}
+<p class="muted">
+  {% if assignees[0] %}all assigned to {{ assignees[0] }}{% else %}all unassigned{% endif %}
+</p>
+{% endif %}
 <table class="tickets">
   <thead>
     <tr>
@@ -14,13 +22,15 @@
       </th>
       <th>acceptance</th>
       <th>blocked by</th>
+      {% if not one_assignee %}
+      <th>assignee</th>
+      {% endif %}
       <th title="how much waiting work closing this dissolves">
         <a href="/tickets?{{ selection.query_string(order='leverage') }}">lev</a>
       </th>
       <th title="how many rounds of closing stand before this can start">
         <a href="/tickets?{{ selection.query_string(order='level') }}">lvl</a>
       </th>
-      <th>assignee</th>
       <th>
         <a href="/tickets?{{ selection.query_string(order='updated') }}"
           >updated</a
@@ -66,12 +76,14 @@
       <td class="num">
         {% if ticket.level is not none %}{{ ticket.level }}{% else %}—{% endif %}
       </td>
+      {% if not one_assignee %}
       <td>
         {% if ticket.assignee %}<a
           href="/tickets?assignee={{ ticket.assignee }}"
           >{{ ticket.assignee }}</a
         >{% else %}<span class="muted">nobody</span>{% endif %}
       </td>
+      {% endif %}
       <td class="muted">{{ ticket.updated | humanise }}</td>
     </tr>
     {% else %}
