@@ -127,5 +127,5 @@ def test_a_parent_without_criteria_is_not_in_progress(client):
 def test_overview_cards_add_to_the_readers_current_selection(client):
     page = client(DeclaredBacklog()).get("/?type=task").text
 
-    assert 'href="/tickets?type=task&status=in_progress"' in page
-    assert 'href="/tickets?type=task&priority=3"' in page
+    assert 'href="/tickets?type=task&amp;status=in_progress"' in page
+    assert 'href="/tickets?type=task&amp;priority=3"' in page
