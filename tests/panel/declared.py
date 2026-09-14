@@ -52,7 +52,10 @@ PARENT = ticket(
         Criterion(title="first thing", done=True),
         Criterion(title="second thing", done=False),
     ),
-    children=(Reference(id="pro-01m2bbbbbbbb", title="The child", status="in_progress"),),
+    children=(
+        Reference(id="pro-01m2bbbbbbbb", title="The child", status="in_progress"),
+        Reference(id="pro-01m2cccccccc", title="The closed one", status="closed"),
+    ),
     sections={"": "Text before any heading.", "description": "What for.", "notes": "A note."},
 )
 CHILD = ticket(

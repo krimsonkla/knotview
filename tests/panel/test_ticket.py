@@ -81,3 +81,26 @@ def test_notes_are_shown_as_a_timeline_newest_first(client):
 
     assert page.index("Later.") < page.index("Earlier.")
     assert "2026-09-13 07:42" in page and 'title="2026-09-13T07:42:11Z"' in page
+
+
+def test_a_child_shows_its_parent_as_a_breadcrumb_and_its_siblings(client):
+    page = client(DeclaredBacklog()).get("/ticket/pro-01m2bbbbbbbb").text
+
+    assert 'under <a href="/ticket/pro-01m2aaaaaaaa">The parent</a>' in page
+    assert "also under The parent" in page
+    assert "The closed one" in page
+    assert page.count("also under") == 1
+
+
+def test_a_child_of_a_parent_that_is_not_live_says_so_without_a_link(client):
+    stray = ticket("pro-01m2eeeeeeee", title="The stray", parent="pro-01m2gone")
+    page = client(DeclaredBacklog(live_value=(stray,))).get("/ticket/pro-01m2eeeeeeee").text
+
+    assert "pro-01m2gone" in page and "which is not live" in page
+    assert "also under" not in page
+
+
+def test_a_ticket_without_a_parent_has_no_breadcrumb(client):
+    page = client(DeclaredBacklog()).get("/ticket/pro-01m2dddddddd").text
+
+    assert "under <" not in page and "also under" not in page

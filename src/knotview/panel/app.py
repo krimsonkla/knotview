@@ -16,6 +16,7 @@ from knotview.panel.tree import Tree
 from knotview.reading.backlog import Backlog
 from knotview.reading.snapshot import Snapshot
 from knotview.values.missing_ticket import MissingTicket
+from knotview.values.ticket import Ticket
 from knotview.values.unreadable_backlog import UnreadableBacklog
 
 HERE = Path(__file__).resolve().parent
@@ -144,9 +145,24 @@ class Pages:
             request,
             "ticket.html",
             ticket=ticket,
+            parent=self._parent_of(ticket),
             dependencies=self.backlog.dependencies(ticket.id),
             selection=Selection(),
         )
+
+    def _parent_of(self, ticket: Ticket) -> Ticket | None:
+        """The ticket this one is filed under, read in full, or nothing if it names none.
+
+        Read in full because the parent's children are what the page shows as siblings, and only
+        a full read carries them. A parent that no longer exists is nothing rather than a refusal:
+        the child is still worth reading, and the tree page already says it is a stray.
+        """
+        if not ticket.parent:
+            return None
+        try:
+            return self.backlog.ticket(ticket.parent)
+        except MissingTicket:
+            return None
 
     async def digest(self) -> str:
         """What the backlog looks like right now, as one short value the page can compare."""

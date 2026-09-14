@@ -2,6 +2,16 @@
 block main %}
 <article class="ticket">
   <header>
+    {% if parent %}
+    <p class="crumb muted">
+      under <a href="/ticket/{{ parent.id }}">{{ parent.title }}</a>
+      <span class="id">{{ parent.id }}</span>
+    </p>
+    {% elif ticket.parent %}
+    <p class="crumb muted">
+      under <span class="id">{{ ticket.parent }}</span>, which is not live
+    </p>
+    {% endif %}
     <h1>{{ ticket.title }}</h1>
     <p class="meta">
       <span class="id">{{ ticket.id }}</span>
@@ -82,7 +92,25 @@ block main %}
     {% endif %} {% endfor %}
   </section>
 
-  {% if dependencies.deps %}
+  {% if parent and parent.children | length > 1 %}
+  <section class="card">
+    <h2>
+      also under {{ parent.title }}
+      <span class="num">{{ parent.children | length - 1 }}</span>
+    </h2>
+    <ul class="refs">
+      {% for sibling in parent.children if sibling.id != ticket.id %}
+      <li>
+        <a class="chip status-{{ sibling.status }}" href="/ticket/{{ sibling.id }}"
+          >{{ sibling.status }}</a
+        >
+        <a href="/ticket/{{ sibling.id }}">{{ sibling.title }}</a>
+        <span class="id">{{ sibling.id }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %} {% if dependencies.deps %}
   <section class="card">
     <h2>depends on, all the way down</h2>
     <p class="muted">
