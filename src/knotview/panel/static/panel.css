@@ -414,3 +414,14 @@ ul.progress li {
 ul.progress progress {
   width: 100%;
 }
+
+/* Rows saved since the reader last looked, and the count in the bar that clears on click. */
+tr.since-last-look td.title-cell,
+tr.since-last-look > td:first-child {
+  box-shadow: inset 3px 0 0 0 currentColor;
+}
+.since {
+  cursor: pointer;
+  font-size: 0.85em;
+  margin-right: 0.8em;
+}

@@ -30,7 +30,7 @@
   </thead>
   <tbody>
     {% for ticket in tickets %}
-    <tr>
+    <tr data-updated="{{ ticket.updated or '' }}">
       <td class="pri p{{ ticket.priority }}">{{ ticket.priority }}</td>
       <td>
         <a class="chip" href="/tickets?type={{ ticket.type }}"

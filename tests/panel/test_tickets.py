@@ -43,7 +43,7 @@ def test_the_summary_counts_shown_of_held_and_the_clear_link_appears_only_when_f
     plain = client(DeclaredBacklog()).get("/tickets").text
     narrowed = client(DeclaredBacklog()).get("/tickets?type=bug").text
 
-    assert "3 of 3" in plain and "clear" not in plain
+    assert "3 of 3" in plain and 'class="clear"' not in plain
     assert "1 of 3" in narrowed and '<a class="clear" href="/tickets">clear</a>' in narrowed
     assert "type bug" in narrowed
 
@@ -131,3 +131,10 @@ def test_a_component_filter_keeps_one_island_and_shows_in_the_summary(client):
 
     assert "Same island" in page and "Other island" not in page
     assert "component 3" in page
+
+
+def test_rows_carry_their_updated_instant_and_the_bar_has_a_since_marker(client):
+    page = client(DeclaredBacklog()).get("/tickets").text
+
+    assert 'data-updated="2026-09-04T10:00:00.000000Z"' in page
+    assert 'id="since"' in page and 'src="/static/follow.js"' in page
