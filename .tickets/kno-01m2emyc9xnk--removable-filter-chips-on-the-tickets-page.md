@@ -1,13 +1,13 @@
 ---
 id: kno-01m2emyc9xnk
 title: Removable filter chips on the tickets page
-status: open
+status: in_progress
 type: task
 priority: 2
 mode: hitl
 created: '2026-09-14T00:26:47.997717Z'
-updated: '2026-09-14T00:26:48.121057Z'
-assignee: ''
+updated: '2026-09-14T00:50:51.587918Z'
+assignee: Jason Risch
 ---
 
 ## Description

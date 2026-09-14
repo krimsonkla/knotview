@@ -99,7 +99,16 @@
 
 <p class="muted">
   {{ tickets | length }} of {{ counted }} {%- for field, value in
-  selection.applied() %} · {{ field }} {{ value }}{% endfor %}
+  selection.applied() %} ·
+  <span class="chip filter"
+    >{{ field }} {{ value }}
+    <a
+      class="drop"
+      href="/tickets?{{ selection.without(field) }}"
+      title="drop this filter"
+      >×</a
+    ></span
+  >{% endfor %}
 </p>
 
 {% include "_ticket_table.html" %} {% endblock %}

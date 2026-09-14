@@ -31,9 +31,16 @@
       <th title="how many rounds of closing stand before this can start">
         <a href="/tickets?{{ selection.query_string(order='level') }}">lvl</a>
       </th>
+      {% set when = "created" if selection.order == "created" else "updated" %}
       <th>
         <a href="/tickets?{{ selection.query_string(order='updated') }}"
+          {% if when == "updated" %}class="on"{% endif %}
           >updated</a
+        >
+        ·
+        <a href="/tickets?{{ selection.query_string(order='created') }}"
+          {% if when == "created" %}class="on"{% endif %}
+          >created</a
         >
       </th>
     </tr>
@@ -84,7 +91,7 @@
         >{% else %}<span class="muted">nobody</span>{% endif %}
       </td>
       {% endif %}
-      <td class="muted">{{ ticket.updated | humanise }}</td>
+      <td class="muted" title="{{ when }}">{{ ticket[when] | humanise }}</td>
     </tr>
     {% else %}
     <tr>

@@ -72,17 +72,26 @@ class Selection:  # pylint: disable=too-many-instance-attributes
 
     def applied(self) -> tuple[tuple[str, str], ...]:
         """Every filter that is set, as the reader would name it, for the summary line."""
+        return tuple((label, value) for label, _, value in self._set())
+
+    def without(self, label: str) -> str:
+        """This selection as a query string with that one filter dropped, for a chip's link."""
+        parameter = next((param for shown, param, _ in self._set() if shown == label), label)
+        return self.query_string(**{parameter: ""})
+
+    def _set(self) -> tuple[tuple[str, str, str], ...]:
+        """Each applied filter as (label the reader sees, query parameter, value)."""
         named = (
-            ("type", self.type),
-            ("status", self.status),
-            ("priority", self.priority),
-            ("mode", self.mode),
-            ("assignee", self.assignee),
-            ("tag", self.tag),
-            ("component", self.component),
-            ("matching", self.query),
+            ("type", "type", self.type),
+            ("status", "status", self.status),
+            ("priority", "priority", self.priority),
+            ("mode", "mode", self.mode),
+            ("assignee", "assignee", self.assignee),
+            ("tag", "tag", self.tag),
+            ("component", "component", self.component),
+            ("matching", "q", self.query),
         )
-        return tuple((field, value) for field, value in named if value and value != ANY)
+        return tuple(one for one in named if one[2] and one[2] != ANY)
 
     def query_string(self, **changes: str) -> str:
         """This selection as a query string, with whatever a link is changing about it.

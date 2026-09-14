@@ -425,3 +425,12 @@ tr.since-last-look > td:first-child {
   font-size: 0.85em;
   margin-right: 0.8em;
 }
+
+th a.on {
+  text-decoration: underline;
+}
+
+.chip.filter .drop {
+  margin-left: 0.3em;
+  text-decoration: none;
+}

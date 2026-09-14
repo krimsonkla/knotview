@@ -153,3 +153,19 @@ def test_the_assignee_column_stays_when_values_differ_or_the_filter_is_on(client
 
     assert "<th>assignee</th>" in mixed and "nobody" in mixed
     assert "<th>assignee</th>" in filtered and "all assigned to" not in filtered
+
+
+def test_the_instant_column_shows_whichever_order_is_on(client):
+    by_updated = client(DeclaredBacklog(live_value=(CHILD,))).get("/tickets").text
+    by_created = client(DeclaredBacklog(live_value=(CHILD,))).get("/tickets?order=created").text
+
+    assert '<td class="muted" title="updated">2026-09-04 10:00</td>' in by_updated
+    assert '<td class="muted" title="created">2026-09-01 10:00</td>' in by_created
+
+
+def test_each_applied_filter_is_a_chip_whose_link_drops_only_it(client):
+    page = client(DeclaredBacklog()).get("/tickets?type=task&q=child").text
+
+    assert 'href="/tickets?q=child"' in page and 'href="/tickets?type=task"' in page
+    assert Selection(type="task", query="child").without("matching") == "type=task"
+    assert not Selection(type="task").without("type")

@@ -91,12 +91,17 @@ class Pages:
         )
 
     async def overview(self, request: Request) -> HTMLResponse:
-        """The backlog counted by type, by status and by priority, with the queues beside it."""
+        """The backlog counted by type, by status and by priority, with the queues beside it.
+
+        The overview carries the reader's selection through its links, so arriving from a filtered
+        list and clicking a card narrows further instead of starting over.
+        """
+        project = self.backlog.project()
         return self._rendered(
             request,
             "overview.html",
             overview=Overview.over(Snapshot.read(self.backlog)),
-            selection=Selection(),
+            selection=Selection.asked(project, dict(request.query_params)),
         )
 
     async def tickets(self, request: Request) -> HTMLResponse:
