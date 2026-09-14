@@ -147,17 +147,22 @@ class Pages:
         seen = Snapshot.read(self.backlog)
         chosen = _tags(request)
         if chosen.chosen:
+            live = chosen.narrow(seen.live)
+            # The primer's rows carry no tags, so they are narrowed by id against the live tickets
+            # that passed, not by tags of their own; otherwise every attention card would empty
+            # the moment a tag was chosen.
+            kept = {one.id for one in live}
             seen = replace(
                 seen,
-                live=chosen.narrow(seen.live),
+                live=live,
                 closed=chosen.narrow(seen.closed),
                 ready=chosen.narrow(seen.ready),
                 blocked=chosen.narrow(seen.blocked),
                 attention=replace(
                     seen.attention,
-                    in_progress=chosen.narrow(seen.attention.in_progress),
-                    ready_to_close=chosen.narrow(seen.attention.ready_to_close),
-                    stale=chosen.narrow(seen.attention.stale),
+                    in_progress=_among(seen.attention.in_progress, kept),
+                    ready_to_close=_among(seen.attention.ready_to_close, kept),
+                    stale=_among(seen.attention.stale, kept),
                 ),
             )
         return self._rendered(
@@ -313,6 +318,11 @@ async def _changes(backlog: Backlog, heartbeat: float):
         else:
             yield KEEPALIVE
         await asyncio.sleep(heartbeat)
+
+
+def _among(tickets: tuple[Ticket, ...], kept: set[str]) -> tuple[Ticket, ...]:
+    """Those tickets whose id is among the kept ones, in the order given."""
+    return tuple(one for one in tickets if one.id in kept)
 
 
 def _tags(request: Request) -> Tags:

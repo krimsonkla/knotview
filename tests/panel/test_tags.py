@@ -1,6 +1,7 @@
 """The tags a reader chooses once and sees every view through."""
 
 from knotview.panel.tags import COOKIE, Tags
+from knotview.values.attention import Attention
 from tests.panel.declared import CHILD, ORPHAN, PARENT, DeclaredBacklog, ticket
 
 
@@ -98,3 +99,20 @@ def test_a_tag_nobody_carries_narrows_every_view_to_nothing(client):
     assert "0 of 0" in browser.get("/tickets").text
     assert "nothing here" in browser.get("/queue/blocked").text
     assert not ticket("x").tags
+
+
+def test_attention_cards_follow_the_narrowed_live_set_since_primer_rows_carry_no_tags(client):
+    untagged_row = ticket("pro-01m2aaaaaaaa", title="The parent", status="in_progress")
+    other_row = ticket("pro-01m2dddddddd", title="The orphan", status="in_progress")
+    report = Attention(
+        in_progress=(untagged_row, other_row),
+        ready_to_close=(untagged_row,),
+        stale=(other_row,),
+    )
+    browser = client(DeclaredBacklog(attention_value=report))
+    browser.get("/tags?add=auth&back=/")
+
+    page = browser.get("/").text
+
+    assert "ready to close" in page and page.count("The parent") >= 2
+    assert "<h2>stale</h2>" not in page
