@@ -1,4 +1,6 @@
-{% extends "layout.html" %} {% block main %} {% if overview.integrity %}
+{% extends "layout.html" %} {% block main %}
+{% from "_time.html" import ago %}
+{% if overview.integrity %}
 <section class="card warn">
   <h2>integrity</h2>
   <p class="muted">
@@ -140,7 +142,7 @@
   <ul class="refs">
     {% for ticket in overview.recently_changed %}
     <li>
-      <span class="muted" title="{{ ticket.updated }}">{{ ticket.updated | ago }}</span>
+      <span class="muted">{% if ticket.updated %}{{ ago(ticket.updated) }}{% else %}—{% endif %}</span>
       <a class="chip status-{{ ticket.status }}" href="/ticket/{{ ticket.id }}"
         >{{ ticket.status }}</a
       >

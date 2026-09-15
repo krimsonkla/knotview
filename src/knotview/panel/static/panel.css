@@ -80,6 +80,10 @@ a:hover {
 .muted {
   color: var(--faint);
 }
+/* Clauses of the ticket header, separated by a dot only between two that are present. */
+.when + .when::before {
+  content: " · ";
+}
 
 .live {
   font-size: 11px;

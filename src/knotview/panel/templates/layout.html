@@ -6,7 +6,7 @@ the live indicator. #}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}{{ project.name }}{% endblock %} · knotview</title>
-    <link rel="stylesheet" href="/static/panel.css" />
+    <link rel="stylesheet" href="/static/panel.css?v={{ assets }}" />
   </head>
   <body>
     <header class="bar">
@@ -66,6 +66,6 @@ the live indicator. #}
       {{ project.live_count }} live · {{ project.archive_count }} archived ·
       read only
     </footer>
-    <script src="/static/follow.js"></script>
+    <script src="/static/follow.js?v={{ assets }}"></script>
   </body>
 </html>

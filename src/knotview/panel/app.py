@@ -1,6 +1,7 @@
 """The panel: every route a GET, every answer a page or a stream."""
 
 import asyncio
+import hashlib
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -293,6 +294,8 @@ def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
     templates.env.filters["humanise"] = _humanise
     templates.env.filters["prose"] = prose
     templates.env.filters["ago"] = _ago
+    templates.env.tests["instant"] = _is_instant
+    templates.env.globals["assets"] = _asset_stamp(HERE / "static")
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
     pages = Pages(backlog, templates=templates, heartbeat=heartbeat)
     app.add_exception_handler(UnreadableBacklog, pages.unreadable)
@@ -340,6 +343,37 @@ def _waves(tickets: tuple[Ticket, ...]) -> tuple[tuple[int | None, tuple[Ticket,
     known = sorted({t.level for t in tickets if t.level is not None})
     levels: list[int | None] = [*known, *([None] if any(t.level is None for t in tickets) else [])]
     return tuple((level, tuple(t for t in tickets if t.level == level)) for level in levels)
+
+
+def _asset_stamp(folder: Path) -> str:
+    """A short digest of the static files, put on their URLs so a browser fetches new ones.
+
+    The static files are served with no cache policy, so a browser keeps them by heuristic and a
+    reader who restarts the panel after an upgrade can keep last month's script under this
+    month's markup. A stamp that moves with the contents makes each version a new URL.
+    """
+    digest = hashlib.sha256()
+    for path in sorted(one for one in folder.rglob("*") if one.is_file()):
+        digest.update(str(path.relative_to(folder)).encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()[:12]
+
+
+def _is_instant(stamped: str | None) -> bool:
+    """Whether a value is an instant knot wrote: a full date and time, in UTC, marked with a Z.
+
+    A note's heading is whatever stood in bold above it, and by hand that can be a bare date or a
+    word. Labelling "2026-09-12" as UTC and letting the browser restate it would invent a time of
+    day the note never had, and an instant carrying an offset would be mislabelled UTC. Only what
+    passes here becomes a time element; anything else is shown as written.
+    """
+    if not stamped or not stamped.endswith("Z") or "T" not in stamped:
+        return False
+    try:
+        datetime.fromisoformat(stamped.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return True
 
 
 def _ago(stamped: str | None, now: datetime | None = None) -> str:

@@ -1,4 +1,6 @@
 {# One table of tickets, used by every list so they cannot drift apart. #}
+{# The import lives here because an include does not inherit the includer's imports. #}
+{% from "_time.html" import stamp %}
 {# A column whose every row says the same thing says nothing; drop it and say the value once. #}
 {% set assignees = tickets | map(attribute="assignee") | unique | list %}
 {% set one_assignee = tickets and assignees | length == 1 and selection.assignee == any %}
@@ -94,7 +96,7 @@
         >{% else %}<span class="muted">nobody</span>{% endif %}
       </td>
       {% endif %}
-      <td class="muted" title="{{ when }}">{{ ticket[when] | humanise }}</td>
+      <td class="muted">{% if ticket[when] %}{{ stamp(ticket[when]) }}{% else %}—{% endif %}</td>
     </tr>
     {% else %}
     <tr>

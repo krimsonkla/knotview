@@ -1,0 +1,21 @@
+{# An instant as the reader should see it. Both macros put knot's ISO instant on `datetime` and #}
+{# on `title`, so follow.js can restate it in the browser's zone and a reader without script can #}
+{# still hover for the exact instant; the text names UTC so it cannot be read as local time. #}
+{# `stamp` is rewritten by the script; `ago` never is, only given a fuller title. Callers guard #}
+{# on presence; the macros guard on shape: a heading that is not a full Z-marked instant, such #}
+{# as a bare date or a word above a hand-written note, is shown as written, since labelling it #}
+{# UTC and restating it would invent a time of day it never carried. #}
+{% macro stamp(instant) -%}
+{% if instant is instant -%}
+<time class="stamp" datetime="{{ instant }}" title="{{ instant }}">{{ instant | humanise }} UTC</time>
+{%- else -%}
+{{ instant }}
+{%- endif %}
+{%- endmacro %}
+{% macro ago(instant) -%}
+{% if instant is instant -%}
+<time class="ago" datetime="{{ instant }}" title="{{ instant }}">{{ instant | ago }}</time>
+{%- else -%}
+{{ instant }}
+{%- endif %}
+{%- endmacro %}

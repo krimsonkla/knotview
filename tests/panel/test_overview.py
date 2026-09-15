@@ -86,7 +86,27 @@ def test_recently_changed_lists_live_tickets_newest_first_with_a_relative_time(c
 
     section = page[page.index("recently changed") : page.index("recently closed")]
     assert section.index("The child") < section.index("The parent") < section.index("The orphan")
-    assert 'title="2026-09-04T10:00:00.000000Z"' in section and "d ago" in section
+    assert (
+        '<time class="ago" datetime="2026-09-04T10:00:00.000000Z" '
+        'title="2026-09-04T10:00:00.000000Z">' in section
+    )
+    assert "d ago</time>" in section
+
+
+def test_a_recently_changed_ticket_without_an_updated_instant_shows_a_dash(client):
+    bare = ticket("pro-01m2eeeeeeee", title="Never saved", updated=None)
+    page = client(DeclaredBacklog(live_value=(bare,))).get("/").text
+
+    section = page[page.index("recently changed") : page.index("recently closed")]
+    assert "Never saved" in section and '<span class="muted">—</span>' in section
+    assert 'class="ago"' not in section
+
+
+def test_the_recently_closed_cells_are_stamps(client):
+    page = client(DeclaredBacklog()).get("/").text
+
+    closed = page[page.index("recently closed") :]
+    assert '<time class="stamp" datetime="2026-09-02T10:00:00.000000Z" title=' in closed
 
 
 def test_an_instant_reads_as_a_distance_from_now():

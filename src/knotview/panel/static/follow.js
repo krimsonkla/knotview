@@ -1,9 +1,10 @@
 // Follow the backlog.
 //
 // The server streams one thing: a digest that moves when the backlog does. This asks for it, and when
-// it changes it reloads the page. Nothing here renders anything, which is the point: there is one
-// rendering path on the server, so what a reader sees after a change is exactly what they would see
-// on a fresh visit.
+// it changes it reloads the page. Nothing here adds content: there is one rendering path on the
+// server, so what a reader sees after a change is exactly what they would see on a fresh visit. The
+// last block restates instants the server already put in the markup, in the reader's own zone; it
+// invents nothing.
 //
 // The stream is one-way by construction and this sends nothing back. A panel that could write would
 // be a second author of a backlog that has one.
@@ -86,4 +87,52 @@
     });
   }
   if (!last) write(new Date().toISOString());
+})();
+
+// Instants in the reader's own zone. The server writes every instant as UTC with the zone named,
+// which is right for a page without script and wrong for a reader in Berlin. Each `time.stamp`
+// is restated here in the browser's zone, in the same fixed shape so a column still reads as one,
+// and the title gains the zone it was restated in. A `time.ago` keeps its distance text and only gains the
+// title: the distance is the information on that card. The two are told apart by class, so the
+// distance text cannot be rewritten by mistake.
+(function () {
+  if (typeof Intl === "undefined" || typeof Intl.DateTimeFormat !== "function") return;
+  if (typeof Intl.DateTimeFormat.prototype.formatToParts !== "function") return;
+  var zone = "";
+  try {
+    zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch (e) {
+    zone = "";
+  }
+  var shape = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZoneName: "short",
+  });
+  var restated = function (when) {
+    var parts = shape.formatToParts(when);
+    var got = {};
+    for (var i = 0; i < parts.length; i++) got[parts[i].type] = parts[i].value;
+    // Some engines write midnight as 24:00 under hour12: false.
+    var hour = got.hour === "24" ? "00" : got.hour;
+    var text = got.year + "-" + got.month + "-" + got.day + " " + hour + ":" + got.minute;
+    return got.timeZoneName ? text + " " + got.timeZoneName : text;
+  };
+  var title = function (element) {
+    var raw = element.getAttribute("datetime");
+    element.title = zone ? raw + " · " + zone : raw;
+  };
+  var stamps = document.querySelectorAll("time.stamp[datetime]");
+  for (var s = 0; s < stamps.length; s++) {
+    var when = new Date(stamps[s].getAttribute("datetime"));
+    if (isNaN(when.getTime())) continue;
+    stamps[s].textContent = restated(when);
+    title(stamps[s]);
+  }
+  var distances = document.querySelectorAll("time.ago[datetime]");
+  for (var d = 0; d < distances.length; d++) title(distances[d]);
 })();

@@ -1,5 +1,6 @@
 {% extends "layout.html" %} {% block title %}{{ ticket.id }}{% endblock %} {%
 block main %}
+{% from "_time.html" import stamp %}
 <article class="ticket">
   <header>
     {% if parent %}
@@ -36,10 +37,11 @@ block main %}
       endfor %}
     </p>
     <p class="muted">
-      created {{ ticket.created | humanise }} · updated {{ ticket.updated |
-      humanise }} {% if ticket.closed %} · closed {{ ticket.closed | humanise
-      }}{% endif %} {% if ticket.parent %} · under
-      <a href="/ticket/{{ ticket.parent }}">{{ ticket.parent }}</a>{% endif %}
+      {% if ticket.created %}<span class="when">created {{ stamp(ticket.created) }}</span>{% endif %}
+      {% if ticket.updated %}<span class="when">updated {{ stamp(ticket.updated) }}</span>{% endif %}
+      {% if ticket.closed %}<span class="when">closed {{ stamp(ticket.closed) }}</span>{% endif %}
+      {% if ticket.parent %}<span class="when">under
+        <a href="/ticket/{{ ticket.parent }}">{{ ticket.parent }}</a></span>{% endif %}
     </p>
   </header>
 
@@ -154,8 +156,8 @@ block main %}
     <ol class="timeline">
       {% for note in ticket.timeline() %}
       <li>
-        <h3 class="muted" title="{{ note.at or '' }}">
-          {% if note.at %}{{ note.at | humanise }}{% else %}undated{% endif %}
+        <h3 class="muted">
+          {% if note.at %}{{ stamp(note.at) }}{% else %}undated{% endif %}
         </h3>
         <div class="prose">{{ note.text | prose | safe }}</div>
       </li>

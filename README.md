@@ -105,6 +105,9 @@ The bar on every page holds the tags you have chosen to see the backlog through.
 and every view narrows to tickets carrying all of them, on every page, until you clear it. The
 choice lives in a cookie in your browser; the panel still writes nothing.
 
+Every instant is shown in your browser's timezone, labelled with it, and the exact UTC instant is
+on hover. Without script the page shows UTC, labelled as such.
+
 | Page | What is on it |
 |---|---|
 | **Overview** `/` | The backlog counted by type, status and priority, each read from the project's own declared values, so a type nobody has filed yet still appears. knot's ready and blocked queues, the unassigned, and what its integrity check reports. Parents with a progress bar each. What changed recently and what closed recently. What `knot prime` says wants attention: tickets ready to close, and tickets gone stale. |

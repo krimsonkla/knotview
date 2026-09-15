@@ -137,7 +137,7 @@ def test_rows_carry_their_updated_instant_and_the_bar_has_a_since_marker(client)
     page = client(DeclaredBacklog()).get("/tickets").text
 
     assert 'data-updated="2026-09-04T10:00:00.000000Z"' in page
-    assert 'id="since"' in page and 'src="/static/follow.js"' in page
+    assert 'id="since"' in page and 'src="/static/follow.js?v=' in page
 
 
 def test_an_assignee_column_with_one_value_is_dropped_and_said_once(client):
@@ -155,12 +155,28 @@ def test_the_assignee_column_stays_when_values_differ_or_the_filter_is_on(client
     assert "<th>assignee</th>" in filtered and "all assigned to" not in filtered
 
 
-def test_the_instant_column_shows_whichever_order_is_on(client):
+def test_the_instant_column_shows_whichever_order_is_on_as_a_stamp(client):
     by_updated = client(DeclaredBacklog(live_value=(CHILD,))).get("/tickets").text
     by_created = client(DeclaredBacklog(live_value=(CHILD,))).get("/tickets?order=created").text
 
-    assert '<td class="muted" title="updated">2026-09-04 10:00</td>' in by_updated
-    assert '<td class="muted" title="created">2026-09-01 10:00</td>' in by_created
+    assert (
+        '<td class="muted"><time class="stamp" datetime="2026-09-04T10:00:00.000000Z" '
+        'title="2026-09-04T10:00:00.000000Z">2026-09-04 10:00 UTC</time></td>' in by_updated
+    )
+    assert (
+        '<td class="muted"><time class="stamp" datetime="2026-09-01T10:00:00.000000Z" '
+        'title="2026-09-01T10:00:00.000000Z">2026-09-01 10:00 UTC</time></td>' in by_created
+    )
+    assert 'title="updated"' not in by_updated and 'title="created"' not in by_created
+
+
+def test_an_absent_instant_in_either_column_is_a_dash_and_no_time_element(client):
+    bare = ticket("pro-01m2eeeeeeee", created=None, updated=None)
+    by_updated = client(DeclaredBacklog(live_value=(bare,))).get("/tickets").text
+    by_created = client(DeclaredBacklog(live_value=(bare,))).get("/tickets?order=created").text
+
+    assert '<td class="muted">—</td>' in by_updated and "<time" not in by_updated
+    assert '<td class="muted">—</td>' in by_created and "<time" not in by_created
 
 
 def test_each_applied_filter_is_a_chip_whose_link_drops_only_it(client):

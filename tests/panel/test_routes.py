@@ -3,7 +3,7 @@
 import pytest
 from fastapi.routing import APIRoute
 
-from knotview.panel.app import panel
+from knotview.panel.app import HERE, _asset_stamp, panel
 from tests.panel.declared import DeclaredBacklog
 
 PATHS = {
@@ -56,3 +56,21 @@ def test_a_request_addressed_to_another_host_is_refused(client):
 
 def test_localhost_is_an_accepted_name(client):
     assert client(DeclaredBacklog()).get("/", headers={"host": "localhost:7778"}).status_code == 200
+
+
+def test_static_urls_carry_a_stamp_that_moves_with_the_files(client, tmp_path):
+    """A browser keeps a static file by heuristic; a new version must be a new URL. The stamp
+    must move when a file's content changes under the same name, which is the case that bit, and
+    when a file appears in a subdirectory, which the first glob missed."""
+    page = client(DeclaredBacklog()).get("/tickets").text
+    stamp = page.split('href="/static/panel.css?v=')[1].split('"')[0]
+    (tmp_path / "a.js").write_text("one")
+    first = _asset_stamp(tmp_path)
+    (tmp_path / "a.js").write_text("two")
+    edited = _asset_stamp(tmp_path)
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "b").write_text("three")
+    nested = _asset_stamp(tmp_path)
+
+    assert stamp == _asset_stamp(HERE / "static") and f'src="/static/follow.js?v={stamp}"' in page
+    assert len({first, edited, nested}) == 3
