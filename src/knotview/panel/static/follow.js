@@ -48,8 +48,8 @@
 })();
 
 // What changed since you last looked: per viewer, in this browser only, never sent anywhere.
-// The last look is the instant of the previous page load; rows saved after it are marked and
-// counted in the bar. Clicking the count makes now the last look.
+// The last look is the instant of the first load, or of the last click on the count; rows
+// saved after it are marked and counted in the bar.
 (function () {
   var KEY = "knotview.lastLook";
   var since = document.getElementById("since");
@@ -68,12 +68,27 @@
       /* storage unavailable: the page still works, it just cannot remember */
     }
   };
-  var last = read();
+  // Instants compared at one precision. knot writes microseconds and the browser writes
+  // milliseconds, and between "…:00.123Z" and "…:00.123456Z" a string comparison puts the Z
+  // above the digit, so a ticket saved later in the same millisecond read as older. Parsing
+  // would not help: a Date holds milliseconds and the difference is below it. So the fraction
+  // is padded to six digits on both sides and the padded strings compared. The browser's
+  // millisecond look is zero-filled, which is the conservative side: a row saved earlier in
+  // that same millisecond is marked too, and after a click it can stay marked once more. Only
+  // knot's exact shape, a full instant ending in Z, is read; anything else compares as nothing,
+  // so a changed shape would mark nothing rather than mark wrongly. Digits past the sixth are
+  // dropped, so two rows a nanosecond apart compare equal.
+  var padded = function (instant) {
+    var found = /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.(\d+))?Z$/.exec(instant || "");
+    if (!found) return null;
+    return found[1] + "." + ((found[2] || "") + "000000").slice(0, 6) + "Z";
+  };
+  var lastAt = padded(read());
   var rows = document.querySelectorAll("tr[data-updated]");
   var count = 0;
   for (var i = 0; i < rows.length; i++) {
-    var updated = rows[i].getAttribute("data-updated");
-    if (last && updated && updated > last) {
+    var updatedAt = padded(rows[i].getAttribute("data-updated"));
+    if (lastAt && updatedAt && updatedAt > lastAt) {
       rows[i].classList.add("since-last-look");
       count++;
     }
@@ -86,15 +101,16 @@
       window.location.reload();
     });
   }
-  if (!last) write(new Date().toISOString());
+  // No last look, or one this cannot read: now becomes the last look.
+  if (!lastAt) write(new Date().toISOString());
 })();
 
 // Instants in the reader's own zone. The server writes every instant as UTC with the zone named,
 // which is right for a page without script and wrong for a reader in Berlin. Each `time.stamp`
 // is restated here in the browser's zone, in the same fixed shape so a column still reads as one,
-// and the title gains the zone it was restated in. A `time.ago` keeps its distance text and only gains the
-// title: the distance is the information on that card. The two are told apart by class, so the
-// distance text cannot be rewritten by mistake.
+// and the title gains the zone it was restated in. A `time.ago` keeps its distance text and only
+// gains the title: the distance is the information on that card. The two are told apart by class,
+// so the distance text cannot be rewritten by mistake.
 (function () {
   if (typeof Intl === "undefined" || typeof Intl.DateTimeFormat !== "function") return;
   if (typeof Intl.DateTimeFormat.prototype.formatToParts !== "function") return;
