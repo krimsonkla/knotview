@@ -11,12 +11,47 @@ built for handing work to an agent. Everything this panel shows is knot's data a
 vocabulary. If you have not met knot, start there: its README explains the design, and
 `knot serve` ships a panel of its own that this one grew out of wanting more of.
 
+- [A look at it](#a-look-at-it)
 - [Quick start](#quick-start)
 - [Saved projects](#saved-projects)
 - [What it shows](#what-it-shows)
 - [Developing](#developing)
 - [Design](#design)
 - [Licence](#licence)
+
+## A look at it
+
+The panel over its own backlog, every ticket of which is closed, so the tickets page shows the
+closed set and the tree was drawn over it. Open a section to see a view.
+
+<details open>
+<summary><strong>Overview</strong> — the backlog counted by type, status, priority and queue, with what changed and what closed</summary>
+
+![The overview: cards counting tickets by type, status, priority and queue, then parents, recently changed and recently closed](docs/screenshots/overview.jpg)
+</details>
+
+<details>
+<summary><strong>Tickets</strong> — every ticket, filtered, ordered and searched, with the closed ones on request</summary>
+
+![The tickets page: a filter bar over a table of tickets with priority, type, status, title, acceptance, blockers and dates](docs/screenshots/tickets.jpg)
+</details>
+
+<details>
+<summary><strong>Tree</strong> — what is filed under what, each branch foldable, and what is filed under nothing</summary>
+
+![The tree page: an epic unfolded to its twenty-four children, then a table of tickets filed under nothing](docs/screenshots/tree.jpg)
+</details>
+
+<details>
+<summary><strong>Ticket</strong> — one ticket's sections as markdown, what blocks it, its children, and knot's dependency tree</summary>
+
+![A ticket page: the title and its chips, the description and design sections, the two tickets blocking it and its twenty-four children](docs/screenshots/ticket.jpg)
+
+![Further down the same page: the rest of the children, then the dependency tree drawn all the way down](docs/screenshots/ticket-graph.jpg)
+</details>
+
+The queues are empty here because nothing is live; point the panel at a backlog with open
+work and they fill in.
 
 ## Quick start
 
