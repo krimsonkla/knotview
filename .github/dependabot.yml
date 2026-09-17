@@ -1,0 +1,19 @@
+# Version updates. These run from this file alone and do not depend on the
+# repository's Dependabot alerts setting.
+version: 2
+updates:
+  # The actions pinned by sha in the workflows: a sha never floats, so without
+  # this nothing here is ever told a newer one exists.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(ci)"
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(deps)"
