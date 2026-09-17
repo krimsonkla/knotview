@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# Both jobs read the tree and report a status; neither needs anything else.
+# Stated here rather than inherited from the account-wide default.
+permissions:
+  contents: read
+
 jobs:
   checks:
     name: lint and test without knot
@@ -34,17 +39,51 @@ jobs:
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           python-version: "3.12"
+      # Every installer below is fetched from an immutable ref and checked
+      # against a recorded digest before it runs. Fetching `master`/`main` and
+      # piping to a shell -- `sudo bash` in babashka's case -- means whoever
+      # moves that branch chooses what runs here, on a workflow that fires on
+      # every pull request. Bump the version and the digest together; a
+      # mismatch fails the job rather than executing the unexpected script.
       - name: install babashka, bbin and knot
+        env:
+          BB_VERSION: v1.13.223
+          BB_INSTALL_SHA256: 85b4e836f50d64b0b1d28ae626865aef42ab9c7e488e177aa96ed5841bb52bc9
+          # The tarball the installer then fetches, for this runner's
+          # linux-amd64. Changing `runs-on` means changing this too.
+          BB_TARBALL_SHA256: 747b4c8161116c5758c39c4d585dc13c42c71fb7203126674d9ca2e25e6340fd
+          BBIN_VERSION: v0.2.5
+          BBIN_SHA256: ef3436fff67850423dec28333d69a67f5be0da075e2ac93c39fcf278d69b625b
+          # v0.12.0, resolved to the commit it pointed at. A tag can be moved;
+          # bbin accepts a sha, so the sha is what gets pinned.
+          KNOT_SHA: 5c2a42062e94809b1a51df372cab78f9f750fe52
         run: |
-          curl -sLO https://raw.githubusercontent.com/babashka/babashka/master/install
-          sudo bash install
+          set -euo pipefail
+
+          verify() {
+            echo "$2  $1" | sha256sum --check --status \
+              || { echo "::error::$1 does not match its recorded digest"; exit 1; }
+          }
+
+          curl -fsSL -o install \
+            "https://raw.githubusercontent.com/babashka/babashka/$BB_VERSION/install"
+          verify install "$BB_INSTALL_SHA256"
+          # --checksum covers the release tarball; the digest above covered
+          # the installer itself. The script requires the pair together.
+          sudo bash install \
+            --version "${BB_VERSION#v}" \
+            --checksum "$BB_TARBALL_SHA256"
+
           mkdir -p "$HOME/.local/bin"
-          curl -sL https://raw.githubusercontent.com/babashka/bbin/main/bbin -o "$HOME/.local/bin/bbin"
+          curl -fsSL -o "$HOME/.local/bin/bbin" \
+            "https://raw.githubusercontent.com/babashka/bbin/$BBIN_VERSION/bbin"
+          verify "$HOME/.local/bin/bbin" "$BBIN_SHA256"
           chmod +x "$HOME/.local/bin/bbin"
+
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/.babashka/bbin/bin" >> "$GITHUB_PATH"
           export PATH="$HOME/.local/bin:$HOME/.babashka/bbin/bin:$PATH"
-          bbin install https://github.com/UniSoma/knot.git --git/tag v0.12.0
+          bbin install https://github.com/UniSoma/knot.git --git/sha "$KNOT_SHA"
           knot --help | head -1
       - name: a git identity, which knot reads as the default assignee
         run: |
