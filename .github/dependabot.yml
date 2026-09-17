@@ -8,6 +8,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Sit out a newly published version for a week. A release compromised at
+    # source looks exactly like a legitimate one on day zero; most are caught
+    # and yanked well inside seven days.
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore(ci)"
 
@@ -15,5 +20,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Sit out a newly published version for a week. A release compromised at
+    # source looks exactly like a legitimate one on day zero; most are caught
+    # and yanked well inside seven days.
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore(deps)"
