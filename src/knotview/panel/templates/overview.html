@@ -9,7 +9,11 @@
   </p>
   <ul>
     {% for issue in overview.integrity %}
-    <li>{{ issue }}</li>
+    <li>
+      {% for id in issue.document_ids %}<a href="/document/{{ id | segment }}">{{ id }}</a>
+      {% endfor %}{{ issue.text }}
+      {% if issue.shown %}<span class="id" title="{{ issue.path }}">{{ issue.shown }}</span>{% endif %}
+    </li>
     {% endfor %}
   </ul>
 </section>
@@ -63,6 +67,20 @@
       {% endfor %}
     </ul>
   </div>
+  {% if overview.by_document %}
+  <div class="card">
+    <h2>by document</h2>
+    <ul class="tally">
+      {% for tally in overview.by_document %}
+      <li>
+        <a href="/tickets?{{ selection.having(tally.value) }}">{{ tally.label }}</a>
+        <span class="num">{{ tally.count }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="muted note">tickets owning each type; a ticket may own several</p>
+  </div>
+  {% endif %}
   <div class="card">
     <h2>queues</h2>
     <ul class="tally">

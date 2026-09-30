@@ -12,8 +12,13 @@
         "updated": "2026-09-04T10:00:00.000000Z",
         "assignee": "",
         "parent": "pro-01m2aaaaaaaa",
-        "deps": ["pro-01m2cccccccc", "pro-01m2zzzzzzzz"],
-        "links": ["pro-01m2dddddddd"],
+        "deps": [
+            "pro-01m2cccccccc",
+            "pro-01m2zzzzzzzz"
+        ],
+        "links": [
+            "pro-01m2dddddddd"
+        ],
         "tags": [],
         "external_refs": [],
         "body": "## Description\nThe child does a thing.\n",
@@ -38,6 +43,13 @@
                 "id": "pro-01m2dddddddd",
                 "title": "The orphan",
                 "status": "open"
+            }
+        ],
+        "documents": [
+            {
+                "id": "pro-01m2bbbbbbbb-d4spec",
+                "title": "Child spec",
+                "type": "spec"
             }
         ]
     }

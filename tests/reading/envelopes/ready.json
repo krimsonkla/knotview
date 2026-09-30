@@ -21,12 +21,19 @@
                     "done": false
                 }
             ],
-            "tags": ["p0", "auth"],
+            "tags": [
+                "p0",
+                "auth"
+            ],
             "deps": [],
             "links": [],
             "external_refs": [],
             "children_total": 2,
             "children_terminal": 1,
+            "doc_types": [
+                "plan",
+                "spec"
+            ],
             "leverage": 0,
             "coupling": 0,
             "level": 0,
@@ -42,7 +49,9 @@
             "created": "2026-09-05T10:00:00.000000Z",
             "updated": "2026-09-05T10:00:00.000000Z",
             "assignee": "someone",
-            "links": ["pro-01m2bbbbbbbb"],
+            "links": [
+                "pro-01m2bbbbbbbb"
+            ],
             "tags": [],
             "deps": [],
             "external_refs": [],

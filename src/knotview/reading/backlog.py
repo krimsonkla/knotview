@@ -4,8 +4,10 @@ from typing import Protocol, runtime_checkable
 
 from knotview.values.attention import Attention
 from knotview.values.dependency import Dependency
+from knotview.values.document import Document
 from knotview.values.project import Project
 from knotview.values.ticket import Ticket
+from knotview.values.issue import Issue
 
 
 @runtime_checkable
@@ -50,12 +52,20 @@ class Backlog(Protocol):
         """One ticket in full: its sections, its notes and both directions of its graph."""
         raise NotImplementedError
 
+    def documents(self, ticket_id: str) -> tuple[Document, ...]:
+        """The documents one ticket owns, with when each was created and last updated."""
+        raise NotImplementedError
+
+    def document(self, document_id: str) -> Document:
+        """One document in full, its body included."""
+        raise NotImplementedError
+
     def dependencies(self, identifier: str) -> Dependency:
         """The tree of what one ticket waits on, as knot draws it."""
         raise NotImplementedError
 
-    def integrity(self) -> tuple[str, ...]:
-        """Whatever the project's own integrity check reports, as lines, empty when it is clean."""
+    def integrity(self) -> tuple[Issue, ...]:
+        """Whatever the project's own integrity check reports, as issues, empty when it is clean."""
         raise NotImplementedError
 
     def digest(self) -> str:

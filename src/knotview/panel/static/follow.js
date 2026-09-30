@@ -1,50 +1,91 @@
 // Follow the backlog.
 //
-// The server streams one thing: a digest that moves when the backlog does. This asks for it, and when
-// it changes it reloads the page. Nothing here adds content: there is one rendering path on the
-// server, so what a reader sees after a change is exactly what they would see on a fresh visit. The
-// last block restates instants the server already put in the markup, in the reader's own zone; it
-// invents nothing.
+// The server answers one thing: a digest that moves when the backlog does. This asks for it about
+// once a second, and when it changes it reloads the page. Nothing here adds content: there is one
+// rendering path on the server, so what a reader sees after a change is exactly what they would see
+// on a fresh visit. The last block restates instants the server already put in the markup, in the
+// reader's own zone; it invents nothing.
 //
-// The stream is one-way by construction and this sends nothing back. A panel that could write would
-// be a second author of a backlog that has one.
+// A short request each time rather than a stream held open: a browser allows six connections to one
+// host, and a stream per open tab used them up, so the seventh tab's page waited until one closed.
+// A hidden tab stops asking, and asks at once when it is shown again. Only a GET is ever sent; a
+// panel that could write would be a second author of a backlog that has one.
 
 (function follow() {
   var badge = document.getElementById("live");
-  if (!badge || typeof EventSource === "undefined") return;
+  if (!badge || typeof fetch === "undefined") return;
 
+  var EVERY = 1000;
+  var LONGEST = 30000;
+  var wait = EVERY;
   var known = null;
-  var stream = new EventSource("/live");
+  var timer = null;
+  var asking = false;
 
-  stream.addEventListener("changed", function (event) {
-    if (known === null) {
-      known = event.data;
-      badge.classList.add("following");
-      return;
-    }
-    if (event.data !== known) {
-      // Keep the scroll position across the reload, since a reader watching a long list while an
-      // agent edits it should not be thrown back to the top every time.
-      sessionStorage.setItem("knotview:scroll", String(window.scrollY));
-      window.location.reload();
-    }
-  });
-
-  stream.addEventListener("unreadable", function () {
-    badge.textContent = "unreadable";
-    badge.className = "live stale";
-  });
-
-  stream.onerror = function () {
-    badge.textContent = "offline";
-    badge.className = "live stale";
+  var mark = function (text, stale) {
+    badge.textContent = text;
+    badge.className = stale ? "live stale" : "live following";
   };
+
+  var ask = function () {
+    timer = null;
+    // The first ask runs even in a hidden tab: it records what the page was rendered from, so a
+    // tab opened in the background still reloads when it is shown after a change.
+    if ((document.hidden && known !== null) || asking) return;
+    asking = true;
+    fetch("/digest", { cache: "no-store" })
+      .then(function (answer) {
+        if (!answer.ok) {
+          mark("unreadable", true);
+          wait = Math.min(wait * 2, LONGEST);
+          return null;
+        }
+        wait = EVERY;
+        return answer.text();
+      })
+      .then(function (digest) {
+        asking = false;
+        if (digest === null) {
+          later();
+          return;
+        }
+        if (known === null) {
+          known = digest;
+          mark("live", false);
+        } else if (digest !== known) {
+          // Keep the scroll position across the reload, since a reader watching a long list while
+          // an agent edits it should not be thrown back to the top every time.
+          sessionStorage.setItem("knotview:scroll", String(window.scrollY));
+          window.location.reload();
+          return;
+        } else {
+          mark("live", false);
+        }
+        later();
+      })
+      .catch(function () {
+        asking = false;
+        mark("offline", true);
+        // A panel that has stopped is asked less and less often, up to twice a minute.
+        wait = Math.min(wait * 2, LONGEST);
+        later();
+      });
+  };
+
+  var later = function () {
+    if (timer === null && !document.hidden) timer = setTimeout(ask, wait);
+  };
+
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && timer === null) ask();
+  });
 
   var was = sessionStorage.getItem("knotview:scroll");
   if (was !== null) {
     sessionStorage.removeItem("knotview:scroll");
     window.scrollTo(0, Number(was));
   }
+  ask();
 })();
 
 // What changed since you last looked: per viewer, in this browser only, never sent anywhere.

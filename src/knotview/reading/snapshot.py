@@ -6,6 +6,7 @@ from knotview.reading.backlog import Backlog
 from knotview.values.attention import Attention
 from knotview.values.project import Project
 from knotview.values.ticket import Ticket
+from knotview.values.issue import Issue
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -28,7 +29,7 @@ class Snapshot:
     ready: tuple[Ticket, ...]
     blocked: tuple[Ticket, ...]
     attention: Attention
-    integrity: tuple[str, ...]
+    integrity: tuple[Issue, ...]
 
     @classmethod
     def read(cls, backlog: Backlog) -> "Snapshot":

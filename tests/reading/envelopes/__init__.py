@@ -1,18 +1,22 @@
-"""Envelopes recorded from knot 0.12.0 on a probe project, one file per command shape.
+"""Envelopes recorded from knot 0.15.0 on a probe project, one file per command shape.
 
-Recorded rather than written, so the tests assert the shape knot actually emits. The probe held
-a parent with two children (one archived), an orphan, a blank assignee and an absent one, a
-blocker that is closed and one that is missing, a symmetric link, and one dangling dependency so
-the check reports an issue. test_real_knot.py re-derives the same shapes from the binary.
+Recorded rather than written, so the tests assert the shape knot actually emits. The probe, in
+tests/reading/probe.py, holds a parent with two children (one archived), an orphan, a blank
+assignee and an absent one, a blocker that is closed and one that is missing, a symmetric link,
+and one dangling dependency so the check reports an issue. It also holds four documents: a spec
+and a plan on the parent, a spec on the live child, and a note on the archived child, so every
+listing carries a row that owns documents. test_real_knot.py re-derives the same shapes from the
+binary.
 
 To re-record them against a newer knot, with knot on PATH:
 
     uv run python -m tests.reading.record_envelopes
 
 The recorder builds the same probe project in a temporary directory, runs each command in
-RECORDINGS, and writes the answers here with the machine-specific values scrubbed: every path
-under info's `paths` is rewritten under /probe and the effective assignee becomes "someone", so a
-recording never carries the recorder's home directory or name.
+RECORDINGS, normalizes the machine-specific values (every path under info's `paths` is rewritten
+under /probe and the effective assignee becomes "someone"), then refuses to write anything if a
+recording still holds the scratch directory, the home directory or the git user name, or if the
+clean check reports an issue.
 """
 
 import json
@@ -36,6 +40,9 @@ RECORDINGS = (
     ("not-found", "show", ("nope",)),
     ("prime", "prime", ()),
     ("dep-tree", "dep tree", ("pro-01m2bbbbbbbb",)),
+    ("document-list", "document list", ("pro-01m2aaaaaaaa",)),
+    ("document-show", "document show", ("pro-01m2aaaaaaaa-d7spec",)),
+    ("document-not-found", "document show", ("pro-01m2aaaaaaaa-dnope",)),
 )
 
 

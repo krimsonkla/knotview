@@ -20,7 +20,10 @@
                 "done": false
             }
         ],
-        "tags": ["p0", "auth"],
+        "tags": [
+            "p0",
+            "auth"
+        ],
         "deps": [],
         "links": [],
         "external_refs": [],
@@ -47,6 +50,18 @@
                 "status": "closed"
             }
         ],
-        "linked": []
+        "linked": [],
+        "documents": [
+            {
+                "id": "pro-01m2aaaaaaaa-d2plan",
+                "title": "Rollout plan",
+                "type": "plan"
+            },
+            {
+                "id": "pro-01m2aaaaaaaa-d7spec",
+                "title": "Design spec",
+                "type": "spec"
+            }
+        ]
     }
 }

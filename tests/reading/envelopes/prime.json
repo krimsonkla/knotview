@@ -2,36 +2,20 @@
     "schema_version": 1,
     "ok": true,
     "data": {
-        "project": {
-            "found": true,
-            "prefix": "pro",
-            "live_count": 3,
-            "archive_count": 1
-        },
-        "in_progress": [
-            {
-                "updated": "2026-09-04T10:00:00.000000Z",
-                "mode": "afk",
-                "type": "task",
-                "created": "2026-09-03T10:00:00.000000Z",
-                "title": "The child",
-                "priority": 2,
-                "status": "in_progress",
-                "id": "pro-01m2bbbbbbbb",
-                "assignee": ""
-            }
-        ],
-        "ready_to_close": [],
         "ready": [
             {
-                "id": "pro-01m2aaaaaaaa",
-                "title": "The parent",
-                "status": "open",
-                "type": "epic",
-                "priority": 1,
-                "mode": "hitl",
+                "doc_types": [
+                    "plan",
+                    "spec"
+                ],
                 "updated": "2026-09-02T10:00:00.000000Z",
-                "created": "2026-09-01T10:00:00.000000Z"
+                "mode": "hitl",
+                "type": "epic",
+                "created": "2026-09-01T10:00:00.000000Z",
+                "title": "The parent",
+                "priority": 1,
+                "status": "open",
+                "id": "pro-01m2aaaaaaaa"
             },
             {
                 "updated": "2026-09-05T10:00:00.000000Z",
@@ -45,14 +29,42 @@
                 "assignee": "someone"
             }
         ],
-        "ready_truncated": false,
-        "ready_remaining": 0,
         "recently_closed": [
             {
                 "id": "pro-01m2cccccccc",
                 "title": "The closed one",
                 "closed": "2026-08-02T10:00:00.000000Z"
             }
-        ]
+        ],
+        "skill_dir": null,
+        "skill_installed": false,
+        "skill_version": null,
+        "ready_truncated": false,
+        "project": {
+            "found": true,
+            "prefix": "pro",
+            "live_count": 3,
+            "archive_count": 1
+        },
+        "in_progress": [
+            {
+                "doc_types": [
+                    "spec"
+                ],
+                "updated": "2026-09-04T10:00:00.000000Z",
+                "mode": "afk",
+                "type": "task",
+                "created": "2026-09-03T10:00:00.000000Z",
+                "title": "The child",
+                "stale": true,
+                "priority": 2,
+                "status": "in_progress",
+                "id": "pro-01m2bbbbbbbb",
+                "assignee": ""
+            }
+        ],
+        "ready_to_close": [],
+        "skill_stale": false,
+        "ready_remaining": 0
     }
 }

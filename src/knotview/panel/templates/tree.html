@@ -1,4 +1,7 @@
 {% extends "layout.html" %} {% block title %}tree{% endblock %} {% block main %}
+{% from "_documents.html" import doctypes %}
+{# Reaches the stray and orphan tables through their includes; the rows below pass it themselves. #}
+{% set show_missing = true %}
 <p class="muted">
   What is filed under what, to any depth. A parent is a ticket something else
   names as its parent, so this is the project's own shape rather than a search
@@ -7,21 +10,22 @@
   by a dependency or a link, and cannot be worked apart.
 </p>
 
-{% macro node_row(node) %}
+{% macro node_row(node, project) %}
 <details open data-fold="{{ node.ticket.id }}">
   <summary>
     <span class="pri p{{ node.ticket.priority }}">{{ node.ticket.priority }}</span>
-    <a class="chip" href="/tickets?type={{ node.ticket.type }}">{{ node.ticket.type }}</a>
+    <a class="chip" href="/tickets?type={{ node.ticket.type | urlencode }}">{{ node.ticket.type }}</a>
     <a
       class="chip status-{{ node.ticket.status }}"
-      href="/tickets?status={{ node.ticket.status }}"
+      href="/tickets?status={{ node.ticket.status | urlencode }}"
       >{{ node.ticket.status }}</a
     >
     <a class="title" href="/ticket/{{ node.ticket.id }}">{{ node.ticket.title }}</a>
     <span class="id">{{ node.ticket.id }}</span>
+    {{ doctypes(node.ticket, project, true) }}
     {% if node.ticket.component is not none %}<a
       class="chip island"
-      href="/tickets?component={{ node.ticket.component }}"
+      href="/tickets?component={{ node.ticket.component | urlencode }}"
       title="knot's connected component: the live tickets this one is joined to by parents, dependencies and links"
       >island {{ node.ticket.component }}</a
     >{% endif %}
@@ -35,17 +39,18 @@
   <ul class="branch">
     {% for child in node.children %}
     <li>
-      {% if child.children %} {{ node_row(child) }} {% else %}
+      {% if child.children %} {{ node_row(child, project) }} {% else %}
       <div class="leaf">
         <span class="pri p{{ child.ticket.priority }}">{{ child.ticket.priority }}</span>
-        <a class="chip" href="/tickets?type={{ child.ticket.type }}">{{ child.ticket.type }}</a>
+        <a class="chip" href="/tickets?type={{ child.ticket.type | urlencode }}">{{ child.ticket.type }}</a>
         <a
           class="chip status-{{ child.ticket.status }}"
-          href="/tickets?status={{ child.ticket.status }}"
+          href="/tickets?status={{ child.ticket.status | urlencode }}"
           >{{ child.ticket.status }}</a
         >
         <a class="title" href="/ticket/{{ child.ticket.id }}">{{ child.ticket.title }}</a>
         <span class="id">{{ child.ticket.id }}</span>
+        {{ doctypes(child.ticket, project, true) }}
         {% if child.criteria %}<span class="num"
           >criteria {{ child.met }}/{{ child.criteria }}</span
         >{% endif %}
@@ -56,7 +61,7 @@
   </ul>
 </details>
 {% endmacro %} {% for root in tree.roots %}
-<section class="card branch-root">{{ node_row(root) }}</section>
+<section class="card branch-root">{{ node_row(root, project) }}</section>
 {% endfor %} {% if tree.strays %}
 <section class="card">
   <h2>

@@ -13,8 +13,8 @@ PATHS = {
     "/tree",
     "/queue/{which}",
     "/ticket/{identifier}",
+    "/document/{identifier}",
     "/digest",
-    "/live",
     "/tags",
 }
 
@@ -33,7 +33,15 @@ def test_every_route_is_a_get():
 
 
 @pytest.mark.parametrize(
-    "path", ["/", "/tickets", "/tree", "/queue/ready", "/ticket/pro-01m2aaaaaaaa"]
+    "path",
+    [
+        "/",
+        "/tickets",
+        "/tree",
+        "/queue/ready",
+        "/ticket/pro-01m2aaaaaaaa",
+        "/document/pro-01m2aaaaaaaa-d2plan",
+    ],
 )
 def test_pages_answer_as_html(client, path):
     assert client(DeclaredBacklog()).get(path).headers["content-type"].startswith("text/html")

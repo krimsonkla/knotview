@@ -1,0 +1,25 @@
+{
+    "schema_version": 1,
+    "ok": true,
+    "data": {
+        "ticket": "pro-01m2aaaaaaaa",
+        "documents": [
+            {
+                "id": "pro-01m2aaaaaaaa-d2plan",
+                "ticket": "pro-01m2aaaaaaaa",
+                "title": "Rollout plan",
+                "type": "plan",
+                "created": "2026-09-06T10:00:00.000000Z",
+                "updated": "2026-09-06T10:00:00.000000Z"
+            },
+            {
+                "id": "pro-01m2aaaaaaaa-d7spec",
+                "ticket": "pro-01m2aaaaaaaa",
+                "title": "Design spec",
+                "type": "spec",
+                "created": "2026-09-02T10:00:00.000000Z",
+                "updated": "2026-09-02T10:00:00.000000Z"
+            }
+        ]
+    }
+}
