@@ -32,7 +32,8 @@ jobs:
           /tmp/wheel-venv/bin/python -c "import knotview.panel.app as a, pathlib as p; d = p.Path(a.__file__).parent; assert (d / 'templates' / 'layout.html').is_file() and (d / 'static' / 'panel.css').is_file(); print('packaged')"
 
   # Checks the recorded envelopes against the pinned knot. It verifies and never records: the
-  # recordings are made by tests/reading/record_envelopes.py and committed.
+  # recordings are made by tests/reading/record_envelopes.py and committed, and its --check mode
+  # is what this job runs.
   fidelity:
     name: the real knot against the recorded envelopes
     runs-on: ubuntu-latest
@@ -95,3 +96,8 @@ jobs:
           git config --global user.email probe@example.invalid
       - run: uv sync --all-groups
       - run: uv run pytest -m slow --no-cov -v
+      # The fidelity tests compare shapes, so a hand-edited value passes them. This compares every
+      # committed recording with a fresh one from the same pinned knot, byte for byte. A failure
+      # here means a recording was edited, or knot answers differently: re-record and review.
+      - name: the committed recordings match a fresh recording from the pinned knot
+        run: uv run python -m tests.reading.record_envelopes --check

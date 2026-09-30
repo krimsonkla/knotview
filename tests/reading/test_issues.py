@@ -4,6 +4,7 @@ from pathlib import Path
 
 from knotview.reading.knot_command import _issue
 from knotview.values.issue import Issue
+from tests.reading.envelopes import envelope
 
 ROOT = Path("/work/project")
 MEMO = "/work/project/.tickets/docs/pro-1/pro-1-d5memo--memo.md"
@@ -69,3 +70,20 @@ def test_the_project_root_is_taken_off_a_path_knot_wrote_into_its_message():
     )
 
     assert issue.text == "unreachable_documents: documents sit at .tickets/docs, not /elsewhere/d"
+
+
+def test_the_recorded_document_issues_link_their_documents_and_the_ticket_one_does_not():
+    """From knot 0.15's own answer. The paths come from the faults probe and the root from info's,
+    which is the main probe: both are scrubbed to /probe, so each issue reads from the root it
+    would have in one project; that is by construction, not a second probe mislabelled."""
+    root = Path(envelope("info")["data"]["paths"]["project_root"])
+    orphan, memo, legacy = (
+        _issue(one, root) for one in envelope("check-documents")["data"]["issues"]
+    )
+
+    assert orphan.document_ids == ("pro-01m2zzzzzzzz-d1x",)
+    assert orphan.shown == ".tickets/docs/pro-01m2zzzzzzzz/pro-01m2zzzzzzzz-d1x--orphan.md"
+    assert memo.document_ids == ("pro-01m2aaaaaaaa-d5memo",)
+    assert memo.text.startswith("invalid_doc_type: document")
+    assert not legacy.document_ids and not legacy.path
+    assert legacy.text.startswith("pro-01m2aaaaaaaa legacy_documents_section:")
