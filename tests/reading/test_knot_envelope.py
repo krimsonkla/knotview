@@ -122,6 +122,18 @@ def test_a_ticket_with_no_id_is_refused():
         ticket_from({"title": "nameless"})
 
 
+def test_a_listing_row_with_no_id_is_left_out_rather_than_refusing_the_backlog():
+    """knot lists a ticket file with no id as a row without one; refusing the listing turned one
+    broken file into a 503 on every page, including the overview whose integrity card reports
+    that very file."""
+    rows = envelope("list")["data"]
+    nameless = {"title": "No id", "status": "open", "type": "task", "priority": 2}
+
+    read = tickets_from([*rows, nameless, {**nameless, "id": ""}], attempting="listing")
+
+    assert [one.id for one in read] == [row["id"] for row in rows]
+
+
 def test_absent_and_blank_assignees_are_both_nobody_and_a_name_is_kept():
     parent, child, orphan = tickets_from(envelope("list")["data"], attempting="listing")
 

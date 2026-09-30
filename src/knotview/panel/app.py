@@ -145,10 +145,12 @@ class Pages:
     def overview(self, request: Request) -> HTMLResponse:
         """The backlog counted by type, by status and by priority, with the queues beside it.
 
-        The overview carries the reader's selection through its links, so arriving from a filtered
-        list and clicking a card narrows further instead of starting over.
+        Every count equals the list its link opens. Both are narrowed by the reader's tags and by
+        nothing else: the overview ignores its own query string, as every other page does, so a
+        filter left in its URL cannot ride into a card's link while the count ignores it. The one
+        assumption is a clean check: a ticket in a terminal status that knot has not archived is
+        listed under its status but not counted among the closed, and the integrity card says so.
         """
-        project = self.backlog.project()
         seen = Snapshot.read(self.backlog)
         chosen = _tags(request)
         if chosen.chosen:
@@ -174,9 +176,7 @@ class Pages:
             request,
             "overview.html",
             overview=Overview.over(seen),
-            selection=Selection.asked(
-                project, dict(request.query_params), request.query_params.getlist("doc")
-            ),
+            selection=Selection(),
         )
 
     def tickets(self, request: Request) -> HTMLResponse:

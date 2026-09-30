@@ -10,7 +10,8 @@
   <ul>
     {% for issue in overview.integrity %}
     <li>
-      {% for id in issue.document_ids %}<a href="/document/{{ id | segment }}">{{ id }}</a>
+      {% for id in issue.ticket_ids %}<a href="/ticket/{{ id | segment }}">{{ id }}</a>
+      {% endfor %}{% for id in issue.document_ids %}<a href="/document/{{ id | segment }}">{{ id }}</a>
       {% endfor %}{{ issue.text }}
       {% if issue.shown %}<span class="id" title="{{ issue.path }}">{{ issue.shown }}</span>{% endif %}
     </li>
@@ -44,6 +45,8 @@
         <span class="num">{{ tally.count }}</span>
       </li>
       {% endfor %}
+      {# The terminal rows build closed=1 themselves: it is what these rows mean, not a filter
+      carried from the page's URL, which the overview ignores. #}
       {% for tally in overview.by_terminal %}
       <li>
         <a href="/tickets?{{ selection.query_string(closed='1', status=tally.value) }}"
