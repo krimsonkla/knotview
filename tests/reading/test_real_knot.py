@@ -130,6 +130,23 @@ def test_the_reader_over_the_binary_agrees_with_the_reader_over_the_recording(pr
         command.documents("nope")
 
 
+def test_a_ticket_file_with_no_id_leaves_the_rest_of_the_backlog_readable(tmp_path: Path):
+    """The file is reported by the check, as missing_required_field, rather than hiding the
+    backlog behind a refusal."""
+    write_probe(tmp_path, TICKETS, DOCUMENTS)
+    (tmp_path / ".tickets" / "pro-01m2xxxxxxxx--no-id.md").write_text(
+        "---\ntitle: No id\nstatus: open\ntype: task\npriority: 2\n---\nBody\n",
+        encoding="utf-8",
+    )
+    command = KnotCommand(repository=tmp_path)
+
+    assert "pro-01m2aaaaaaaa" in [one.id for one in command.live()]
+    assert command.ready() and "pro-01m2bbbbbbbb" in [one.id for one in command.blocked()]
+    assert "missing_required_field" in [
+        issue.text.split(":")[0].split()[-1] for issue in command.integrity()
+    ]
+
+
 def test_the_binary_reports_the_recorded_document_issues_the_way_the_reader_reads_them(
     tmp_path: Path,
 ):

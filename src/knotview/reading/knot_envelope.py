@@ -212,13 +212,24 @@ def documents_from(stated: Any, *, attempting: str) -> tuple[Document, ...]:
 
 
 def tickets_from(stated: Any, *, attempting: str) -> tuple[Ticket, ...]:
-    """Every ticket in a listing, refusing an answer that is not one."""
+    """Every ticket in a listing, refusing an answer that is not one.
+
+    A row with no id is left out rather than refusing the listing. knot lists a ticket file whose
+    frontmatter has no id as such a row, and its check reports the file as missing a required
+    field; refusing here would turn that one file into a 503 on every page, the overview whose
+    integrity card reports it included. A single read of a ticket, in `ticket_from`, still refuses
+    a record with no id, since there the one thing asked for cannot be read.
+    """
     if not isinstance(stated, list):
         raise UnreadableBacklog(
             f"{attempting} answered with {type(stated).__name__} rather than a list of tickets",
             advice="check the knot version against the one this panel was written for",
         )
-    return tuple(ticket_from(held) for held in stated if isinstance(held, dict))
+    return tuple(
+        ticket_from(held)
+        for held in stated
+        if isinstance(held, dict) and isinstance(held.get("id"), str) and held["id"]
+    )
 
 
 def ticket_from(stated: dict[str, Any]) -> Ticket:
