@@ -10,7 +10,8 @@
   <ul>
     {% for issue in overview.integrity %}
     <li>
-      {% for id in issue.document_ids %}<a href="/document/{{ id | segment }}">{{ id }}</a>
+      {% for id in issue.ticket_ids %}<a href="/ticket/{{ id | segment }}">{{ id }}</a>
+      {% endfor %}{% for id in issue.document_ids %}<a href="/document/{{ id | segment }}">{{ id }}</a>
       {% endfor %}{{ issue.text }}
       {% if issue.shown %}<span class="id" title="{{ issue.path }}">{{ issue.shown }}</span>{% endif %}
     </li>

@@ -25,7 +25,8 @@ def test_a_check_with_issues_reports_each_as_a_line_naming_the_ticket_and_the_co
     """This is the path knot's ok:false verdict used to close: the overview refused to render."""
     (issue,) = fake(check="issues").integrity()
 
-    assert issue.text.startswith("pro-01m2bbbbbbbb unknown_id: unknown id")
+    assert issue.text.startswith("unknown_id: unknown id")
+    assert issue.ticket_ids == ("pro-01m2bbbbbbbb",)
     assert issue.document_ids == () and issue.path == ""
 
 
@@ -42,9 +43,8 @@ def test_document_issues_link_their_documents_and_show_their_paths_from_the_proj
         == orphan.path
         == "/elsewhere/docs/pro-01m2zzzzzzzz/pro-01m2zzzzzzzz-d1x--orphan.md"
     )
-    assert legacy.document_ids == () and legacy.text.startswith(
-        "pro-01m2aaaaaaaa legacy_documents_section"
-    )
+    assert legacy.document_ids == () and legacy.ticket_ids == ("pro-01m2aaaaaaaa",)
+    assert legacy.text.startswith("legacy_documents_section")
 
 
 def test_a_check_that_answers_ok_with_no_issues_list_is_read_as_clean(fake):

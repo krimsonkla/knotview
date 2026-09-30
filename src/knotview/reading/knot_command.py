@@ -331,8 +331,7 @@ def _described(issue: object) -> str:
         return issue
     if not isinstance(issue, dict):
         return str(issue)
-    ids = issue.get("ids")
-    where = " ".join(str(one) for one in ids) if isinstance(ids, list) else ""
+    where = " ".join(_named(issue.get("ids")))
     code = issue.get("code")
     message = issue.get("message")
     if not (where or code or message):
@@ -341,28 +340,69 @@ def _described(issue: object) -> str:
     return f"{head}: {message}" if head and message else (head or str(message))
 
 
-# The check codes whose ids are documents knot will show, each confirmed against knot 0.15 rather
-# than read off its name: legacy_documents_section names a ticket, and duplicate_doc_id an id knot
-# refuses as ambiguous, so neither is here.
+# What an issue's ids mean, surveyed from knot 0.15.0's check.clj rather than read off the codes'
+# names: its `:ids` names the records an issue is about, while the offending value rides in
+# `:field` and `:value`. Re-survey these when knot is upgraded.
+#
+# Codes whose ids are documents `document show` serves. legacy_documents_section names a ticket,
+# and duplicate_doc_id an id knot refuses as ambiguous, so neither is here.
 LINKED = frozenset(
     {"doc_unknown_ticket", "invalid_doc_type", "doc_directory_mismatch", "doc_id_owner_mismatch"}
 )
+# Codes whose ids are tickets. unknown_id names its holder; the missing target is only in the
+# message, and linking it would open a page for the one id known to resolve to nothing. dep_cycle
+# names every ticket on the cycle with the first repeated to close it, and its message spells the
+# path, so linking each once loses nothing. missing_required_field is emitted by the ticket tier
+# ([id], or [] with no id) and the document tier (always []): it is safe only while the document
+# tier stays empty, so it is the first to re-check on an upgrade. Codes whose ids are always empty
+# (unreachable_documents, invalid_active_status, skill_stale, frontmatter_parse_error) are in
+# neither set, so that a knot which starts filling them cannot make the panel link wrongly.
+TICKET_CODES = frozenset(
+    {
+        "invalid_status",
+        "invalid_type",
+        "invalid_mode",
+        "invalid_priority",
+        "terminal_outside_archive",
+        "unknown_id",
+        "acceptance_invalid",
+        "legacy_acceptance_section",
+        "reserved_section",
+        "duplicate_section",
+        "legacy_documents_section",
+        "missing_required_field",
+        "dep_cycle",
+    }
+)
+
+
+def _named(ids: object) -> tuple[str, ...]:
+    """An issue's ids that name something: strings, not empty, each once, in knot's order.
+
+    knot's contract says an id is never null, but it emits `ids: [null]` for invalid_priority and
+    terminal_outside_archive on a ticket with no id; such an id is neither linked nor written.
+    """
+    if not isinstance(ids, list):
+        return ()
+    return tuple(dict.fromkeys(one for one in ids if isinstance(one, str) and one))
 
 
 def _issue(issue: object, root: Path) -> Issue:
-    """One check entry as an issue: its line, its path from the project, and its documents."""
+    """One check entry as an issue: its line, its path from the project, and what it links."""
     if not isinstance(issue, dict):
         return Issue(text=_described(issue))
-    ids = issue.get("ids")
-    linked = (
-        tuple(str(one) for one in ids)
-        if issue.get("code") in LINKED and isinstance(ids, list)
-        else ()
-    )
+    code = issue.get("code")
+    named = _named(issue.get("ids"))
+    documents = named if code in LINKED else ()
+    tickets = named if code in TICKET_CODES else ()
     path = issue.get("path")
     # A linked issue's ids are drawn as its links, so its line leaves them out rather than
-    # naming each document twice.
+    # naming each record twice.
     text = _described(
-        {key: value for key, value in issue.items() if key != "ids"} if linked else issue
+        {key: value for key, value in issue.items() if key != "ids"}
+        if documents or tickets
+        else issue
     )
-    return Issue.found(text, path if isinstance(path, str) else "", root, linked)
+    return Issue.found(
+        text, path if isinstance(path, str) else "", root, documents, ticket_ids=tickets
+    )

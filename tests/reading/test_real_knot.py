@@ -112,7 +112,8 @@ def test_the_reader_over_the_binary_agrees_with_the_reader_over_the_recording(pr
     parent = command.ticket("pro-01m2aaaaaaaa")
     assert list(parent.sections) == ["", "description", "design", "notes"]
     (issue,) = command.integrity()
-    assert issue.text.startswith("pro-01m2bbbbbbbb unknown_id:") and issue.document_ids == ()
+    assert issue.text.startswith("unknown_id:") and issue.document_ids == ()
+    assert issue.ticket_ids == ("pro-01m2bbbbbbbb",)
     with pytest.raises(UnreadableBacklog, match="no ticket matching -x"):
         command.ticket("-x")
     assert command.digest() != "absent"
@@ -159,3 +160,4 @@ def test_the_binary_reports_the_recorded_document_issues_the_way_the_reader_read
     assert memo.document_ids == ("pro-01m2aaaaaaaa-d5memo",)
     assert memo.shown == ".tickets/docs/pro-01m2aaaaaaaa/pro-01m2aaaaaaaa-d5memo--memo.md"
     assert not legacy.document_ids and "legacy_documents_section" in legacy.text
+    assert legacy.ticket_ids == ("pro-01m2aaaaaaaa",)
