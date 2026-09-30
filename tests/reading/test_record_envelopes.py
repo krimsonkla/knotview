@@ -127,6 +127,7 @@ def test_a_forbidden_string_the_scrub_itself_writes_is_not_searched_for():
     recordings = {"info": '{"cwd": "/probe", "assignee": "someone"}'}
 
     assert not leaks(recordings, {"probe", "someone", "/tmp/x"})
+    assert leaks(recordings, {"one"}) == [("info", "one")]
     assert leaks({"info": '{"cwd": "/tmp/x/probe"}'}, {"probe", "/tmp/x"}) == [("info", "/tmp/x")]
 
 
@@ -135,3 +136,7 @@ def test_recordings_go_to_the_fixtures_unless_another_directory_is_named(tmp_pat
     assert destination(["--into", str(tmp_path)]) == tmp_path
     with pytest.raises(SystemExit, match="needs a directory"):
         destination(["--into"])
+    with pytest.raises(SystemExit, match="needs a directory"):
+        destination(["--into", "--other"])
+    with pytest.raises(SystemExit, match="takes no --into"):
+        destination(["--check", "--into", str(tmp_path)])

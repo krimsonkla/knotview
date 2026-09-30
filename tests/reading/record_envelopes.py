@@ -140,18 +140,14 @@ def leaks(recordings: dict[str, str], forbidden: Iterable[str | None]) -> list[t
     """Each recording that still holds a forbidden string, with the string it holds.
 
     An empty or missing value is not searched for: an unset git name would otherwise match every
-    recording and refuse every run. Nor is one the scrub's own placeholders contain: a git name
-    of "probe", which CI uses, would match every /probe the scrub wrote, and a recording cannot
-    tell that apart from the placeholder, so searching for it refuses every run and proves nothing.
+    recording and refuse every run. Nor is a value the scrub itself writes: a git name of
+    "probe", which CI uses, would match every /probe the scrub wrote, and a recording cannot tell
+    that apart from the placeholder, so searching for it refuses every run and proves nothing.
+    Only those exact values are exempt; a shorter name that merely occurs inside one, such as
+    "one", is still searched for.
     """
-    placeholders = (SCRUBBED_ROOT, SCRUBBED_ASSIGNEE)
-    needles = sorted(
-        {
-            needle
-            for needle in forbidden
-            if needle and not any(needle in placeholder for placeholder in placeholders)
-        }
-    )
+    written = {SCRUBBED_ROOT, SCRUBBED_ROOT.strip("/"), SCRUBBED_ASSIGNEE}
+    needles = sorted({needle for needle in forbidden if needle and needle not in written})
     return [
         (name, needle)
         for name in sorted(recordings)
@@ -243,8 +239,10 @@ def destination(argv: Sequence[str]) -> Path:
     fresh set can be laid beside the committed one without touching it."""
     if "--into" not in argv:
         return HERE
+    if "--check" in argv:
+        raise SystemExit("--check compares with the committed recordings; it takes no --into")
     at = list(argv).index("--into") + 1
-    if at >= len(argv):
+    if at >= len(argv) or argv[at].startswith("-"):
         raise SystemExit("--into needs a directory")
     return Path(argv[at])
 
