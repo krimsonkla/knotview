@@ -2,7 +2,9 @@
 
 from pathlib import Path
 
-from knotview.reading.knot_command import _issue
+import pytest
+
+from knotview.reading.knot_command import LINKED, TICKET_CODES, _issue
 from knotview.values.issue import Issue
 
 ROOT = Path("/work/project")
@@ -69,3 +71,69 @@ def test_the_project_root_is_taken_off_a_path_knot_wrote_into_its_message():
     )
 
     assert issue.text == "unreachable_documents: documents sit at .tickets/docs, not /elsewhere/d"
+
+
+# Restated here from the survey, not imported, so a code dropped from or added to the source
+# fails a test rather than passing with it.
+TICKET_CODE_NAMES = tuple("""
+    invalid_status invalid_type invalid_mode invalid_priority terminal_outside_archive unknown_id
+    acceptance_invalid legacy_acceptance_section reserved_section duplicate_section
+    legacy_documents_section missing_required_field dep_cycle
+    """.split())
+NEITHER = (
+    "duplicate_doc_id",
+    "unreachable_documents",
+    "invalid_active_status",
+    "skill_stale",
+    "frontmatter_parse_error",
+)
+
+
+@pytest.mark.parametrize("code", TICKET_CODE_NAMES)
+def test_every_verified_ticket_code_links_its_ticket(code):
+    issue = _issue(stated(code, ids=("pro-1",), path=""), ROOT)
+
+    assert issue.ticket_ids == ("pro-1",) and not issue.document_ids
+    assert issue.text == f"{code}: something is off"
+
+
+def test_the_code_sets_are_disjoint_and_the_rest_are_in_neither():
+    """Surveyed from knot 0.15.0's check.clj. duplicate_doc_id names an id knot refuses as
+    ambiguous; the others always carry empty ids, and would link wrongly the day knot filled
+    them, so they are pinned out of both sets."""
+    assert set(TICKET_CODE_NAMES) == TICKET_CODES and not TICKET_CODES & LINKED
+    assert not (TICKET_CODES | LINKED) & set(NEITHER)
+    for code in NEITHER:
+        issue = _issue(stated(code, ids=("x",)), ROOT)
+        assert not issue.ticket_ids and not issue.document_ids
+
+
+def test_a_cycle_links_each_ticket_once_since_its_message_already_closes_the_path():
+    issue = _issue(stated("dep_cycle", ids=("a", "b", "c", "a"), path=""), ROOT)
+
+    assert issue.ticket_ids == ("a", "b", "c")
+
+
+def test_a_null_id_is_neither_linked_nor_written():
+    """knot 0.15 emits ids [null] for invalid_priority on a ticket with no id."""
+    issue = _issue(stated("invalid_priority", ids=(None,), path=""), ROOT)
+
+    assert not issue.ticket_ids and "None" not in issue.text
+    assert issue.text == "invalid_priority: something is off"
+    plain = _issue(stated("a_new_code", ids=(None, "", "t-1"), path=""), ROOT)
+    assert plain.text == "t-1 a_new_code: something is off"
+
+
+def test_an_unknown_id_links_its_holder_and_leaves_the_missing_target_in_the_message():
+    stated_issue = {
+        "severity": "error",
+        "code": "unknown_id",
+        "ids": ["pro-1"],
+        "field": "deps",
+        "value": "pro-gone",
+        "message": 'unknown id "pro-gone" referenced by "pro-1" via :deps',
+    }
+
+    issue = _issue(stated_issue, ROOT)
+
+    assert issue.ticket_ids == ("pro-1",) and "pro-gone" in issue.text

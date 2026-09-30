@@ -66,7 +66,8 @@ def test_integrity_issues_are_listed_as_knot_reported_them_at_200(client):
     response = client(DeclaredBacklog(integrity_value=issues)).get("/")
 
     assert response.status_code == 200
-    assert "pro-01m2bbbbbbbb unknown_id: unknown id" in response.text
+    assert '<a href="/ticket/pro-01m2bbbbbbbb">pro-01m2bbbbbbbb</a>' in response.text
+    assert "unknown_id: unknown id" in response.text
     assert "/document/" not in response.text
 
 
@@ -207,3 +208,45 @@ def test_the_terminal_count_narrows_with_the_chosen_tags(client):
         return page[start : start + 80].split('<span class="num">')[1].split("<")[0]
 
     assert closed_count(before) == "2" and closed_count(after) == "1"
+
+
+def test_a_cycle_reads_as_its_tickets_linked_once_then_knots_own_sentence(client):
+    """The whole item, since links, text and path compose into one line. The ids recur inside
+    knot's message, which is knot's wording, not a second drawing of them."""
+    cycle = _issue(
+        {
+            "severity": "error",
+            "code": "dep_cycle",
+            "ids": ["pro-a", "pro-b", "pro-c", "pro-d", "pro-a"],
+            "message": "dep cycle: pro-a -> pro-b -> pro-c -> pro-d -> pro-a",
+        },
+        Path("/probe"),
+    )
+
+    text = client(DeclaredBacklog(integrity_value=(cycle,))).get("/").text
+    item = re.sub(r"\s+", " ", text[text.index("<h2>integrity</h2>") : text.index("</ul>")])
+    item = item[item.index("<li>") : item.index("</li>") + 5]
+
+    assert item == (
+        '<li> <a href="/ticket/pro-a">pro-a</a> <a href="/ticket/pro-b">pro-b</a> '
+        '<a href="/ticket/pro-c">pro-c</a> <a href="/ticket/pro-d">pro-d</a> '
+        "dep_cycle: dep cycle: pro-a -&gt; pro-b -&gt; pro-c -&gt; pro-d -&gt; pro-a </li>"
+    )
+
+
+def test_an_issue_with_no_ids_still_shows_the_file_it_is_about(client):
+    broken = _issue(
+        {
+            "severity": "error",
+            "code": "frontmatter_parse_error",
+            "ids": [],
+            "path": "/probe/.tickets/pro-x--broken.md",
+            "message": "frontmatter parse error at /probe/.tickets/pro-x--broken.md",
+        },
+        Path("/probe"),
+    )
+
+    text = client(DeclaredBacklog(integrity_value=(broken,))).get("/").text
+    card = text[text.index("<h2>integrity</h2>") : text.index("</section>")]
+
+    assert ">.tickets/pro-x--broken.md</span>" in card and "/ticket/" not in card

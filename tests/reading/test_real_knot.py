@@ -111,7 +111,8 @@ def test_the_reader_over_the_binary_agrees_with_the_reader_over_the_recording(pr
     parent = command.ticket("pro-01m2aaaaaaaa")
     assert list(parent.sections) == ["", "description", "design", "notes"]
     (issue,) = command.integrity()
-    assert issue.text.startswith("pro-01m2bbbbbbbb unknown_id:") and issue.document_ids == ()
+    assert issue.text.startswith("unknown_id:") and issue.document_ids == ()
+    assert issue.ticket_ids == ("pro-01m2bbbbbbbb",)
     with pytest.raises(UnreadableBacklog, match="no ticket matching -x"):
         command.ticket("-x")
     assert command.digest() != "absent"
