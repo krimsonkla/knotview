@@ -1,0 +1,39 @@
+{
+    "schema_version": 1,
+    "ok": false,
+    "data": {
+        "issues": [
+            {
+                "severity": "error",
+                "code": "doc_unknown_ticket",
+                "ids": [
+                    "pro-01m2zzzzzzzz-d1x"
+                ],
+                "path": "/probe/.tickets/docs/pro-01m2zzzzzzzz/pro-01m2zzzzzzzz-d1x--orphan.md",
+                "message": "document \"pro-01m2zzzzzzzz-d1x\" names ticket \"pro-01m2zzzzzzzz\", which resolves to no ticket"
+            },
+            {
+                "severity": "error",
+                "code": "invalid_doc_type",
+                "ids": [
+                    "pro-01m2aaaaaaaa-d5memo"
+                ],
+                "path": "/probe/.tickets/docs/pro-01m2aaaaaaaa/pro-01m2aaaaaaaa-d5memo--memo.md",
+                "message": "document \"pro-01m2aaaaaaaa-d5memo\" has type \"memo\", not one of [\"spec\" \"plan\" \"other\"]"
+            },
+            {
+                "severity": "warning",
+                "code": "legacy_documents_section",
+                "ids": [
+                    "pro-01m2aaaaaaaa"
+                ],
+                "message": "legacy '## Documents' body section found; knot show now renders that section from the document corpus \u2014 remove the heading and re-add its content with `knot document add`"
+            }
+        ],
+        "scanned": {
+            "live": 1,
+            "archive": 1,
+            "docs": 5
+        }
+    }
+}

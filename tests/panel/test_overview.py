@@ -187,11 +187,13 @@ def test_a_parent_without_criteria_is_not_in_progress(client):
     assert "<h2>progress</h2>" not in page
 
 
-def test_overview_cards_add_to_the_readers_current_selection(client):
+def test_overview_cards_link_only_their_rows_filter_whatever_the_url_holds(client):
+    """The overview ignores its query string (kno-01m3qneqctfh): a carried filter made a count
+    disagree with the list its link opened."""
     page = client(DeclaredBacklog()).get("/?type=task").text
 
-    assert 'href="/tickets?type=task&amp;status=in_progress"' in page
-    assert 'href="/tickets?type=task&amp;priority=3"' in page
+    assert 'href="/tickets?status=in_progress"' in page
+    assert 'href="/tickets?priority=3"' in page and "type=task&amp;" not in page
 
 
 def test_the_terminal_count_narrows_with_the_chosen_tags(client):
