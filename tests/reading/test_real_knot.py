@@ -18,6 +18,7 @@ from knotview.values.missing_ticket import MissingTicket
 from knotview.values.unreadable_backlog import UnreadableBacklog
 from tests.reading.envelopes import RECORDINGS, envelope
 from tests.reading.probe import DOCUMENTS, TICKETS, write_probe
+from tests.reading.record_envelopes import write_faults
 
 pytestmark = [
     pytest.mark.slow,
@@ -126,3 +127,18 @@ def test_the_reader_over_the_binary_agrees_with_the_reader_over_the_recording(pr
         command.document("pro-01m2aaaaaaaa-dnope")
     with pytest.raises(MissingTicket):
         command.documents("nope")
+
+
+def test_the_binary_reports_the_recorded_document_issues_the_way_the_reader_reads_them(
+    tmp_path: Path,
+):
+    """The check-documents recording against the binary, over the probe it was recorded from:
+    the same codes in the same order, the documents linked, the ticket's id not."""
+    write_faults(tmp_path)
+
+    orphan, memo, legacy = KnotCommand(repository=tmp_path).integrity()
+
+    assert orphan.document_ids == ("pro-01m2zzzzzzzz-d1x",)
+    assert memo.document_ids == ("pro-01m2aaaaaaaa-d5memo",)
+    assert memo.shown == ".tickets/docs/pro-01m2aaaaaaaa/pro-01m2aaaaaaaa-d5memo--memo.md"
+    assert not legacy.document_ids and "legacy_documents_section" in legacy.text
