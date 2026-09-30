@@ -14,9 +14,11 @@ from tests.reading import record_envelopes
 from tests.reading.probe import TICKETS, write_probe
 from tests.reading.record_envelopes import (
     CLEAN_TICKETS,
+    compared,
     finish,
     forbidden_strings,
     leaks,
+    scrubbed,
     vetted,
 )
 
@@ -78,3 +80,41 @@ def test_a_document_that_does_not_name_its_owner_is_refused(tmp_path: Path):
         write_probe(tmp_path, {}, {"pro-01m2aaaaaaaa/loose.md": "x"})
     with pytest.raises(ValueError, match="is not docs/"):
         write_probe(tmp_path, {}, {"docs/pro-01m2aaaaaaaa/other-d1--x.md": "x"})
+
+
+@pytest.mark.parametrize("order", [0, 1])
+def test_every_spelling_of_the_scratch_root_becomes_the_probe_whatever_the_order(order: int):
+    """On macOS the resolved spelling holds the created one; replaced shorter first, it would
+    leave /private/probe. So spellings are replaced longest first, in any order given."""
+    spellings = ["/tmp/x/probe", "/private/tmp/x/probe"]
+    text = '{"a": "/private/tmp/x/probe/.tickets", "b": "under /tmp/x/probe/docs"}'
+
+    recorded = scrubbed("check", text, spellings if order else spellings[::-1])
+
+    assert '"/probe/.tickets"' in recorded and '"under /probe/docs"' in recorded
+    assert "private" not in recorded
+
+
+def test_a_recording_that_matches_its_committed_file_passes():
+    assert not compared({"info": "a\n"}, {"info": "a\n"})
+
+
+def test_a_differing_recording_is_named_with_its_diff():
+    problems = compared({"info": "a\nb\n"}, {"info": "a\nc\n"})
+    problem = problems[0]
+
+    assert (
+        len(problems) == 1
+        and problem.startswith("info.json differs")
+        and "-c" in problem
+        and "+b" in problem
+    )
+
+
+def test_a_recording_with_no_committed_file_and_a_file_nothing_records_are_both_named():
+    problems = compared({"new": "x\n"}, {"old": "y\n"})
+
+    assert problems == [
+        "new.json is recorded but not committed",
+        "old.json is committed but nothing records it",
+    ]

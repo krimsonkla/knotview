@@ -1,13 +1,13 @@
 ---
 id: kno-01m3qdwrjdbx
 title: CI fails when a committed recording differs from a fresh one
-status: open
+status: in_progress
 type: task
 priority: 2
 mode: afk
 created: '2026-09-29T20:32:26.700764Z'
-updated: '2026-09-29T23:30:59.151163Z'
-assignee: ''
+updated: '2026-09-30T03:30:14.497638Z'
+assignee: Jason Risch
 acceptance:
 - title: The CI fidelity job fails when a committed recording differs from a fresh recording
   done: false
@@ -28,3 +28,7 @@ In the CI fidelity job, after the slow tests, run `tests/reading/record_envelope
 **2026-09-29T23:30:59.151163Z**
 
 Record a check issue carrying `path`. After kno-01m3q9rx099f the panel reads an integrity issue's `path` (knot 0.15 reports it, absolute, on document issues), but no committed envelope holds an issue with one: the recorded check-issues is an unknown_id issue with `field` and `value` only. The fidelity test cannot notice if knot renames or drops the field until one is recorded. The recorder's scrub must first normalize check issue paths as it does info's, or its guard refuses the recording.
+
+**2026-09-30T03:30:14.497638Z**
+
+Starting work on this task.

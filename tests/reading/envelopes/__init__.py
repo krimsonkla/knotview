@@ -13,10 +13,13 @@ To re-record them against a newer knot, with knot on PATH:
     uv run python -m tests.reading.record_envelopes
 
 The recorder builds the same probe project in a temporary directory, runs each command in
-RECORDINGS, normalizes the machine-specific values (every path under info's `paths` is rewritten
-under /probe and the effective assignee becomes "someone"), then refuses to write anything if a
-recording still holds the scratch directory, the home directory or the git user name, or if the
-clean check reports an issue.
+RECORDINGS, normalizes the machine-specific values (every spelling of the scratch directory,
+wherever it appears, becomes /probe, and the effective assignee becomes "someone"), then refuses
+to write anything if a recording still holds the scratch directory, the home directory or the git
+user name, or if the clean check reports an issue. Two more recordings come from their own
+probes: check-clean, from one with no dangling dependency, and check-documents, from one with a
+document of an undeclared type, so a check issue carrying a path is recorded. `--check` compares
+instead of writing, and CI runs it against the pinned knot.
 """
 
 import json
