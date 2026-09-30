@@ -2,6 +2,7 @@
 
     uv run python -m tests.reading.record_envelopes
     uv run python -m tests.reading.record_envelopes --check
+    uv run python -m tests.reading.record_envelopes --into /some/other/directory
 
 Builds the probe project the fidelity test uses and runs every command in RECORDINGS, in four
 stages: record every answer into memory, normalize the fields known to carry machine values,
@@ -237,9 +238,21 @@ def recorded(scratch: str) -> dict[str, str]:
     return recordings
 
 
+def destination(argv: Sequence[str]) -> Path:
+    """Where recordings are written: the committed fixtures, or the directory after --into, so a
+    fresh set can be laid beside the committed one without touching it."""
+    if "--into" not in argv:
+        return HERE
+    at = list(argv).index("--into") + 1
+    if at >= len(argv):
+        raise SystemExit("--into needs a directory")
+    return Path(argv[at])
+
+
 def main(argv: Sequence[str] = ()) -> int:
     """Record every envelope, then write them all or none; with --check, compare and write none."""
     checking = "--check" in argv
+    into = destination(argv)
     with tempfile.TemporaryDirectory() as scratch:
         recordings = recorded(scratch)
         forbidden = forbidden_strings(scratch)
@@ -263,8 +276,9 @@ def main(argv: Sequence[str] = ()) -> int:
         return 0
 
     def write(name: str) -> None:
-        (HERE / f"{name}.json").write_text(recordings[name], encoding="utf-8")
-        print(f"recorded {name}.json")
+        into.mkdir(parents=True, exist_ok=True)
+        (into / f"{name}.json").write_text(recordings[name], encoding="utf-8")
+        print(f"recorded {into / name}.json")
 
     return finish(recordings, forbidden, write)
 

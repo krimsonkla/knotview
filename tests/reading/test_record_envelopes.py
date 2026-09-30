@@ -15,6 +15,7 @@ from tests.reading.probe import TICKETS, write_probe
 from tests.reading.record_envelopes import (
     CLEAN_TICKETS,
     compared,
+    destination,
     finish,
     forbidden_strings,
     leaks,
@@ -127,3 +128,10 @@ def test_a_forbidden_string_the_scrub_itself_writes_is_not_searched_for():
 
     assert not leaks(recordings, {"probe", "someone", "/tmp/x"})
     assert leaks({"info": '{"cwd": "/tmp/x/probe"}'}, {"probe", "/tmp/x"}) == [("info", "/tmp/x")]
+
+
+def test_recordings_go_to_the_fixtures_unless_another_directory_is_named(tmp_path: Path):
+    assert destination([]) == record_envelopes.HERE
+    assert destination(["--into", str(tmp_path)]) == tmp_path
+    with pytest.raises(SystemExit, match="needs a directory"):
+        destination(["--into"])
