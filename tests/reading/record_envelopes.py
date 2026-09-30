@@ -139,9 +139,18 @@ def leaks(recordings: dict[str, str], forbidden: Iterable[str | None]) -> list[t
     """Each recording that still holds a forbidden string, with the string it holds.
 
     An empty or missing value is not searched for: an unset git name would otherwise match every
-    recording and refuse every run.
+    recording and refuse every run. Nor is one the scrub's own placeholders contain: a git name
+    of "probe", which CI uses, would match every /probe the scrub wrote, and a recording cannot
+    tell that apart from the placeholder, so searching for it refuses every run and proves nothing.
     """
-    needles = sorted({needle for needle in forbidden if needle})
+    placeholders = (SCRUBBED_ROOT, SCRUBBED_ASSIGNEE)
+    needles = sorted(
+        {
+            needle
+            for needle in forbidden
+            if needle and not any(needle in placeholder for placeholder in placeholders)
+        }
+    )
     return [
         (name, needle)
         for name in sorted(recordings)

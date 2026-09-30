@@ -118,3 +118,12 @@ def test_a_recording_with_no_committed_file_and_a_file_nothing_records_are_both_
         "new.json is recorded but not committed",
         "old.json is committed but nothing records it",
     ]
+
+
+def test_a_forbidden_string_the_scrub_itself_writes_is_not_searched_for():
+    """CI's git name is "probe", and every scrubbed path holds /probe: searching for it would
+    refuse every recording, and --check would fail however well the recordings matched."""
+    recordings = {"info": '{"cwd": "/probe", "assignee": "someone"}'}
+
+    assert not leaks(recordings, {"probe", "someone", "/tmp/x"})
+    assert leaks({"info": '{"cwd": "/tmp/x/probe"}'}, {"probe", "/tmp/x"}) == [("info", "/tmp/x")]
