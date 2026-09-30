@@ -15,6 +15,7 @@ is what CI runs against the pinned knot. A shape-level fidelity test lets a hand
 through; this does not.
 """
 
+import argparse
 import difflib
 import json
 import subprocess
@@ -234,23 +235,27 @@ def recorded(scratch: str) -> dict[str, str]:
     return recordings
 
 
-def destination(argv: Sequence[str]) -> Path:
-    """Where recordings are written: the committed fixtures, or the directory after --into, so a
-    fresh set can be laid beside the committed one without touching it."""
-    if "--into" not in argv:
-        return HERE
-    if "--check" in argv:
-        raise SystemExit("--check compares with the committed recordings; it takes no --into")
-    at = list(argv).index("--into") + 1
-    if at >= len(argv) or argv[at].startswith("-"):
-        raise SystemExit("--into needs a directory")
-    return Path(argv[at])
+def options(argv: Sequence[str]) -> argparse.Namespace:
+    """The run asked for: a check, a write to another directory, or a write to the fixtures.
+
+    Anything else is refused rather than ignored, since an ignored flag falls through to the one
+    action that rewrites the committed fixtures.
+    """
+    parser = argparse.ArgumentParser(prog="record_envelopes", description=__doc__.splitlines()[0])
+    chosen = parser.add_mutually_exclusive_group()
+    chosen.add_argument(
+        "--check", action="store_true", help="compare with the committed recordings, write none"
+    )
+    chosen.add_argument(
+        "--into", type=Path, default=HERE, help="write the recordings here instead of the fixtures"
+    )
+    return parser.parse_args(list(argv))
 
 
 def main(argv: Sequence[str] = ()) -> int:
     """Record every envelope, then write them all or none; with --check, compare and write none."""
-    checking = "--check" in argv
-    into = destination(argv)
+    chosen = options(argv)
+    checking, into = chosen.check, chosen.into
     with tempfile.TemporaryDirectory() as scratch:
         recordings = recorded(scratch)
         forbidden = forbidden_strings(scratch)

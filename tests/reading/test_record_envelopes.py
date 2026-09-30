@@ -15,7 +15,7 @@ from tests.reading.probe import TICKETS, write_probe
 from tests.reading.record_envelopes import (
     CLEAN_TICKETS,
     compared,
-    destination,
+    options,
     finish,
     forbidden_strings,
     leaks,
@@ -132,11 +132,16 @@ def test_a_forbidden_string_the_scrub_itself_writes_is_not_searched_for():
 
 
 def test_recordings_go_to_the_fixtures_unless_another_directory_is_named(tmp_path: Path):
-    assert destination([]) == record_envelopes.HERE
-    assert destination(["--into", str(tmp_path)]) == tmp_path
-    with pytest.raises(SystemExit, match="needs a directory"):
-        destination(["--into"])
-    with pytest.raises(SystemExit, match="needs a directory"):
-        destination(["--into", "--other"])
-    with pytest.raises(SystemExit, match="takes no --into"):
-        destination(["--check", "--into", str(tmp_path)])
+    assert options([]).into == record_envelopes.HERE and not options([]).check
+    assert options(["--into", str(tmp_path)]).into == tmp_path
+    assert options([f"--into={tmp_path}"]).into == tmp_path
+    assert options(["--check"]).check
+
+
+@pytest.mark.parametrize(
+    "argv", [["--chek"], ["--into"], ["--check", "--into", "/tmp/x"], ["stray"]]
+)
+def test_an_argument_it_does_not_understand_is_refused_rather_than_ignored(argv):
+    """An ignored flag would fall through to rewriting the committed fixtures."""
+    with pytest.raises(SystemExit):
+        options(argv)
