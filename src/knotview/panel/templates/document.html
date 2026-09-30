@@ -1,0 +1,80 @@
+{% extends "layout.html" %} {% block title %}{{ document.title }}{% endblock %} {%
+block main %}
+{% from "_time.html" import stamp %}
+{% set many = documents | length > 1 %}
+<article class="document">
+  <header class="card docheader">
+    <p class="crumb muted">
+      {% if owner %}<a href="/ticket/{{ owner.id | segment }}">{{ owner.title }}</a>
+      <span class="id">{{ owner.id }}</span>{% else %}<span class="id">{{ document.ticket }}</span>,
+      which knot cannot find{% endif %}
+      <span aria-hidden="true">›</span> documents
+    </p>
+    <h1>{{ document.title }}</h1>
+    <p class="meta">
+      {% if document.type %}<span class="doctype">{{ document.type }}</span>{% endif %}
+      <span class="id">{{ document.id }}</span>
+      {% if many %}<span class="muted">{{ position }} of {{ documents | length }}</span>{% endif %}
+      {% if document.updated %}<span class="muted">updated {{ stamp(document.updated) }}</span>{% endif %}
+    </p>
+    {% if many %}
+    <div class="tabstrip">
+      <nav class="tabs" aria-label="This ticket's documents">
+        {% for one in documents %}<a href="/document/{{ one.id | segment }}"{% if one.id == document.id %} aria-current="page"{% endif %}
+          >{% if one.type %}<span class="doctype">{{ one.type }}</span>{% endif %}{{ one.title }}</a
+        >{% endfor %}
+      </nav>
+      <details class="all">
+        <summary>all {{ documents | length }}</summary>
+        <div class="menu" aria-label="Every document on this ticket">
+          {% for kind, owned in groups %}
+          <p class="group">{{ kind or "untyped" }}</p>
+          {% for one in owned %}<a href="/document/{{ one.id | segment }}"{% if one.id == document.id %} aria-current="page"{% endif %}
+            >{{ one.title }}{% if one.updated %} <span class="muted">{{ stamp(one.updated) }}</span>{% endif %}</a
+          >{% endfor %}
+          {% endfor %}
+        </div>
+      </details>
+    </div>
+    {% endif %}
+  </header>
+
+  <div class="docpage">
+    {% if body %}
+    {# The one value this page marks safe: the renderer's own output, with raw HTML escaped. #}
+    <section class="card prose">{{ body | safe }}</section>
+    {% else %}
+    <section class="card muted">This document is empty.</section>
+    {% endif %}
+    <aside class="card side">
+      <dl>
+        <dt>ticket</dt>
+        <dd>
+          {% if owner %}<a href="/ticket/{{ owner.id | segment }}">{{ owner.id }}</a>{% else %}<span
+            class="id"
+            >{{ document.ticket }}</span
+          >{% endif %}
+        </dd>
+        {% if document.type %}<dt>type</dt>
+        <dd><span class="doctype">{{ document.type }}</span></dd>{% endif %}
+        {% if document.created %}<dt>created</dt>
+        <dd>{{ stamp(document.created) }}</dd>{% endif %}
+        {% if document.updated %}<dt>updated</dt>
+        <dd>{{ stamp(document.updated) }}</dd>{% endif %}
+      </dl>
+      {% if outline %}
+      <nav aria-label="On this page">
+        <p class="label">on this page</p>
+        {% set top = outline | map(attribute="level") | min %}
+        <ul class="outline">
+          {% for entry in outline %}
+          <li{% if entry.level > top %} class="sub"{% endif %}><a href="#{{ entry.anchor }}">{{ entry.text }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+      {% endif %}
+    </aside>
+  </div>
+</article>
+<script src="/static/document.js?v={{ assets }}"></script>
+{% endblock %}

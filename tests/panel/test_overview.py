@@ -1,13 +1,14 @@
 """The first page: the backlog counted the ways a reader asks about it."""
 
 import re
-
 from datetime import UTC, datetime
+from pathlib import Path
 
 from knotview.panel.app import _ago
-from knotview.reading.knot_command import _described
-from knotview.values.criterion import Criterion
+from knotview.reading.knot_command import _issue
 from knotview.values.attention import Attention
+from knotview.values.criterion import Criterion
+from knotview.values.issue import Issue
 from tests.panel.declared import CHILD, PARENT, DeclaredBacklog, ticket
 from tests.reading.envelopes import envelope
 
@@ -57,13 +58,53 @@ def test_a_clean_project_shows_no_integrity_section(client):
 
 
 def test_integrity_issues_are_listed_as_knot_reported_them_at_200(client):
-    """AC 3: the line comes from the recorded check through the real formatter."""
-    lines = tuple(_described(one) for one in envelope("check-issues")["data"]["issues"])
+    """AC 3: the line comes from the recorded check through the real reader."""
+    issues = tuple(
+        _issue(one, Path("/probe")) for one in envelope("check-issues")["data"]["issues"]
+    )
 
-    response = client(DeclaredBacklog(integrity_value=lines)).get("/")
+    response = client(DeclaredBacklog(integrity_value=issues)).get("/")
 
     assert response.status_code == 200
     assert "pro-01m2bbbbbbbb unknown_id: unknown id" in response.text
+    assert "/document/" not in response.text
+
+
+def test_a_document_issue_links_its_document_and_shows_its_path_from_the_project(client):
+    memo = Issue.found(
+        "invalid_doc_type: has type memo",
+        "/probe/.tickets/docs/pro-01m2aaaaaaaa/pro-01m2aaaaaaaa-d5memo--memo.md",
+        Path("/probe"),
+        ("pro-01m2aaaaaaaa-d5memo",),
+    )
+
+    text = client(DeclaredBacklog(integrity_value=(memo,))).get("/").text
+
+    assert '<a href="/document/pro-01m2aaaaaaaa-d5memo">pro-01m2aaaaaaaa-d5memo</a>' in text
+    assert text.count(">pro-01m2aaaaaaaa-d5memo<") == 1
+    assert "d5memo invalid_doc_type" not in text  # named once, by its link
+    assert (
+        f'title="{memo.path}">.tickets/docs/pro-01m2aaaaaaaa/pro-01m2aaaaaaaa-d5memo--memo.md<'
+        in text
+    )
+
+
+def test_an_issue_with_no_documents_and_no_path_is_its_text_alone(client):
+    plain = (Issue(text="pro-01m2aaaaaaaa legacy_documents_section: a heading"),)
+
+    text = client(DeclaredBacklog(integrity_value=plain)).get("/").text
+    card = text[text.index("<h2>integrity</h2>") : text.index("</section>")]
+
+    assert "legacy_documents_section" in card
+    assert "/document/" not in card and 'class="id"' not in card
+
+
+def test_a_path_outside_the_project_is_shown_whole(client):
+    orphan = Issue.found("an orphan", "/elsewhere/d.md", Path("/probe"), ("pro-1-d1x",))
+
+    text = client(DeclaredBacklog(integrity_value=(orphan,))).get("/").text
+
+    assert 'title="/elsewhere/d.md">/elsewhere/d.md<' in text
 
 
 def test_ready_to_close_and_stale_are_shown_when_the_primer_reports_them(client):

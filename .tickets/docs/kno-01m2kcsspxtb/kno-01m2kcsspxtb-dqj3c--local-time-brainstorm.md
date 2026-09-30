@@ -1,3 +1,12 @@
+---
+id: kno-01m2kcsspxtb-dqj3c
+ticket: kno-01m2kcsspxtb
+title: Local time brainstorm
+type: other
+created: '2026-09-30T00:16:18.239278Z'
+updated: '2026-09-30T00:16:18.239278Z'
+---
+
 # kno-01m2kcsspxtb — Local time brainstorm
 
 Story: kno-01m2kcsspxtb, "Show dates and times in the reader's local timezone". Date: 2026-09-15.

@@ -3,42 +3,73 @@
     "ok": true,
     "data": {
         "project": {
-            "knot_version": "0.12.0",
+            "knot_version": "0.15.0",
             "name": null,
             "prefix": "pro",
             "config_present": true
         },
         "paths": {
+            "docs_path": "/probe/.tickets/docs",
+            "skill_dir": null,
+            "skill_path": "/probe/.claude/skills/knot",
             "cwd": "/probe",
             "project_root": "/probe",
             "config_path": "/probe/.knot.edn",
-            "tickets_dir": ".tickets",
+            "archive_path": "/probe/.tickets/archive",
             "tickets_path": "/probe/.tickets",
-            "archive_path": "/probe/.tickets/archive"
+            "tickets_dir": ".tickets"
         },
         "defaults": {
             "default_assignee": null,
             "effective_create_assignee": "someone",
             "default_type": "task",
             "default_priority": 2,
-            "default_mode": "hitl"
+            "default_mode": "hitl",
+            "default_doc_type": "other"
         },
         "allowed_values": {
-            "statuses": ["open", "in_progress", "closed"],
-            "active_status": "in_progress",
-            "terminal_statuses": ["closed"],
-            "types": ["bug", "feature", "task", "epic", "chore"],
-            "modes": ["afk", "hitl"],
             "afk_mode": "afk",
+            "doc_types": [
+                "spec",
+                "plan",
+                "other"
+            ],
             "priority_range": {
                 "min": 0,
                 "max": 4
-            }
+            },
+            "terminal_statuses": [
+                "closed"
+            ],
+            "modes": [
+                "afk",
+                "hitl"
+            ],
+            "types": [
+                "bug",
+                "feature",
+                "task",
+                "epic",
+                "chore"
+            ],
+            "required_docs": {
+                "in_progress": [
+                    "spec",
+                    "plan"
+                ]
+            },
+            "active_status": "in_progress",
+            "statuses": [
+                "open",
+                "in_progress",
+                "closed"
+            ]
         },
         "counts": {
             "live_count": 3,
             "archive_count": 1,
-            "total_count": 4
+            "total_count": 4,
+            "doc_count": 4
         }
     }
 }

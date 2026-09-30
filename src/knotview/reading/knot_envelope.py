@@ -5,6 +5,7 @@ from typing import Any
 from knotview.values.attention import Attention
 from knotview.values.criterion import Criterion
 from knotview.values.dependency import Dependency
+from knotview.values.document import Document
 from knotview.values.project import Project
 from knotview.values.reference import Reference
 from knotview.values.ticket import Ticket
@@ -99,7 +100,29 @@ def project_from(stated: Any) -> Project:
         tickets_path=str(paths.get("tickets_path") or ""),
         live_count=int(counts.get("live_count") or 0),
         archive_count=int(counts.get("archive_count") or 0),
+        doc_types=_words(allowed, "doc_types"),
+        required_docs=_requirements(allowed, _words(allowed, "statuses")),
+        doc_count=int(counts.get("doc_count") or 0),
+        docs_path=str(paths.get("docs_path") or ""),
+        project_root=str(paths.get("project_root") or ""),
     )
+
+
+def _requirements(
+    allowed: dict[str, Any], statuses: tuple[str, ...]
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """What each status requires a ticket to own, declared statuses first in declared order.
+
+    A status the project does not declare keeps its requirement, after the declared ones in the
+    order knot gave them, rather than being dropped where a reader would never see it. knot 0.15
+    refuses such a config itself, so this is tolerance for a knot that stops refusing it.
+    """
+    held = _mapping(allowed, "required_docs")
+    stated = [status for status in held if isinstance(status, str)]
+    order = [status for status in statuses if status in held] + [
+        status for status in stated if status not in statuses
+    ]
+    return tuple((status, _words(held, status)) for status in order)
 
 
 def attention_from(stated: Any) -> Attention:
@@ -145,6 +168,49 @@ def dependency_from(stated: Any) -> Dependency:
     )
 
 
+def document_from(stated: Any, *, ticket: str | None = None) -> Document:
+    """One document, from whichever command stated it, with nothing it did not state invented.
+
+    The owner is the ticket knot names, or the ticket that was shown when knot names none, as
+    `show` does not: never parsed from the document's id. The times and the body are kept exactly
+    as stated, so an empty one stays empty and one knot did not state, or stated as null, is None;
+    they do not go through _text, which reads blank as nothing for a different purpose.
+    """
+    identifier = stated.get("id") if isinstance(stated, dict) else None
+    if not isinstance(identifier, str) or not identifier:
+        raise UnreadableBacklog(
+            "a document was stated with no id",
+            advice="run knot check in that project to find the document that cannot be read",
+        )
+    return Document(
+        id=identifier,
+        ticket=_text(stated, "ticket") or ticket or "",
+        title=str(stated.get("title") or "(untitled)"),
+        type=str(stated.get("type") or ""),
+        created=_stated(stated, "created"),
+        updated=_stated(stated, "updated"),
+        body=_stated(stated, "body"),
+    )
+
+
+def _stated(stated: dict[str, Any], field: str) -> str | None:
+    """A string exactly as knot stated it, empty included, or None when it stated none."""
+    held = stated.get(field)
+    return held if isinstance(held, str) else None
+
+
+def documents_from(stated: Any, *, attempting: str) -> tuple[Document, ...]:
+    """Every document in knot's document list, refusing an answer that is not one."""
+    held = stated.get("documents") if isinstance(stated, dict) else None
+    if not isinstance(held, list):
+        raise UnreadableBacklog(
+            f"{attempting} answered with {type(stated).__name__} rather than a list of documents",
+            advice="check the knot version against the one this panel was written for",
+        )
+    owner = _text(stated, "ticket")
+    return tuple(document_from(one, ticket=owner) for one in held if isinstance(one, dict))
+
+
 def tickets_from(stated: Any, *, attempting: str) -> tuple[Ticket, ...]:
     """Every ticket in a listing, refusing an answer that is not one."""
     if not isinstance(stated, list):
@@ -187,6 +253,12 @@ def ticket_from(stated: dict[str, Any]) -> Ticket:
         coupling=_number(stated, "coupling"),
         level=_number(stated, "level"),
         component=_number(stated, "cc"),
+        documents=tuple(
+            document_from(one, ticket=identifier)
+            for one in (stated.get("documents") or [])
+            if isinstance(one, dict)
+        ),
+        doc_types=_words(stated, "doc_types"),
     )
 
 

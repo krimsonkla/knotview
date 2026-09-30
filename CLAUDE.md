@@ -21,8 +21,8 @@
   values, the templates and the static files
 - `src/knotview/values/` frozen dataclasses: Ticket, Project, Criterion, Reference, and the two
   refusals
-- `tests/` mirrors `src/`; `tests/reading/envelopes/` holds JSON recorded from knot 0.12.0
-- `docs/ai-assistant-ideation/` brainstorm, spec and plan documents per ticket
+- `tests/` mirrors `src/`; `tests/reading/envelopes/` holds JSON recorded from knot 0.15.0
+- `.tickets/docs/` each ticket's attached knot documents, including its brainstorm, spec and plan
 - `.tickets/` this project's own knot backlog, which is also the fixture it is developed against
 
 ## Build & Test
@@ -49,9 +49,15 @@ asserted without a process.
 
 `panel(backlog)` assembles the FastAPI app from a `ROUTES` table over a `Pages` object, one
 method per page. Every route is a GET, `READS` is disjoint from knot's write verbs, and only
-`reading/knot_command.py` may start a process; tests assert all three. The `/live` route is a
-one-way server-sent-events stream that sends a digest of the ticket files' names and
-modification times; the page reloads itself when it changes.
+`reading/knot_command.py` may start a process; tests assert all three. Each open page asks
+`/digest` about once a second (not while hidden) for a digest of the ticket and document files'
+names and modification times, and reloads itself when it changes. It polls rather than holding a
+stream, because a browser allows six connections to one host and a stream per tab exhausted them.
+Page handlers, the refusal pages' included, are plain functions, so their knot reads run in the
+thread pool; the backlog is therefore read from several threads at once, and anything a reader
+caches must be safe to compute concurrently (`KnotCommand` locks its one cached value). A hidden
+tab stops polling after its first answer and asks again as soon as it is shown; a panel that
+stops answering is asked less often, up to twice a minute.
 
 ## Key Files
 
@@ -59,7 +65,8 @@ modification times; the page reloads itself when it changes.
   check-aware `integrity`, and the digest.
 - `src/knotview/reading/knot_envelope.py`: `answered` and `verdict` (knot's `check` co-emits
   `ok: false` with data), `ticket_from`, `project_from`.
-- `src/knotview/panel/app.py`: `Pages`, `ROUTES`, `panel()`, `HOSTS`, the stream generator.
+- `src/knotview/panel/app.py`: `Pages`, `ROUTES`, `panel()`, `HOSTS`.
+- `src/knotview/panel/static/follow.js`: the digest poll, the since-last-looked marks, local time.
 - `src/knotview/panel/selection.py`: every filter the URL carries, and the query-string builder.
 - `src/knotview/panel/tags.py`: the sticky tag choice, its cookie, and `narrow`.
 - `tests/reading/conftest.py`: the fake `knot` script the reading tests drive.
@@ -71,14 +78,20 @@ modification times; the page reloads itself when it changes.
 - Value objects that mirror knot's records carry a per-class pylint disable with the reason in
   the docstring rather than a raised project limit.
 - Findings deferred from a story are filed as tickets, never left as comments.
+- A story's brainstorm, spec and plan live only as knot documents on its ticket (`other`, `spec`,
+  `plan`, titled "<topic> brainstorm|design spec|implementation plan"), added with
+  `knot document add` and updated with `knot document replace`. The harness drafts them under
+  `docs/ai-assistant-ideation/`; attach them and delete the drafts before the story's commit, so no
+  design document is committed outside `.tickets/docs/`.
 
 ## Gotchas
 
 - knot's `check --json` answers `ok: false` together with `data.issues`; only `verdict` accepts
   that. Every other command goes through `answered`, which refuses any `ok: false`.
 - Identifiers are passed after knot's `--` marker, so one starting with a dash is not an option.
-- The digest asks knot for the tickets directory once per `KnotCommand`; a panel pointed at a
-  project whose `.knot.edn` moves the directory needs a restart.
+- The digest asks knot for the tickets and documents directories once per `KnotCommand`; a panel
+  pointed at a project whose `.knot.edn` moves either needs a restart. Documents are walked
+  separately only when `:docs-dir` puts them outside the tickets directory.
 - The reader's chosen tags live in the `knotview_tags` cookie; `/tags` (a GET) changes it and
   redirects back to a path on this panel only. Every list view narrows through `Tags.narrow`;
   the ticket page does not.

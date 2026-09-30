@@ -6,8 +6,8 @@ project's own configuration rather than by this panel's idea of one.
 **Built on knot.** [knot](https://github.com/UniSoma/knot), by
 [UniSoma](https://github.com/UniSoma), is the ticket tracker this panel reads: markdown tickets
 with YAML frontmatter that live in the repository beside the code, a dependency graph with ready
-and blocked queues, acceptance criteria that gate closing, and a JSON protocol on every command
-built for handing work to an agent. Everything this panel shows is knot's data and knot's
+and blocked queues, acceptance criteria that gate closing, documents attached to tickets, and a
+JSON protocol on every command built for handing work to an agent. Everything this panel shows is knot's data and knot's
 vocabulary. If you have not met knot, start there: its README explains the design, and
 `knot serve` ships a panel of its own that this one grew out of wanting more of.
 
@@ -21,8 +21,10 @@ vocabulary. If you have not met knot, start there: its README explains the desig
 
 ## A look at it
 
-The panel over its own backlog, every ticket of which is closed, so the tickets page shows the
-closed set and the tree was drawn over it. Open a section to see a view.
+The panel over its own backlog, taken while every ticket in it was closed, so the tickets page
+shows the closed set and the tree was drawn over it. The screenshots predate attached documents,
+so the documents column, cards and page described below are not in them yet. Open a section to
+see a view.
 
 <details open>
 <summary><strong>Overview</strong> — the backlog counted by type, status, priority and queue, with what changed and what closed</summary>
@@ -60,7 +62,7 @@ work and they fill in.
 | You need | Because |
 |---|---|
 | Python 3.12 or later | the package targets it |
-| `knot` on your `PATH`, or `--knot /path/to/knot` | knotview never reads ticket files; it runs `knot ... --json` and shows the answer |
+| `knot` 0.15.0 or later on your `PATH`, or `--knot /path/to/knot` | knotview never reads ticket files; it runs `knot ... --json` and shows the answer, and attached documents arrived in knot 0.15 |
 | A knot project: a directory holding `.knot.edn` or `.tickets/` | that is what knot reads |
 
 ### Install and run
@@ -110,12 +112,13 @@ on hover. Without script the page shows UTC, labelled as such.
 
 | Page | What is on it |
 |---|---|
-| **Overview** `/` | The backlog counted by type, status and priority, each read from the project's own declared values, so a type nobody has filed yet still appears. knot's ready and blocked queues, the unassigned, and what its integrity check reports. Parents with a progress bar each. What changed recently and what closed recently. What `knot prime` says wants attention: tickets ready to close, and tickets gone stale. |
-| **Tickets** `/tickets` | Every ticket, filtered by type, status, priority, mode, assignee, tag or component, ordered by priority, leverage, level, update, creation, title or id, with the closed ones on request. Search matches id, title and tags; tick *in text* and it reaches the body, showing the sentence that matched. Applied filters are chips you can remove one at a time. |
-| **Tree** `/tree` | What is filed under what, nested to any depth, each branch foldable and the fold remembered in your browser. Island chips name knot's connected components. Tickets filed under nothing, and under a parent that is not live, are listed on their own, because that is where work goes missing. |
-| **Queues** `/queue/ready`, `/queue/blocked` | knot's own queues. The blocked queue is grouped by level into the rounds of closing before each ticket can start. |
-| **Ticket** `/ticket/<id>` | The sections as the ticket wrote them, rendered as markdown; the acceptance criteria with what is met; the parent as a breadcrumb and the siblings under it; both directions of the graph; the links; knot's dependency tree drawn all the way down, a missing dependency shown as such; and the notes as a timeline, newest first. |
-| **Live** | A one-way stream says when the backlog changed and the page reloads itself. Rows saved since you last looked are marked, and the bar counts them. |
+| **Overview** `/` | The backlog counted by type, status and priority, each read from the project's own declared values, so a type nobody has filed yet still appears. knot's ready and blocked queues, the unassigned, and what its integrity check reports, with a document an issue names linked and its path shown from the project root. A *by document* card counting the tickets that own each document type, when any do. Parents with a progress bar each. What changed recently and what closed recently. What `knot prime` says wants attention: tickets ready to close, and tickets gone stale. The footer counts the project's documents. |
+| **Tickets** `/tickets` | Every ticket, filtered by type, status, priority, mode, assignee, tag, component or documents, ordered by priority, leverage, level, update, creation, title or id, with the closed ones on request. A docs column shows the document types each ticket owns, and dashes a type the project requires that a live ticket lacks. The documents filter takes several types at once, keeping tickets that own all of them, or finds tickets owning none, or missing a required type. Search matches id, title and tags; tick *in text* and it reaches the body, showing the sentence that matched. Applied filters are chips you can remove one at a time. |
+| **Tree** `/tree` | What is filed under what, nested to any depth, each branch foldable and the fold remembered in your browser. Each row carries its document types, dashed where a required one is missing. Island chips name knot's connected components. Tickets filed under nothing, and under a parent that is not live, are listed on their own, because that is where work goes missing. |
+| **Queues** `/queue/ready`, `/queue/blocked` | knot's own queues, with the docs column and its dashes. The blocked queue is grouped by level into the rounds of closing before each ticket can start. |
+| **Ticket** `/ticket/<id>` | The ticket's documents first, by type in the order the project declares them, each with its last change; the sections as the ticket wrote them, rendered as markdown; the acceptance criteria with what is met; the parent as a breadcrumb and the siblings under it; both directions of the graph, with a required document the ticket lacks listed among what blocks it; the links; knot's dependency tree drawn all the way down, a missing dependency shown as such; and the notes as a timeline, newest first. |
+| **Document** `/document/<id>` | One document in full, rendered as markdown, with a breadcrumb to its ticket, an outline of its headings, and tabs across the ticket's other documents, an *all* menu listing them by type, and where this one falls among them. A document whose ticket knot cannot find still reads; the start of an id works as knot resolves it. |
+| **Live** | Each open page asks about once a second whether the backlog changed, and reloads itself when it has, documents included, wherever the project's `:docs-dir` puts them. Rows saved since you last looked are marked, and the bar counts them. |
 
 ## Developing
 
@@ -144,8 +147,8 @@ stays driven by whatever drives it.
 owns that schema; a second parser here would be a second schema, and it would drift on the first
 release that adds a field.
 
-**It follows without being asked.** The live stream carries a digest of the ticket files rather
-than markup, so what you see after a change is exactly what a fresh visit shows: one rendering
+**It follows without being asked.** Each page polls a digest of the ticket and document files
+rather than markup, so what you see after a change is exactly what a fresh visit shows: one rendering
 path.
 
 **Why not `knot serve`?** knot ships its own panel, and it is good at what it does: three fixed

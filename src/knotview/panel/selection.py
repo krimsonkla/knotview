@@ -1,7 +1,9 @@
 """What a reader asked to see, read from a query string and checked against the project."""
 
 import re
-from dataclasses import dataclass
+from collections.abc import Iterable
+from dataclasses import dataclass, replace
+from urllib.parse import quote
 
 from knotview.values.project import Project
 from knotview.values.ticket import Ticket
@@ -50,13 +52,26 @@ class Selection:  # pylint: disable=too-many-instance-attributes
     deep: bool = False
     order: str = "priority"
     closed: bool = False
+    # The document filters: the types a ticket must own, in the project's declared order; tickets
+    # owning none; and live tickets missing a type their project requires. Three fields because
+    # the two options cannot share the types' parameter: a project may declare a type named none.
+    docs: tuple[str, ...] = ()
+    undocumented: bool = False
+    lacking: bool = False
 
     @classmethod
-    def asked(cls, project: Project, given: dict[str, str]) -> "Selection":
+    def asked(
+        cls, project: Project, given: dict[str, str], docs: Iterable[str] = ()
+    ) -> "Selection":
         """The selection a query string asked for.
 
-        Anything the project does not declare is dropped rather than obeyed.
+        Anything the project does not declare is dropped rather than obeyed. The document types
+        come separately, as the repeated values a single-valued mapping cannot hold. Asking for
+        tickets that own nothing clears the types, since no ticket could satisfy both. Lacking a
+        required type means nothing where the project requires none, so it is dropped there like
+        an undeclared type rather than emptying the list for a reason no chip could explain.
         """
+        undocumented = _ticked(given.get("nodocs"))
         return cls(
             type=_known(given.get("type"), project.types),
             status=_known(given.get("status"), project.statuses),
@@ -66,9 +81,12 @@ class Selection:  # pylint: disable=too-many-instance-attributes
             tag=(given.get("tag") or ANY).strip() or ANY,
             component=(given.get("component") or ANY).strip() or ANY,
             query=(given.get("q") or "").strip(),
-            deep=(given.get("deep") or "").lower() in ("1", "true", "yes", "on"),
+            deep=_ticked(given.get("deep")),
             order=_known(given.get("order"), ORDERS, fallback="priority"),
-            closed=(given.get("closed") or "").lower() in ("1", "true", "yes", "on"),
+            closed=_ticked(given.get("closed")),
+            docs=() if undocumented else project.ordered_types(set(docs) & set(project.doc_types)),
+            undocumented=undocumented,
+            lacking=_ticked(given.get("lacking")) and bool(project.required_docs),
         )
 
     @property
@@ -78,15 +96,52 @@ class Selection:  # pylint: disable=too-many-instance-attributes
 
     def applied(self) -> tuple[tuple[str, str], ...]:
         """Every filter that is set, as the reader would name it, for the summary line."""
-        return tuple((label, value) for label, _, value in self._set())
+        return tuple((label, value) for label, value, _ in self.chips())
+
+    def chips(self) -> tuple[tuple[str, str, str], ...]:
+        """Every applied filter as (label, value, the query string without it).
+
+        Each chip carries its own way out, so removing one of several ticked document types keeps
+        the others: a filter the reader named once is dropped once.
+        """
+        return tuple((label, value, self._dropping(label)) for label, value in self._set())
 
     def without(self, label: str) -> str:
         """This selection as a query string with that one filter dropped, for a chip's link."""
-        parameter = next((param for shown, param, _ in self._set() if shown == label), label)
+        return self._dropping(label)
+
+    def having(self, kind: str) -> str:
+        """The query string with its document types replaced by that one, every other filter kept.
+
+        Built from a copy rather than through `query_string(doc=...)`, whose keyword changes hold
+        one value each and would add the type to those already chosen: a link that promises the
+        tickets owning a spec must not also require the plan the reader had ticked. Owning nothing
+        is cleared too, since it would empty the types again.
+        """
+        return replace(self, docs=(kind,), undocumented=False).query_string()
+
+    def _dropping(self, label: str) -> str:
+        """The query string with the filter named by that label removed and every other kept."""
+        if label.startswith("has "):
+            left = tuple(one for one in self.docs if one != label.removeprefix("has "))
+            return replace(self, docs=left).query_string()
+        dropped = {"none attached": "nodocs", "missing a required type": "lacking"}
+        parameter = dropped.get(label) or next(
+            (param for shown, param, _ in self._named() if shown == label), label
+        )
         return self.query_string(**{parameter: ""})
 
-    def _set(self) -> tuple[tuple[str, str, str], ...]:
-        """Each applied filter as (label the reader sees, query parameter, value)."""
+    def _set(self) -> tuple[tuple[str, str], ...]:
+        """Each applied filter as (label the reader sees, value), documents last."""
+        plain = tuple((label, value) for label, _, value in self._named())
+        documents = tuple((f"has {one}", "") for one in self.docs)
+        options = (("none attached", ""),) * self.undocumented + (
+            ("missing a required type", ""),
+        ) * self.lacking
+        return plain + documents + options
+
+    def _named(self) -> tuple[tuple[str, str, str], ...]:
+        """Each applied single-valued filter as (label, query parameter, value)."""
         named = (
             ("type", "type", self.type),
             ("status", "status", self.status),
@@ -104,7 +159,13 @@ class Selection:  # pylint: disable=too-many-instance-attributes
 
         Built here rather than in a template so that a link cannot lose a filter by forgetting a
         field: adding a filter means adding it to this one place, and every link carries it.
+
+        A change names one value per field, so it refuses the document types, which repeat: merged
+        here, a named type would be added to those already chosen rather than replace them. A link
+        to one type goes through `having`.
         """
+        if "doc" in changes:
+            raise TypeError("query_string changes one value per field; use having() for a type")
         held = {
             "type": self.type,
             "status": self.status,
@@ -117,18 +178,25 @@ class Selection:  # pylint: disable=too-many-instance-attributes
             "deep": "1" if self.deep else "",
             "order": self.order,
             "closed": "1" if self.closed else "",
+            "nodocs": "1" if self.undocumented else "",
+            "lacking": "1" if self.lacking else "",
         }
         held.update(changes)
+        pairs = [
+            (field, value) for field, value in held.items() if field not in ("nodocs", "lacking")
+        ]
+        pairs += [("doc", one) for one in self.docs]
+        pairs += [(field, held[field]) for field in ("nodocs", "lacking")]
         kept = [
-            f"{field}={value}"
-            for field, value in held.items()
+            f"{field}={quote(value, safe='')}"
+            for field, value in pairs
             if value and value != ANY and not (field == "order" and value == "priority")
         ]
         return "&".join(kept)
 
-    def matches(self, ticket: Ticket) -> bool:
-        """Whether that ticket is one of the ones asked for."""
-        return all(
+    def matches(self, ticket: Ticket, project: Project) -> bool:
+        """Whether that ticket is one of the ones asked for, by the project's own declarations."""
+        return self._documented(ticket, project) and all(
             (
                 self.type in (ANY, ticket.type),
                 self.status in (ANY, ticket.status),
@@ -160,6 +228,20 @@ class Selection:  # pylint: disable=too-many-instance-attributes
         }
         descending = self.order in ("updated", "created")
         return tuple(sorted(tickets, key=keys[self.order], reverse=descending))
+
+    def _documented(self, ticket: Ticket, project: Project) -> bool:
+        """Whether the ticket's documents are the ones asked for.
+
+        Owning means owning every ticked type. Lacking counts only a live ticket: a closed one is
+        past the moves its project gates, so what it would have needed means nothing now.
+        """
+        owned = set(project.types_of(ticket))
+        live = project.is_live(ticket)
+        return (
+            set(self.docs) <= owned
+            and (not self.undocumented or not owned)
+            and (not self.lacking or (live and bool(project.missing_documents(ticket))))
+        )
 
     def _assigned(self, ticket: Ticket) -> bool:
         """Whether the ticket is assigned the way the filter asks: to anyone, nobody, or a name."""
@@ -210,3 +292,8 @@ def _known(given: str | None, allowed: tuple[str, ...], *, fallback: str = ANY) 
         return fallback
     stated = given.strip()
     return stated if stated in allowed else fallback
+
+
+def _ticked(held: str | None) -> bool:
+    """Whether a checkbox-style parameter is on, as a browser or a hand-written link spells it."""
+    return (held or "").lower() in ("1", "true", "yes", "on")

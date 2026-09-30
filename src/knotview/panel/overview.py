@@ -6,6 +6,7 @@ from knotview.panel.selection import NOBODY
 from knotview.panel.tree import Tree
 from knotview.reading.snapshot import Snapshot
 from knotview.values.ticket import Ticket
+from knotview.values.issue import Issue
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -46,6 +47,12 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     They are counted here rather than listed, because the first page is a map and the lists are one
     click away.
 
+    The documents card is the one exception to keeping zeros, and only as a whole: within the card
+    every declared type keeps its row, zero or not, but the card goes when no ticket it counts owns
+    a document, since a card of zeros there says nothing a project without documents needs. It
+    counts tickets owning each type, not documents, because knot's listings name a ticket's types
+    without counting them, and the count then equals the list its row links to.
+
     It holds one attribute per card the page draws, which is more than the linter's default;
     splitting them would only move the page's shape out of the one value that describes it.
     """
@@ -54,6 +61,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     by_status: tuple[Tally, ...]
     by_priority: tuple[Tally, ...]
     by_queue: tuple[Tally, ...]
+    by_document: tuple[Tally, ...]
     # The terminal statuses counted from the snapshot's closed tickets rather than from knot's raw
     # archive count, so they narrow with everything else when the reader has chosen tags, and
     # each links to its own list the way the open statuses do.
@@ -64,7 +72,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     stale: tuple[Ticket, ...]
     recently_changed: tuple[Ticket, ...]
     recently_closed: tuple[Ticket, ...]
-    integrity: tuple[str, ...]
+    integrity: tuple[Issue, ...]
 
     @classmethod
     def over(cls, snapshot: Snapshot, *, showing: int = 8) -> "Overview":
@@ -110,6 +118,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
                     value=NOBODY,
                 ),
             ),
+            by_document=_by_document(snapshot),
             by_terminal=tuple(
                 Tally(
                     label=status,
@@ -134,6 +143,19 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     def live_total(self) -> int:
         """How many tickets are live, summed across statuses rather than counted a second time."""
         return sum(tally.count for tally in self.by_status)
+
+
+def _by_document(snapshot: Snapshot) -> tuple[Tally, ...]:
+    """Live tickets owning each declared document type, or nothing when none owns any."""
+    project = snapshot.project
+    owned = [set(project.types_of(held)) for held in snapshot.live]
+    tallies = tuple(
+        Tally(
+            label=kind, count=sum(1 for types in owned if kind in types), filter="doc", value=kind
+        )
+        for kind in project.doc_types
+    )
+    return tallies if any(tally.count for tally in tallies) else ()
 
 
 def _progress(live: tuple[Ticket, ...]) -> tuple[Progress, ...]:

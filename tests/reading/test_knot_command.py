@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from knotview.reading.knot_command import READS, KnotCommand, _described
+from knotview.values.missing_document import MissingDocument
 from knotview.values.missing_ticket import MissingTicket
 from knotview.values.unreadable_backlog import UnreadableBacklog
 from tests.reading.envelopes import envelope
@@ -22,9 +23,28 @@ def test_a_clean_check_reports_no_issues(fake):
 
 def test_a_check_with_issues_reports_each_as_a_line_naming_the_ticket_and_the_code(fake):
     """This is the path knot's ok:false verdict used to close: the overview refused to render."""
-    (line,) = fake(check="issues").integrity()
+    (issue,) = fake(check="issues").integrity()
 
-    assert line.startswith("pro-01m2bbbbbbbb unknown_id: unknown id")
+    assert issue.text.startswith("pro-01m2bbbbbbbb unknown_id: unknown id")
+    assert issue.document_ids == () and issue.path == ""
+
+
+def test_document_issues_link_their_documents_and_show_their_paths_from_the_project(fake, tmp_path):
+    memo, orphan, legacy = fake(check="documents").integrity()
+
+    assert memo.document_ids == ("pro-01m2aaaaaaaa-d5memo",)
+    assert memo.path == str(
+        tmp_path / ".tickets/docs/pro-01m2aaaaaaaa/pro-01m2aaaaaaaa-d5memo--memo.md"
+    )
+    assert memo.shown == ".tickets/docs/pro-01m2aaaaaaaa/pro-01m2aaaaaaaa-d5memo--memo.md"
+    assert (
+        orphan.shown
+        == orphan.path
+        == "/elsewhere/docs/pro-01m2zzzzzzzz/pro-01m2zzzzzzzz-d1x--orphan.md"
+    )
+    assert legacy.document_ids == () and legacy.text.startswith(
+        "pro-01m2aaaaaaaa legacy_documents_section"
+    )
 
 
 def test_a_check_that_answers_ok_with_no_issues_list_is_read_as_clean(fake):
@@ -43,7 +63,8 @@ def test_a_refused_check_is_refused(fake):
         fake(check="error").integrity()
 
 
-def test_an_issue_line_carries_every_id_the_code_the_message_and_the_path():
+def test_an_issue_line_carries_every_id_the_code_and_the_message_but_not_the_path():
+    """The path is the issue value's own field, shown once by the card, not repeated here."""
     line = _described(
         {
             "ids": ["a", "b"],
@@ -53,7 +74,7 @@ def test_an_issue_line_carries_every_id_the_code_the_message_and_the_path():
         }
     )
 
-    assert line == "a b terminal_outside_archive: misplaced (/p)"
+    assert line == "a b terminal_outside_archive: misplaced"
 
 
 def test_an_issue_that_is_only_text_passes_through():
@@ -92,8 +113,10 @@ def test_the_dependency_tree_of_an_unknown_id_is_a_missing_root(fake):
 def test_the_primer_is_read_for_what_wants_attention(fake):
     report = fake().attention()
 
+    # The child's last update is a fixed instant more than the 14 days in the past that knot calls
+    # stale, so the recording carries the flag, and every later recording will too.
     assert [one.id for one in report.in_progress] == ["pro-01m2bbbbbbbb"]
-    assert report.stale == ()
+    assert [one.id for one in report.stale] == ["pro-01m2bbbbbbbb"]
 
 
 def test_one_ticket_is_read_in_full_by_its_id(fake):
@@ -219,6 +242,9 @@ WRITE_VERBS = (
     "add-note",
     "edit",
     "update",
+    "document add",
+    "document replace",
+    "document delete",
 )
 
 
@@ -253,3 +279,40 @@ def test_an_identifier_starting_with_a_dash_reaches_knot_as_an_identifier(fake):
     """knot would otherwise read it as an option; through the fake it is simply unknown."""
     with pytest.raises(UnreadableBacklog, match="no ticket matching"):
         fake().ticket("-x")
+
+
+def test_a_tickets_documents_are_read_with_their_times(fake):
+    listed = fake().documents("pro-01m2aaaaaaaa")
+
+    assert {one.id for one in listed} == {"pro-01m2aaaaaaaa-d2plan", "pro-01m2aaaaaaaa-d7spec"}
+    assert all(one.created and one.updated for one in listed)
+
+
+def test_one_document_is_read_with_its_body(fake):
+    shown = fake().document("pro-01m2aaaaaaaa-d7spec")
+
+    assert shown.ticket == "pro-01m2aaaaaaaa" and "| a | b |" in (shown.body or "")
+
+
+def test_an_unknown_document_is_a_missing_document_and_an_unknown_ticket_a_missing_ticket(fake):
+    with pytest.raises(MissingDocument) as refused:
+        fake().document("pro-01m2aaaaaaaa-dnope")
+    assert refused.value.identifier == "pro-01m2aaaaaaaa-dnope"
+    with pytest.raises(MissingTicket) as missing:
+        fake().documents("nope")
+    assert missing.value.identifier == "nope"
+
+
+def test_a_prefix_knot_finds_ambiguous_is_a_missing_document(fake):
+    with pytest.raises(MissingDocument) as refused:
+        fake().document("pro-01m2aaaaaaaa-d")
+    assert refused.value.identifier == "pro-01m2aaaaaaaa-d"
+
+
+def test_any_other_refusal_of_a_document_read_is_the_general_refusal(fake):
+    with pytest.raises(UnreadableBacklog, match="will not take") as refused:
+        fake().document("refused")
+    assert not isinstance(refused.value, MissingDocument | MissingTicket)
+    with pytest.raises(UnreadableBacklog) as junk:
+        fake(mode="junk").documents("pro-01m2aaaaaaaa")
+    assert not isinstance(junk.value, MissingTicket)

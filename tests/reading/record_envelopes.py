@@ -2,33 +2,35 @@
 
     uv run python -m tests.reading.record_envelopes
 
-Builds the probe project the fidelity test uses, runs every command in RECORDINGS, and writes the
-answers with the machine-specific values scrubbed, so a recording carries no home directory, no
-user name and no session identifier. Run it after upgrading knot, then run the suite: the reader
-tests say whether the shapes still read, and the fidelity test says whether the recordings match.
+Builds the probe project the fidelity test uses and runs every command in RECORDINGS, in four
+stages: record every answer into memory, normalize the fields known to carry machine values,
+guard the whole set, and write only if the guard passes. So a recording carries no home
+directory, no scratch path and no user name, and a refused run leaves the fixtures untouched.
+Run it after upgrading knot, then run the suite: the reader tests say whether the shapes still
+read, and the fidelity test says whether the recordings match. CI never runs it; CI only checks
+the recordings against the tagged knot.
 """
 
 import json
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 from tests.reading.envelopes import HERE, RECORDINGS
-from tests.reading.test_real_knot import TICKETS
+from tests.reading.probe import DOCUMENTS, TICKETS, write_probe
 
 SCRUBBED_ROOT = "/probe"
+
+# The clean probe: the parent and its archived child, named exactly. The live child names a
+# dependency that does not exist, and the orphan links to the live child, so either would make
+# the check report. write_probe drops the documents whose owner is left out, so none is orphaned.
+CLEAN_TICKETS = (
+    "pro-01m2aaaaaaaa--the-parent.md",
+    "archive/pro-01m2cccccccc--the-closed-one.md",
+)
 SCRUBBED_ASSIGNEE = "someone"
-
-
-def probe(root: Path, tickets: dict[str, str]) -> None:
-    """A knot project at that root holding those ticket files, written directly."""
-    subprocess.run(["knot", "init"], cwd=root, check=True, capture_output=True)
-    (root / ".knot.edn").write_text('{:prefix "pro"}\n', encoding="utf-8")
-    for name, text in tickets.items():
-        path = root / ".tickets" / name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
 
 
 def answer(root: Path, command: str, arguments: tuple[str, ...]) -> str:
@@ -56,33 +58,92 @@ def scrubbed(name: str, text: str, root: Path) -> str:
         defaults = held["data"]["defaults"]
         if defaults.get("effective_create_assignee"):
             defaults["effective_create_assignee"] = SCRUBBED_ASSIGNEE
-    return json.dumps(held, indent=2) + "\n"
+    # Four spaces, as .editorconfig asks of JSON, so a re-recording diffs only where knot changed.
+    return json.dumps(held, indent=4) + "\n"
+
+
+def leaks(recordings: dict[str, str], forbidden: Iterable[str | None]) -> list[tuple[str, str]]:
+    """Each recording that still holds a forbidden string, with the string it holds.
+
+    An empty or missing value is not searched for: an unset git name would otherwise match every
+    recording and refuse every run.
+    """
+    needles = sorted({needle for needle in forbidden if needle})
+    return [
+        (name, needle)
+        for name in sorted(recordings)
+        for needle in needles
+        if needle in recordings[name]
+    ]
+
+
+def vetted(recordings: dict[str, str], forbidden: Iterable[str | None]) -> list[str]:
+    """Every reason not to write this set: a leak, or a clean check that reports issues."""
+    problems = [f"{name} contains {needle}" for name, needle in leaks(recordings, forbidden)]
+    if "check-clean" in recordings:
+        issues = json.loads(recordings["check-clean"])["data"]["issues"]
+        if issues:
+            problems.append(f"check-clean reports {len(issues)} issue" + "s" * (len(issues) > 1))
+    return problems
+
+
+def finish(
+    recordings: dict[str, str], forbidden: Iterable[str | None], write: Callable[[str], None]
+) -> int:
+    """Write every recording, or none: refuse the whole set when anything is wrong with it."""
+    problems = vetted(recordings, forbidden)
+    for problem in problems:
+        print(f"refused: {problem}", file=sys.stderr)
+    if problems:
+        return 1
+    for name in sorted(recordings):
+        write(name)
+    return 0
+
+
+def forbidden_strings(scratch: str) -> set[str]:
+    """What no recording may contain: the scratch directory in both its spellings, the home
+    directory, and the name git would sign with.
+
+    Only `info`'s paths and assignee are normalized. knot also writes absolute paths into the
+    `path` and `message` of a `check` issue, so a recording that captures a document issue would
+    be refused here; normalize those fields before recording one.
+    """
+    return {scratch, str(Path(scratch).resolve()), str(Path.home()), git_user_name()}
+
+
+def git_user_name() -> str:
+    """The name git would sign with here, or nothing when it has none."""
+    try:
+        answered = subprocess.run(
+            ["git", "config", "user.name"], capture_output=True, text=True, check=False
+        )
+    except OSError:
+        return ""
+    return answered.stdout.strip()
 
 
 def main() -> int:
-    """Record every envelope, printing each file written."""
+    """Record every envelope, then write them all or none, printing each file written."""
     with tempfile.TemporaryDirectory() as scratch:
         root = Path(scratch, "probe")
         root.mkdir()
-        probe(root, TICKETS)
+        write_probe(root, TICKETS, DOCUMENTS)
         clean = Path(scratch, "clean")
         clean.mkdir()
-        # The parent and its archived child only: the live child names a dependency that does not
-        # exist, and the orphan links to the live child, so either would make the check report.
-        probe(
-            clean,
-            {name: text for name, text in TICKETS.items() if "parent" in name or "closed" in name},
-        )
-        for name, command, arguments in RECORDINGS:
-            (HERE / f"{name}.json").write_text(
-                scrubbed(name, answer(root, command, arguments), root)
-            )
+        write_probe(clean, {name: TICKETS[name] for name in CLEAN_TICKETS}, DOCUMENTS)
+        recordings = {
+            name: scrubbed(name, answer(root, command, arguments), root)
+            for name, command, arguments in RECORDINGS
+        }
+        recordings["check-clean"] = scrubbed("check-clean", answer(clean, "check", ()), clean)
+        forbidden = forbidden_strings(scratch)
+
+        def write(name: str) -> None:
+            (HERE / f"{name}.json").write_text(recordings[name], encoding="utf-8")
             print(f"recorded {name}.json")
-        (HERE / "check-clean.json").write_text(
-            scrubbed("check-clean", answer(clean, "check", ()), clean)
-        )
-        print("recorded check-clean.json")
-    return 0
+
+        return finish(recordings, forbidden, write)
 
 
 if __name__ == "__main__":

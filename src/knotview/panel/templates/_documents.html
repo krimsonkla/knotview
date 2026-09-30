@@ -1,0 +1,8 @@
+{# A ticket's document types as tags, drawn the same wherever a ticket is listed. Every value is a #}
+{# parameter, since an imported macro does not see the importing template's context. #}
+{% macro doctypes(ticket, project, show_missing) -%}
+{% for kind in project.types_of(ticket) %}<a class="doctype" href="/ticket/{{ ticket.id }}#documents">{{ kind }}</a>{% endfor %}
+{% if show_missing and project.is_live(ticket) %}
+{% for kind, statuses in project.missing_by_type(ticket) %}<span class="doctype missing" title="needed to enter {{ statuses | join(', ') }}">{{ kind }}</span>{% endfor %}
+{% endif %}
+{%- endmacro %}

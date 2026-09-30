@@ -4,11 +4,12 @@ import pytest
 
 from knotview.reading.backlog import Backlog
 from knotview.reading.snapshot import Snapshot
+from knotview.values.issue import Issue
 from tests.panel.declared import CHILD, CLOSED, ORPHAN, PARENT, DeclaredBacklog
 
 
 def test_a_snapshot_carries_every_part_of_one_read():
-    backlog = DeclaredBacklog(integrity_value=("a line",))
+    backlog = DeclaredBacklog(integrity_value=(Issue(text="a line"),))
 
     taken = Snapshot.read(backlog)
 
@@ -16,7 +17,7 @@ def test_a_snapshot_carries_every_part_of_one_read():
     assert taken.live == (PARENT, CHILD, ORPHAN)
     assert taken.closed == (CLOSED,)
     assert (taken.ready, taken.blocked) == ((PARENT, ORPHAN), (CHILD,))
-    assert taken.integrity == ("a line",)
+    assert taken.integrity == (Issue(text="a line"),)
     assert taken.attention is backlog.attention_value
 
 
@@ -34,8 +35,7 @@ def test_the_port_itself_answers_nothing(name: str):
         getattr(Backlog, name)(object())
 
 
-def test_the_port_itself_answers_no_ticket_and_no_dependencies_either():
+@pytest.mark.parametrize("name", ["ticket", "dependencies", "documents", "document"])
+def test_the_port_itself_answers_no_ticket_dependencies_or_documents_either(name: str):
     with pytest.raises(NotImplementedError):
-        Backlog.ticket(object(), "x")
-    with pytest.raises(NotImplementedError):
-        Backlog.dependencies(object(), "x")
+        getattr(Backlog, name)(object(), "x")

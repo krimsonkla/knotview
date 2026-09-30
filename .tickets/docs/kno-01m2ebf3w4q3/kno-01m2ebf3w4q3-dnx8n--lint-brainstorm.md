@@ -1,3 +1,12 @@
+---
+id: kno-01m2ebf3w4q3-dnx8n
+ticket: kno-01m2ebf3w4q3
+title: Lint brainstorm
+type: other
+created: '2026-09-30T00:16:17.849656Z'
+updated: '2026-09-30T00:16:17.849656Z'
+---
+
 # kno-01m2ebf3w4q3 — Lint brainstorm
 
 Story: kno-01m2ebf3w4q3, "Lint: panel() complexity and the three value objects over the attribute
