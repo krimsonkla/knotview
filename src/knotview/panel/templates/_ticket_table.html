@@ -1,7 +1,17 @@
 {# One table of tickets, used by every list so they cannot drift apart. #}
 {# The import lives here because an include does not inherit the includer's imports. #}
 {% from "_time.html" import stamp %}
+{% from "_documents.html" import doctypes %}
 {# A column whose every row says the same thing says nothing; drop it and say the value once. #}
+{# Missing required types show only where the including page asks, the list and the queues, #}
+{# since on a card they would be gates that mean nothing there. #}
+{% set show_missing = show_missing is defined and show_missing %}
+{# The docs column shows when a row has a tag to draw or a documents filter is on, so a list #}
+{# filtered by documents never hides the column its filter is about. #}
+{% set docs_seen = namespace(any=selection.docs or selection.undocumented or selection.lacking) %}
+{% for one in tickets %}{% if project.types_of(one) or (show_missing and
+project.is_live(one) and project.missing_documents(one)) %}{% set docs_seen.any = true %}{%
+endif %}{% endfor %}
 {% set assignees = tickets | map(attribute="assignee") | unique | list %}
 {% set one_assignee = tickets and assignees | length == 1 and selection.assignee == any %}
 {% if one_assignee %}
@@ -22,17 +32,19 @@
       <th>
         <a href="/tickets?{{ selection.query_string(order='title') }}">title</a>
       </th>
+      {% if docs_seen.any %}<th>docs</th>{% endif %}
       <th>acceptance</th>
       <th>blocked by</th>
-      {% if not one_assignee %}
-      <th>assignee</th>
-      {% endif %}
       <th title="how much waiting work closing this dissolves">
         <a href="/tickets?{{ selection.query_string(order='leverage') }}">lev</a>
       </th>
       <th title="how many rounds of closing stand before this can start">
         <a href="/tickets?{{ selection.query_string(order='level') }}">lvl</a>
       </th>
+      {# After lvl, where each row draws it. #}
+      {% if not one_assignee %}
+      <th>assignee</th>
+      {% endif %}
       {% set when = "created" if selection.order == "created" else "updated" %}
       <th>
         <a href="/tickets?{{ selection.query_string(order='updated') }}"
@@ -52,14 +64,14 @@
     <tr data-updated="{{ ticket.updated or '' }}">
       <td class="pri p{{ ticket.priority }}">{{ ticket.priority }}</td>
       <td>
-        <a class="chip" href="/tickets?type={{ ticket.type }}"
+        <a class="chip" href="/tickets?type={{ ticket.type | urlencode }}"
           >{{ ticket.type }}</a
         >
       </td>
       <td>
         <a
           class="chip status-{{ ticket.status }}"
-          href="/tickets?status={{ ticket.status }}"
+          href="/tickets?status={{ ticket.status | urlencode }}"
         >
           {{ ticket.status }}</a
         >
@@ -70,10 +82,15 @@
         {% if selection.deep and selection.excerpt(ticket) %}
         <span class="excerpt muted">{{ selection.excerpt(ticket) }}</span>
         {% endif %}
-        {% for tag in ticket.tags %}<a class="tag" href="/tickets?tag={{ tag }}"
+        {% for tag in ticket.tags %}<a class="tag" href="/tickets?tag={{ tag | urlencode }}"
           >{{ tag }}</a
         >{% endfor %}
       </td>
+      {% if docs_seen.any %}
+      <td class="docs">
+        {{ doctypes(ticket, project, show_missing) }}
+      </td>
+      {% endif %}
       <td class="num">
         {% if ticket.criteria %}{{ ticket.met }}/{{ ticket.criteria }}{% else
         %}—{% endif %}
@@ -91,7 +108,7 @@
       {% if not one_assignee %}
       <td>
         {% if ticket.assignee %}<a
-          href="/tickets?assignee={{ ticket.assignee }}"
+          href="/tickets?assignee={{ ticket.assignee | urlencode }}"
           >{{ ticket.assignee }}</a
         >{% else %}<span class="muted">nobody</span>{% endif %}
       </td>
@@ -100,7 +117,8 @@
     </tr>
     {% else %}
     <tr>
-      <td colspan="10" class="muted">nothing here</td>
+      {# Nine columns always, and the two that hide only when they show. #}
+      <td colspan="{{ 9 + (1 if docs_seen.any else 0) + (0 if one_assignee else 1) }}" class="muted">nothing here</td>
     </tr>
     {% endfor %}
   </tbody>

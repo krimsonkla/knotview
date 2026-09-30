@@ -16,7 +16,10 @@
             "tags": [],
             "deps": [],
             "links": [],
-            "external_refs": []
+            "external_refs": [],
+            "doc_types": [
+                "other"
+            ]
         }
     ]
 }

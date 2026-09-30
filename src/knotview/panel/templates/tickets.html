@@ -96,23 +96,36 @@
     />
     include closed</label
   >
+  <details class="multi">
+    <summary>
+      documents{% if selection.docs %}: {{ selection.docs | join(", ") }}{% endif %}{% if
+      selection.undocumented %}: none attached{% endif %}{% if selection.lacking %}{% if
+      selection.docs or selection.undocumented %},{% else %}:{% endif %} missing a required type{%
+      endif %}
+    </summary>
+    <div class="menu">
+      <span class="hint">has every type ticked</span>
+      {% for kind in project.doc_types %}
+      <label class="check"><input type="checkbox" name="doc" value="{{ kind }}"{% if kind in selection.docs %} checked{% endif %} /> {{ kind }}</label>
+      {% endfor %}
+      <label class="check"><input type="checkbox" name="nodocs" value="1"{% if selection.undocumented %} checked{% endif %} /> none attached</label>
+      {% if project.required_docs %}
+      <label class="check"><input type="checkbox" name="lacking" value="1"{% if selection.lacking %} checked{% endif %} /> missing a required type</label>
+      {% endif %}
+    </div>
+  </details>
   <button type="submit">apply</button>
   {% if selection.filtering %}<a class="clear" href="/tickets">clear</a>{% endif
   %}
 </form>
 
 <p class="muted">
-  {{ tickets | length }} of {{ counted }} {%- for field, value in
-  selection.applied() %} ·
+  {{ tickets | length }} of {{ counted }} {%- for field, value, dropping in
+  selection.chips() %} ·
   <span class="chip filter"
-    >{{ field }} {{ value }}
-    <a
-      class="drop"
-      href="/tickets?{{ selection.without(field) }}"
-      title="drop this filter"
-      >×</a
-    ></span
+    >{{ field }}{% if value %} {{ value }}{% endif %}
+    <a class="drop" href="/tickets?{{ dropping }}" title="drop this filter">×</a></span
   >{% endfor %}
 </p>
 
-{% include "_ticket_table.html" %} {% endblock %}
+{% set show_missing = true %} {% include "_ticket_table.html" %} {% endblock %}

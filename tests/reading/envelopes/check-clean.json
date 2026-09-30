@@ -5,7 +5,8 @@
         "issues": [],
         "scanned": {
             "live": 1,
-            "archive": 1
+            "archive": 1,
+            "docs": 3
         }
     }
 }

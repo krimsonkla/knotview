@@ -95,8 +95,8 @@ def test_the_applied_filters_are_named_for_the_summary():
 
 def test_matching_and_ordering_as_values():
     narrowed = Selection(tag="auth")
-    assert narrowed.matches(PARENT) and not narrowed.matches(CHILD)
-    assert Selection(query="nothing").matches(ORPHAN) is False
+    assert narrowed.matches(PARENT, PROJECT) and not narrowed.matches(CHILD, PROJECT)
+    assert Selection(query="nothing").matches(ORPHAN, PROJECT) is False
     assert Selection(order="id").ordered((ORPHAN, PARENT))[0] is PARENT
 
 

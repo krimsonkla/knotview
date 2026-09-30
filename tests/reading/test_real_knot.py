@@ -13,113 +13,23 @@ from pathlib import Path
 import pytest
 
 from knotview.reading.knot_command import KnotCommand
+from knotview.values.missing_document import MissingDocument
+from knotview.values.missing_ticket import MissingTicket
 from knotview.values.unreadable_backlog import UnreadableBacklog
 from tests.reading.envelopes import RECORDINGS, envelope
+from tests.reading.probe import DOCUMENTS, TICKETS, write_probe
 
 pytestmark = [
     pytest.mark.slow,
     pytest.mark.skipif(shutil.which("knot") is None, reason="knot is not on PATH"),
 ]
 
-TICKETS = {
-    "pro-01m2aaaaaaaa--the-parent.md": """---
-id: pro-01m2aaaaaaaa
-title: The parent
-status: open
-type: epic
-priority: 1
-mode: hitl
-created: '2026-09-01T10:00:00.000000Z'
-updated: '2026-09-02T10:00:00.000000Z'
-acceptance:
-- {title: first thing, done: true}
-- {title: second thing, done: false}
-tags:
-- p0
-- auth
----
-Text before any heading.
-
-## Description
-What the parent is for.
-
-## Design
-How it is built.
-
-## Notes
-
-**2026-09-02T10:00:00.000000Z**
-
-A note on the parent.
-""",
-    "pro-01m2bbbbbbbb--the-child.md": """---
-id: pro-01m2bbbbbbbb
-title: The child
-status: in_progress
-type: task
-priority: 2
-mode: afk
-created: '2026-09-03T10:00:00.000000Z'
-updated: '2026-09-04T10:00:00.000000Z'
-assignee: ''
-parent: pro-01m2aaaaaaaa
-deps:
-- pro-01m2cccccccc
-- pro-01m2zzzzzzzz
-links:
-- pro-01m2dddddddd
----
-
-## Description
-The child does a thing.
-""",
-    "pro-01m2dddddddd--the-orphan.md": """---
-id: pro-01m2dddddddd
-title: The orphan
-status: open
-type: bug
-priority: 3
-mode: hitl
-created: '2026-09-05T10:00:00.000000Z'
-updated: '2026-09-05T10:00:00.000000Z'
-assignee: someone
-links:
-- pro-01m2bbbbbbbb
----
-
-## Description
-Filed under nothing.
-""",
-    "archive/pro-01m2cccccccc--the-closed-one.md": """---
-id: pro-01m2cccccccc
-title: The closed one
-status: closed
-type: chore
-priority: 4
-mode: hitl
-created: '2026-08-01T10:00:00.000000Z'
-updated: '2026-08-02T10:00:00.000000Z'
-closed: '2026-08-02T10:00:00.000000Z'
-parent: pro-01m2aaaaaaaa
----
-
-## Description
-Done and archived.
-""",
-}
-
 
 @pytest.fixture(name="probe", scope="module")
 def probe_project(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """A knot project holding the same tickets the fixtures were recorded from."""
+    """A knot project holding the same tickets and documents the fixtures were recorded from."""
     root = tmp_path_factory.mktemp("probe")
-    subprocess.run(["knot", "init"], cwd=root, check=True, capture_output=True)
-    # Only the prefix, so the ids match; the name stays null as it was when recorded.
-    (root / ".knot.edn").write_text('{:prefix "pro"}\n', encoding="utf-8")
-    for name, text in TICKETS.items():
-        path = root / ".tickets" / name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
+    write_probe(root, TICKETS, DOCUMENTS)
     return root
 
 
@@ -200,8 +110,19 @@ def test_the_reader_over_the_binary_agrees_with_the_reader_over_the_recording(pr
     assert [b.id for b in child.blockers] == ["pro-01m2cccccccc", "pro-01m2zzzzzzzz"]
     parent = command.ticket("pro-01m2aaaaaaaa")
     assert list(parent.sections) == ["", "description", "design", "notes"]
-    (line,) = command.integrity()
-    assert line.startswith("pro-01m2bbbbbbbb unknown_id:")
+    (issue,) = command.integrity()
+    assert issue.text.startswith("pro-01m2bbbbbbbb unknown_id:") and issue.document_ids == ()
     with pytest.raises(UnreadableBacklog, match="no ticket matching -x"):
         command.ticket("-x")
     assert command.digest() != "absent"
+    listed = command.documents("pro-01m2aaaaaaaa")
+    recorded = envelope("document-list")["data"]["documents"]
+    assert [(one.id, one.created) for one in listed] == [
+        (row["id"], row["created"]) for row in recorded
+    ]
+    # knot resolves the start of an id and answers with the whole one.
+    assert command.document("pro-01m2aaaaaaaa-d7").id == "pro-01m2aaaaaaaa-d7spec"
+    with pytest.raises(MissingDocument):
+        command.document("pro-01m2aaaaaaaa-dnope")
+    with pytest.raises(MissingTicket):
+        command.documents("nope")

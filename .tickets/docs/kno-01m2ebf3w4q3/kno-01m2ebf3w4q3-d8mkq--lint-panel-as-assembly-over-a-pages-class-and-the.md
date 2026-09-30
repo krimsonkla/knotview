@@ -1,3 +1,12 @@
+---
+id: kno-01m2ebf3w4q3-d8mkq
+ticket: kno-01m2ebf3w4q3
+title: Lint design spec
+type: spec
+created: '2026-09-30T00:16:18.108294Z'
+updated: '2026-09-30T00:16:29.076735Z'
+---
+
 # kno-01m2ebf3w4q3 — Lint: `panel()` as assembly over a `Pages` class, and the value objects' attribute counts
 
 ## Changes Since Last Cycle

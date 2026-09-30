@@ -1,0 +1,8 @@
+{
+    "schema_version": 1,
+    "ok": false,
+    "error": {
+        "code": "doc_not_found",
+        "message": "document not found: pro-01m2aaaaaaaa-dnope"
+    }
+}

@@ -15,7 +15,9 @@ inputs:
       nixpkgs:
         follows: nixpkgs
   nix-derivations:
-    url: github:krimsonkla/nix-derivations
+    # Pinned by commit, as the shared layer requires: the merge of krimsonkla/nix-derivations#16,
+    # which brings knot 0.15.0 for documents attached to tickets.
+    url: github:krimsonkla/nix-derivations/8de06876473302a748efbf76334b5686d11bbce3
     inputs:
       nixpkgs:
         follows: nixpkgs

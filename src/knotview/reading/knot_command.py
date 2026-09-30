@@ -3,13 +3,17 @@
 import hashlib
 import json
 import subprocess
+import threading
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 
 from knotview.reading.knot_envelope import (
     answered,
     attention_from,
     dependency_from,
+    document_from,
+    documents_from,
     project_from,
     ticket_from,
     tickets_from,
@@ -18,6 +22,9 @@ from knotview.reading.knot_envelope import (
 from knotview.values.project import Project
 from knotview.values.attention import Attention
 from knotview.values.dependency import Dependency
+from knotview.values.document import Document
+from knotview.values.issue import Issue
+from knotview.values.missing_document import MissingDocument
 from knotview.values.missing_ticket import MissingTicket
 from knotview.values.ticket import Ticket
 from knotview.values.unreadable_backlog import UnreadableBacklog
@@ -37,7 +44,19 @@ PATIENCE = 20
 # the only module in the package that can start a process.
 # "dep tree" is two words on purpose: knot's dep verb writes, its tree subcommand reads, and only
 # the read is spoken here.
-READS = ("info", "list", "closed", "ready", "blocked", "show", "check", "prime", "dep tree")
+READS = (
+    "info",
+    "list",
+    "closed",
+    "ready",
+    "blocked",
+    "show",
+    "check",
+    "prime",
+    "dep tree",
+    "document list",
+    "document show",
+)
 
 
 class KnotCommand:
@@ -61,7 +80,8 @@ class KnotCommand:
         self._repository = repository
         self._knot = knot
         self._patience = patience
-        self._tickets_path: Path | None = None
+        self._where: Where | None = None
+        self._locating = threading.Lock()
 
     @property
     def repository(self) -> Path:
@@ -111,12 +131,41 @@ class KnotCommand:
             )
         return ticket_from(stated)
 
+    def documents(self, ticket_id: str) -> tuple[Document, ...]:
+        """The documents one ticket owns, with when each was created and last updated.
+
+        An unknown ticket is a missing ticket, as it is for a read of the ticket itself.
+        """
+        try:
+            stated = self._read("document list", ticket_id)
+        except UnreadableBacklog as refusal:
+            if refusal.code == "not_found":
+                raise MissingTicket(ticket_id, message=refusal.message) from refusal
+            raise
+        return documents_from(stated, attempting=f"listing the documents of {ticket_id}")
+
+    def document(self, document_id: str) -> Document:
+        """One document in full, body included, by the id or the partial id knot resolves.
+
+        knot names an unknown document with its own code, so it is its own refusal and its own
+        page; anything else knot refuses is a backlog that could not be read. knot resolves the
+        start of an id, so the document returned may carry a longer id than the one asked for, and
+        a start that several ids share names no one document, which is the same refusal.
+        """
+        try:
+            stated = self._read("document show", document_id)
+        except UnreadableBacklog as refusal:
+            if refusal.code in ("doc_not_found", "ambiguous_doc"):
+                raise MissingDocument(document_id, message=refusal.message) from refusal
+            raise
+        return document_from(stated)
+
     def dependencies(self, identifier: str) -> Dependency:
         """The tree of what one ticket waits on, as knot draws it, with a missing root as such."""
         return dependency_from(self._read("dep tree", identifier))
 
-    def integrity(self) -> tuple[str, ...]:
-        """What the project's own check reports, as lines, empty when it is clean.
+    def integrity(self) -> tuple[Issue, ...]:
+        """What the project's own check reports, as issues, empty when it is clean.
 
         Shown rather than enforced. This panel is a reader: a backlog with a dangling reference is
         something its author wants to know about, and refusing to render until it is fixed would
@@ -126,13 +175,14 @@ class KnotCommand:
         issues = stated.get("issues") if isinstance(stated, dict) else None
         if not isinstance(issues, list):
             return ()
-        return tuple(_described(issue) for issue in issues)
+        root = self._located().root
+        return tuple(_issue(issue, root) for issue in issues)
 
     def digest(self) -> str:
         """A value over the ticket files' names and modification times, so a change moves it.
 
         Over the files rather than over the rendered pages, because it has to be cheap enough to
-        compute on a timer: this is what the live stream compares, and a digest that cost a full
+        compute on a timer: this is what every open page polls, and a digest that cost a full
         read would make following the backlog more expensive than reading it. For the same reason
         the tickets directory is asked of knot once and remembered: it is a fact about the project
         that does not move while the panel runs, and asking every second would start a process per
@@ -142,19 +192,33 @@ class KnotCommand:
         byte-identical changes nothing a reader would see. A file that vanishes between being listed
         and being stamped, which an agent closing a ticket does, is simply left out of that digest.
         """
-        tickets = self._tickets()
-        if not tickets.is_dir():
+        where = self._located()
+        if not where.tickets.is_dir():
             return "absent"
+        trees = [("", where.tickets)]
+        # Documents live inside the tickets directory unless `.knot.edn` moves them; only then is
+        # there a second tree, and walking the default one twice would double every tick's cost.
+        if where.docs.is_dir() and not where.docs.is_relative_to(where.tickets):
+            trees.append(("docs:", where.docs))
         stamped = sorted(
-            stamp for stamp in (_stamped(tickets, path) for path in tickets.rglob("*.md")) if stamp
+            f"{mark}{stamp}"
+            for mark, tree in trees
+            for stamp in (_stamped(tree, path) for path in tree.rglob("*.md"))
+            if stamp
         )
         return hashlib.sha256("\n".join(stamped).encode("utf-8")).hexdigest()[:16]
 
-    def _tickets(self) -> Path:
-        """Where the ticket files are, asked of knot the first time and kept."""
-        if self._tickets_path is None:
-            self._tickets_path = Path(self.project().tickets_path)
-        return self._tickets_path
+    def _located(self) -> "Where":
+        """Where the tickets, the documents and the project are, asked of knot once and kept.
+
+        Pages read the backlog from several threads at once, so the first asking is locked: the
+        tabs that open together with the panel then start one `knot info` between them, not one
+        each.
+        """
+        with self._locating:
+            if self._where is None:
+                self._where = Where.of(self.project())
+            return self._where
 
     def _read(self, command: str, *arguments: str, verdict_read: bool = False) -> object:
         """One knot read, as data, refusing anything this panel was not written to run.
@@ -223,6 +287,30 @@ def _data_in(answer: subprocess.CompletedProcess[str], spoken: Sequence[str]) ->
         ) from unreadable
 
 
+@dataclass(frozen=True, kw_only=True)
+class Where:
+    """The three places a project's files are, as knot stated them when first asked."""
+
+    tickets: Path
+    docs: Path
+    root: Path
+
+    @classmethod
+    def of(cls, project: Project) -> "Where":
+        """The places knot's info names, with knot's own defaults for any it leaves out.
+
+        A knot that states no docs path keeps documents in the tickets directory, and one that
+        states no root is rooted where the tickets directory sits; defaulting to an empty path
+        instead would make the working directory a tree the digest walks.
+        """
+        tickets = Path(project.tickets_path)
+        return cls(
+            tickets=tickets,
+            docs=Path(project.docs_path) if project.docs_path else tickets / "docs",
+            root=Path(project.project_root) if project.project_root else tickets.parent,
+        )
+
+
 def _stamped(tickets: Path, path: Path) -> str | None:
     """One file's name and modification time, or nothing if it vanished since it was listed."""
     try:
@@ -247,9 +335,34 @@ def _described(issue: object) -> str:
     where = " ".join(str(one) for one in ids) if isinstance(ids, list) else ""
     code = issue.get("code")
     message = issue.get("message")
-    path = issue.get("path")
     if not (where or code or message):
         return json.dumps(issue)
     head = " ".join(part for part in (where, str(code) if code else "") if part)
-    line = f"{head}: {message}" if head and message else (head or str(message))
-    return f"{line} ({path})" if path else line
+    return f"{head}: {message}" if head and message else (head or str(message))
+
+
+# The check codes whose ids are documents knot will show, each confirmed against knot 0.15 rather
+# than read off its name: legacy_documents_section names a ticket, and duplicate_doc_id an id knot
+# refuses as ambiguous, so neither is here.
+LINKED = frozenset(
+    {"doc_unknown_ticket", "invalid_doc_type", "doc_directory_mismatch", "doc_id_owner_mismatch"}
+)
+
+
+def _issue(issue: object, root: Path) -> Issue:
+    """One check entry as an issue: its line, its path from the project, and its documents."""
+    if not isinstance(issue, dict):
+        return Issue(text=_described(issue))
+    ids = issue.get("ids")
+    linked = (
+        tuple(str(one) for one in ids)
+        if issue.get("code") in LINKED and isinstance(ids, list)
+        else ()
+    )
+    path = issue.get("path")
+    # A linked issue's ids are drawn as its links, so its line leaves them out rather than
+    # naming each document twice.
+    text = _described(
+        {key: value for key, value in issue.items() if key != "ids"} if linked else issue
+    )
+    return Issue.found(text, path if isinstance(path, str) else "", root, linked)

@@ -16,25 +16,26 @@ block main %}
     <h1>{{ ticket.title }}</h1>
     <p class="meta">
       <span class="id">{{ ticket.id }}</span>
-      <a class="chip" href="/tickets?type={{ ticket.type }}"
+      <a class="chip" href="/tickets?type={{ ticket.type | urlencode }}"
         >{{ ticket.type }}</a
       >
       <a
         class="chip status-{{ ticket.status }}"
-        href="/tickets?status={{ ticket.status }}"
+        href="/tickets?status={{ ticket.status | urlencode }}"
         >{{ ticket.status }}</a
       >
       <span class="pri p{{ ticket.priority }}">p{{ ticket.priority }}</span>
-      {% if ticket.mode %}<a class="chip" href="/tickets?mode={{ ticket.mode }}"
+      {% if ticket.mode %}<a class="chip" href="/tickets?mode={{ ticket.mode | urlencode }}"
         >{{ ticket.mode }}</a
       >{% endif %} {% if ticket.assignee %}<a
         class="chip"
-        href="/tickets?assignee={{ ticket.assignee }}"
+        href="/tickets?assignee={{ ticket.assignee | urlencode }}"
         >{{ ticket.assignee }}</a
       >
       {% else %}<span class="chip muted">nobody</span>{% endif %} {% for tag in
-      ticket.tags %}<a class="tag" href="/tickets?tag={{ tag }}">{{ tag }}</a>{%
+      ticket.tags %}<a class="tag" href="/tickets?tag={{ tag | urlencode }}">{{ tag }}</a>{%
       endfor %}
+      {% if documents %}<a class="chip" href="#documents">{{ documents | length }} document{{ "s" if documents | length != 1 }}</a>{% endif %}
     </p>
     <p class="muted">
       {% if ticket.created %}<span class="when">created {{ stamp(ticket.created) }}</span>{% endif %}
@@ -44,6 +45,22 @@ block main %}
         <a href="/ticket/{{ ticket.parent }}">{{ ticket.parent }}</a></span>{% endif %}
     </p>
   </header>
+
+  {% if documents %}
+  <section class="card" id="documents">
+    <h2>documents <span class="num">{{ documents | length }}</span></h2>
+    <ul class="refs">
+      {% for one in documents %}
+      <li>
+        {% if one.type %}<span class="doctype">{{ one.type }}</span>{% endif %}
+        <a href="/document/{{ one.id | segment }}">{{ one.title }}</a>
+        <span class="id">{{ one.id }}</span>
+        {% if one.updated %}<span class="muted">updated {{ stamp(one.updated) }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
 
   {% if ticket.acceptance %}
   <section class="card">
@@ -67,11 +84,20 @@ block main %}
   {% endfor %}
 
   <section class="graph">
-    {% for label, references in (("blocked by", ticket.blockers), ("blocking",
-    ticket.blocking), ("children", ticket.children), ("linked", ticket.linked))
-    %} {% if references %}
+    {# Each card's rows are its references, then any extra rows: only "blocked by" has extras, a
+    ticket's missing required documents, since a document is not a ticket to reference. #}
+    {% for label, references, extras in (("blocked by", ticket.blockers, missing_types), ("blocking",
+    ticket.blocking, ()), ("children", ticket.children, ()), ("linked", ticket.linked, ()))
+    %} {% if references or extras %}
     <div class="card">
-      <h2>{{ label }} <span class="num">{{ references | length }}</span></h2>
+      <h2>
+        {{ label }}
+        <span
+          class="num"
+          {% if extras %}title="the tickets blocking this, and the required documents it lacks"{% endif %}
+          >{{ references | length + extras | length }}</span
+        >
+      </h2>
       <ul class="refs">
         {% for reference in references %}
         <li>
@@ -87,6 +113,13 @@ block main %}
           <a href="/ticket/{{ reference.id }}">{{ reference.title }}</a>
           {% endif %}
           <span class="id">{{ reference.id }}</span>
+        </li>
+        {% endfor %}
+        {% for kind, statuses in extras %}
+        <li class="lacking">
+          <span class="doctype missing">{{ kind }}</span>
+          <span>no {{ kind }} attached</span>
+          <span class="muted">needed to enter {{ statuses | join(", ") }}</span>
         </li>
         {% endfor %}
       </ul>

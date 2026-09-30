@@ -6,6 +6,8 @@ from knotview.reading.knot_envelope import (
     answered,
     attention_from,
     dependency_from,
+    document_from,
+    documents_from,
     project_from,
     ticket_from,
     tickets_from,
@@ -81,7 +83,7 @@ def test_answered_refuses_a_non_envelope_and_a_moved_version():
 def test_the_project_is_read_from_info():
     project = project_from(envelope("info")["data"])
 
-    assert (project.prefix, project.knot_version) == ("pro", "0.12.0")
+    assert (project.prefix, project.knot_version) == ("pro", "0.15.0")
     assert project.types == ("bug", "feature", "task", "epic", "chore")
     assert project.statuses == ("open", "in_progress", "closed")
     assert project.terminal_statuses == ("closed",)
@@ -194,11 +196,13 @@ def test_a_null_metric_reads_as_nothing_and_a_boolean_is_not_a_number():
     assert (odd.leverage, odd.level) == (None, None)
 
 
-def test_the_primer_reports_what_is_in_progress_and_nothing_stale_or_ready_to_close():
+def test_the_primer_reports_what_is_in_progress_its_staleness_and_nothing_ready_to_close():
     report = attention_from(envelope("prime")["data"])
 
+    # Stale because the child's last update is more than 14 days before the recording.
     assert [one.id for one in report.in_progress] == ["pro-01m2bbbbbbbb"]
-    assert not report.ready_to_close and not report.stale
+    assert [one.id for one in report.stale] == ["pro-01m2bbbbbbbb"]
+    assert not report.ready_to_close
 
 
 def test_a_stale_flag_on_an_in_progress_entry_makes_it_stale_and_ready_to_close_is_read():
@@ -239,3 +243,81 @@ def test_a_node_seen_before_is_flagged_and_a_node_with_no_id_is_refused():
     assert node.seen_before and not node.deps
     with pytest.raises(UnreadableBacklog, match="no id"):
         dependency_from({"title": "nameless"})
+
+
+def test_a_shown_ticket_carries_its_documents_owned_by_it_with_nothing_unread_invented():
+    parent = ticket_from(envelope("show-parent")["data"])
+
+    assert {one.id for one in parent.documents} == {
+        "pro-01m2aaaaaaaa-d2plan",
+        "pro-01m2aaaaaaaa-d7spec",
+    }
+    assert all(one.ticket == parent.id for one in parent.documents)
+    assert all(
+        (one.created, one.updated, one.body) == (None, None, None) for one in parent.documents
+    )
+    assert not parent.doc_types
+
+
+def test_a_listing_row_carries_the_types_it_owns_and_a_row_owning_none_carries_none():
+    rows = {one.id: one for one in tickets_from(envelope("list")["data"], attempting="listing")}
+
+    assert rows["pro-01m2aaaaaaaa"].doc_types == ("plan", "spec")
+    assert not rows["pro-01m2dddddddd"].doc_types
+    assert not rows["pro-01m2aaaaaaaa"].documents
+
+
+def test_the_project_reads_its_document_types_requirements_and_count():
+    project = project_from(envelope("info")["data"])
+
+    assert project.doc_types == ("spec", "plan", "other")
+    assert project.required_docs == (("in_progress", ("spec", "plan")),)
+    assert project.doc_count == 4
+
+
+def test_a_requirement_for_an_undeclared_status_follows_the_declared_ones():
+    stated = envelope("info")["data"]
+    stated["allowed_values"]["required_docs"] = {"review": ["plan"], "in_progress": ["spec"]}
+
+    project = project_from(stated)
+
+    assert project.required_docs == (("in_progress", ("spec",)), ("review", ("plan",)))
+
+
+def test_a_document_list_is_read_with_times_and_no_body():
+    listed = documents_from(envelope("document-list")["data"], attempting="document list")
+
+    assert len(listed) == 2
+    assert all(one.created and one.updated and one.body is None for one in listed)
+    assert all(one.ticket == "pro-01m2aaaaaaaa" for one in listed)
+
+
+def test_a_shown_document_carries_its_body_and_an_empty_body_stays_empty():
+    shown = document_from(envelope("document-show")["data"])
+    empty = document_from(
+        {"id": "x-d1", "ticket": "x", "title": "", "type": None, "created": "", "body": ""}
+    )
+    null = document_from({"id": "x-d2", "created": None, "updated": None, "body": None})
+
+    assert shown.id == "pro-01m2aaaaaaaa-d7spec" and "| a | b |" in (shown.body or "")
+    assert (empty.created, empty.body, empty.type) == ("", "", "")
+    assert (null.created, null.updated, null.body) == (None, None, None)
+
+
+def test_a_document_with_no_id_or_a_document_list_that_is_not_one_is_refused():
+    with pytest.raises(UnreadableBacklog, match="a document was stated with no id"):
+        document_from({"title": "x"})
+    with pytest.raises(UnreadableBacklog, match="rather than a list of documents"):
+        documents_from(["x"], attempting="document list")
+
+
+def test_the_recorded_child_lacks_its_plan_and_the_orphan_lacks_both():
+    project = project_from(envelope("info")["data"])
+    child = ticket_from(envelope("show-child")["data"])
+    rows = {one.id: one for one in tickets_from(envelope("list")["data"], attempting="listing")}
+
+    assert project.missing_documents(child) == (("in_progress", ("plan",)),)
+    assert project.missing_documents(rows["pro-01m2dddddddd"]) == (
+        ("in_progress", ("spec", "plan")),
+    )
+    assert project.types_of(rows["pro-01m2aaaaaaaa"]) == ("spec", "plan")

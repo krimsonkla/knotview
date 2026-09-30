@@ -1,3 +1,12 @@
+---
+id: kno-01m2ebf3c8mx-dtqxc
+ticket: kno-01m2ebf3c8mx
+title: Test coverage design spec
+type: spec
+created: '2026-09-30T00:16:17.725934Z'
+updated: '2026-09-30T00:16:28.607883Z'
+---
+
 # kno-01m2ebf3c8mx — Test coverage: the reading and panel layers, to the 100 percent gate
 
 ## Changes Since Last Cycle

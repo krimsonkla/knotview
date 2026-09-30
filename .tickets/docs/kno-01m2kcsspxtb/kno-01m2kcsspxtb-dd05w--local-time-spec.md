@@ -1,3 +1,12 @@
+---
+id: kno-01m2kcsspxtb-dd05w
+ticket: kno-01m2kcsspxtb
+title: Local time design spec
+type: spec
+created: '2026-09-30T00:16:18.500343Z'
+updated: '2026-09-30T00:16:29.310252Z'
+---
+
 # kno-01m2kcsspxtb — Local time spec
 
 Story: kno-01m2kcsspxtb, "Show dates and times in the reader's local timezone". Date: 2026-09-15.

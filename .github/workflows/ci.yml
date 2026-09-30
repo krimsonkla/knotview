@@ -31,6 +31,8 @@ jobs:
           uv pip install --python /tmp/wheel-venv/bin/python dist/*.whl
           /tmp/wheel-venv/bin/python -c "import knotview.panel.app as a, pathlib as p; d = p.Path(a.__file__).parent; assert (d / 'templates' / 'layout.html').is_file() and (d / 'static' / 'panel.css').is_file(); print('packaged')"
 
+  # Checks the recorded envelopes against the pinned knot. It verifies and never records: the
+  # recordings are made by tests/reading/record_envelopes.py and committed.
   fidelity:
     name: the real knot against the recorded envelopes
     runs-on: ubuntu-latest
@@ -54,9 +56,9 @@ jobs:
           BB_TARBALL_SHA256: 747b4c8161116c5758c39c4d585dc13c42c71fb7203126674d9ca2e25e6340fd
           BBIN_VERSION: v0.2.5
           BBIN_SHA256: ef3436fff67850423dec28333d69a67f5be0da075e2ac93c39fcf278d69b625b
-          # v0.12.0, resolved to the commit it pointed at. A tag can be moved;
+          # v0.15.0, resolved to the commit it pointed at. A tag can be moved;
           # bbin accepts a sha, so the sha is what gets pinned.
-          KNOT_SHA: 5c2a42062e94809b1a51df372cab78f9f750fe52
+          KNOT_SHA: 9956d45f8297c0eb3a0f1650fcbb5397ea70e408
         run: |
           set -euo pipefail
 
@@ -85,11 +87,11 @@ jobs:
           export PATH="$HOME/.local/bin:$HOME/.babashka/bbin/bin:$PATH"
           bbin install https://github.com/UniSoma/knot.git --git/sha "$KNOT_SHA"
           knot --help | head -1
+      - name: the installed knot is the one the recordings were made from
+        run: test "$(knot --version)" = "0.15.0"
       - name: a git identity, which knot reads as the default assignee
         run: |
           git config --global user.name probe
           git config --global user.email probe@example.invalid
       - run: uv sync --all-groups
       - run: uv run pytest -m slow --no-cov -v
-        env:
-          KNOT_VERSION: v0.12.0

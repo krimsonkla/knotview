@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass, field
 
 from knotview.values.criterion import Criterion
+from knotview.values.document import Document
 from knotview.values.note import Note
 from knotview.values.reference import Reference
 
@@ -56,6 +57,11 @@ class Ticket:  # pylint: disable=too-many-instance-attributes
     coupling: int | None = None
     level: int | None = None
     component: int | None = None
+    # The documents the ticket owns, raw as knot states them: `documents` from a read of the one
+    # ticket, `doc_types` from a listing row. Neither command gives both, so pages read them through
+    # Project.types_of and Project.ordered rather than here.
+    documents: tuple[Document, ...] = ()
+    doc_types: tuple[str, ...] = ()
 
     @property
     def met(self) -> int:

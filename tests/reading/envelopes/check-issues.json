@@ -6,7 +6,9 @@
             {
                 "severity": "error",
                 "code": "unknown_id",
-                "ids": ["pro-01m2bbbbbbbb"],
+                "ids": [
+                    "pro-01m2bbbbbbbb"
+                ],
                 "field": "deps",
                 "value": "pro-01m2zzzzzzzz",
                 "message": "unknown id \"pro-01m2zzzzzzzz\" referenced by \"pro-01m2bbbbbbbb\" via :deps"
@@ -14,7 +16,8 @@
         ],
         "scanned": {
             "live": 3,
-            "archive": 1
+            "archive": 1,
+            "docs": 4
         }
     }
 }

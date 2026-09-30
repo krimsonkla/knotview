@@ -45,6 +45,7 @@ if verb == "info":
         "tickets_dir": ".tickets",
         "tickets_path": tickets,
         "archive_path": tickets + "/archive",
+        "docs_path": os.environ.get("KNOTVIEW_FAKE_DOCS") or tickets + "/docs",
     }}
     print(json.dumps(held))
     sys.exit(0)
@@ -59,6 +60,34 @@ if verb == "check":
         sys.exit(1)
     if which == "error":
         say("not-found", 1)
+    if which == "documents":
+        # As knot 0.15 states document issues: absolute paths, one inside the project and one
+        # outside it, and a warning whose id is a ticket's.
+        root = str(Path(os.environ["KNOTVIEW_FAKE_TICKETS"]).parent)
+        issues = [
+            {{
+                "severity": "error",
+                "code": "invalid_doc_type",
+                "ids": ["pro-01m2aaaaaaaa-d5memo"],
+                "path": root + "/.tickets/docs/pro-01m2aaaaaaaa/pro-01m2aaaaaaaa-d5memo--memo.md",
+                "message": "document has type memo",
+            }},
+            {{
+                "severity": "error",
+                "code": "doc_unknown_ticket",
+                "ids": ["pro-01m2zzzzzzzz-d1x"],
+                "path": "/elsewhere/docs/pro-01m2zzzzzzzz/pro-01m2zzzzzzzz-d1x--orphan.md",
+                "message": "names a ticket that resolves to no ticket",
+            }},
+            {{
+                "severity": "warning",
+                "code": "legacy_documents_section",
+                "ids": ["pro-01m2aaaaaaaa"],
+                "message": "a body carries a Documents heading",
+            }},
+        ]
+        print(json.dumps({{"schema_version": 1, "ok": False, "data": {{"issues": issues}}}}))
+        sys.exit(1)
     if which == "bare":
         print(json.dumps({{"schema_version": 1, "ok": True, "data": {{}}}}))
         sys.exit(0)
@@ -69,6 +98,22 @@ if verb == "dep" and len(sys.argv) > 2 and sys.argv[2] == "tree":
     absent = {{"id": sys.argv[-1], "missing": True}}
     print(json.dumps({{"schema_version": 1, "ok": True, "data": absent}}))
     sys.exit(0)
+if verb == "document" and len(sys.argv) > 2 and sys.argv[2] == "list":
+    if sys.argv[-1] == "pro-01m2aaaaaaaa":
+        say("document-list")
+    say("not-found", 1)
+if verb == "document" and len(sys.argv) > 2 and sys.argv[2] == "show":
+    if sys.argv[-1] == "pro-01m2aaaaaaaa-d7spec":
+        say("document-show")
+    if sys.argv[-1] == "pro-01m2aaaaaaaa-d":
+        refusal = {{"code": "ambiguous_doc", "message": "more than one document starts with it"}}
+        print(json.dumps({{"schema_version": 1, "ok": False, "error": refusal}}))
+        sys.exit(1)
+    if sys.argv[-1] == "refused":
+        refusal = {{"code": "invalid_argument", "message": "a selector knot will not take"}}
+        print(json.dumps({{"schema_version": 1, "ok": False, "error": refusal}}))
+        sys.exit(1)
+    say("document-not-found", 1)
 if verb == "show":
     wanted = sys.argv[-1]
     if wanted == "pro-01m2aaaaaaaa":

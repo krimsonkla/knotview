@@ -1,3 +1,12 @@
+---
+id: kno-01m2ebf3w4q3-d81ss
+ticket: kno-01m2ebf3w4q3
+title: Lint implementation plan
+type: plan
+created: '2026-09-30T00:16:17.973700Z'
+updated: '2026-09-30T00:16:28.833487Z'
+---
+
 # kno-01m2ebf3w4q3 Lint Implementation Plan
 
 **Goal:** `ruff check src tests` and `pylint src tests` report nothing, with no change to any

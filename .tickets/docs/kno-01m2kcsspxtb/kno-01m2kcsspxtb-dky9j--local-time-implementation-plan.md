@@ -1,3 +1,12 @@
+---
+id: kno-01m2kcsspxtb-dky9j
+ticket: kno-01m2kcsspxtb
+title: Local time implementation plan
+type: plan
+created: '2026-09-30T00:16:18.369621Z'
+updated: '2026-09-30T00:16:18.369621Z'
+---
+
 # kno-01m2kcsspxtb — Local time implementation plan
 
 **Goal:** every clock time on the panel reads in the reader's own zone, labelled, when the

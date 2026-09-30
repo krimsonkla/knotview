@@ -1,10 +1,10 @@
-"""The panel: every route a GET, every answer a page or a stream."""
+"""The panel: every route a GET, every answer a page, a redirect, or a digest."""
 
-import asyncio
 import hashlib
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, Request
 from fastapi.responses import (
@@ -12,39 +12,31 @@ from fastapi.responses import (
     PlainTextResponse,
     RedirectResponse,
     Response,
-    StreamingResponse,
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from knotview.panel.overview import Overview
+from knotview.panel.prose import outlined
 from knotview.panel.prose import rendered as prose
 from knotview.panel.selection import ANY, ORDERS, Selection
 from knotview.panel.tags import COOKIE, Tags
 from knotview.panel.tree import Tree
 from knotview.reading.backlog import Backlog
 from knotview.reading.snapshot import Snapshot
+from knotview.values.document import Document
+from knotview.values.missing_document import MissingDocument
 from knotview.values.missing_ticket import MissingTicket
 from knotview.values.ticket import Ticket
 from knotview.values.unreadable_backlog import UnreadableBacklog
 
 HERE = Path(__file__).resolve().parent
 
-# How often the live stream looks for a change. A backlog is edited by somebody's agent a few times
-# a minute at most, and the check is a directory walk over small files, so a second is responsive
-# without being a busy loop. The stream sends the digest rather than the data: the page asks for
-# what it needs, which keeps one code path for rendering whether a reader arrived or refreshed.
-HEARTBEAT = 1.0
-
 # The names a browser may address the panel by. It binds loopback, but a page on any other site
 # can still make a browser send requests to a loopback port under that site's own host name, and
 # the backlog would answer; refusing every host but these closes that door.
 HOSTS = ("127.0.0.1", "localhost", "[::1]")
-
-# What the stream sends when nothing has changed, so a proxy or a sleeping laptop does not decide
-# the connection is dead. A comment line is the server-sent-events way of saying nothing.
-KEEPALIVE = ": waiting\n\n"
 
 
 class Pages:
@@ -57,12 +49,16 @@ class Pages:
     Read-only, and structurally so: every route in ROUTES is a GET, there is no form, and the
     backlog port has no method that writes. The backlog stays driven by whatever writes it, and
     this watches.
+
+    Each page, and each page for a refusal, is a plain function rather than a coroutine. Its reads
+    start knot and wait for it, and FastAPI and Starlette run a plain handler in their thread pool,
+    so one page's reads do not hold every other request behind them. That also means the backlog
+    is read from several threads at once.
     """
 
-    def __init__(self, backlog: Backlog, *, templates: Jinja2Templates, heartbeat: float) -> None:
+    def __init__(self, backlog: Backlog, *, templates: Jinja2Templates) -> None:
         self.backlog = backlog
         self.templates = templates
-        self.heartbeat = heartbeat
 
     def _rendered(
         self, request: Request, template: str, *, status: int = 200, **context: object
@@ -89,9 +85,7 @@ class Pages:
         """Those tickets seen through the reader's chosen tags."""
         return _tags(request).narrow(tickets)
 
-    async def tags(
-        self, request: Request, add: str = "", drop: str = "", clear: str = ""
-    ) -> Response:
+    def tags(self, request: Request, add: str = "", drop: str = "", clear: str = "") -> Response:
         """Change the reader's chosen tags and go back to the page they were on.
 
         A GET like every other route, since it changes nothing about the backlog: the choice is
@@ -115,7 +109,7 @@ class Pages:
             answer.delete_cookie(COOKIE)
         return answer
 
-    async def missing(self, request: Request, refusal: MissingTicket) -> HTMLResponse:
+    def missing(self, request: Request, refusal: MissingTicket) -> HTMLResponse:
         """The page for a ticket that is not there: a 404 offering the list, not a 503."""
         return self._rendered(
             request,
@@ -125,7 +119,17 @@ class Pages:
             selection=Selection(),
         )
 
-    async def unreadable(self, request: Request, refusal: UnreadableBacklog) -> HTMLResponse:
+    def missing_document(self, request: Request, refusal: MissingDocument) -> HTMLResponse:
+        """The page for a document that is not there: a 404 offering the list, like a ticket's."""
+        return self._rendered(
+            request,
+            "unknown.html",
+            status=404,
+            looking_for=f"document called {refusal.identifier}",
+            selection=Selection(),
+        )
+
+    def unreadable(self, request: Request, refusal: UnreadableBacklog) -> HTMLResponse:
         """Say what could not be read and what to do about it, rather than a stack trace.
 
         A panel pointed at the wrong directory is the ordinary first mistake, and the page that
@@ -138,7 +142,7 @@ class Pages:
             status_code=503,
         )
 
-    async def overview(self, request: Request) -> HTMLResponse:
+    def overview(self, request: Request) -> HTMLResponse:
         """The backlog counted by type, by status and by priority, with the queues beside it.
 
         The overview carries the reader's selection through its links, so arriving from a filtered
@@ -170,13 +174,17 @@ class Pages:
             request,
             "overview.html",
             overview=Overview.over(seen),
-            selection=Selection.asked(project, dict(request.query_params)),
+            selection=Selection.asked(
+                project, dict(request.query_params), request.query_params.getlist("doc")
+            ),
         )
 
-    async def tickets(self, request: Request) -> HTMLResponse:
+    def tickets(self, request: Request) -> HTMLResponse:
         """Every ticket the filters admit, in the order asked for."""
         project = self.backlog.project()
-        selection = Selection.asked(project, dict(request.query_params))
+        selection = Selection.asked(
+            project, dict(request.query_params), request.query_params.getlist("doc")
+        )
         held = self.backlog.live() + (self.backlog.closed() if selection.closed else ())
         held = self._narrowed(request, held)
         if selection.deep and selection.query:
@@ -187,11 +195,13 @@ class Pages:
             request,
             "tickets.html",
             selection=selection,
-            tickets=selection.ordered(tuple(one for one in held if selection.matches(one))),
+            tickets=selection.ordered(
+                tuple(one for one in held if selection.matches(one, project))
+            ),
             counted=len(held),
         )
 
-    async def tree(self, request: Request) -> HTMLResponse:
+    def tree(self, request: Request) -> HTMLResponse:
         """What is filed under what, with each parent's progress counted."""
         return self._rendered(
             request,
@@ -200,7 +210,7 @@ class Pages:
             selection=Selection(),
         )
 
-    async def queue(self, request: Request, which: str) -> HTMLResponse:
+    def queue(self, request: Request, which: str) -> HTMLResponse:
         """One of knot's own queues: what is ready to start, or what is waiting on something."""
         queues = {"ready": self.backlog.ready, "blocked": self.backlog.blocked}
         if which not in queues:
@@ -220,17 +230,68 @@ class Pages:
             selection=Selection(),
         )
 
-    async def ticket(self, request: Request, identifier: str) -> HTMLResponse:
+    def ticket(self, request: Request, identifier: str) -> HTMLResponse:
         """One ticket in full: its sections, its criteria, its graph and its notes."""
         ticket = self.backlog.ticket(identifier)
+        project = self.backlog.project()
         return self._rendered(
             request,
             "ticket.html",
             ticket=ticket,
             parent=self._parent_of(ticket),
             dependencies=self.backlog.dependencies(ticket.id),
+            documents=project.ordered(self._documents_of(ticket)),
+            # knot checks required documents only on a move, and a closed ticket makes none.
+            missing_types=project.missing_by_type(ticket) if project.is_live(ticket) else (),
             selection=Selection(),
         )
+
+    def _documents_of(self, ticket: Ticket) -> tuple[Document, ...]:
+        """A ticket's documents with their times, or as `show` stated them if knot will not list.
+
+        Wider than `_parent_of`, which catches only a missing ticket: `show` has already read this
+        ticket, so any refusal left is about its documents, and the times they would add are not
+        worth a page that no longer renders.
+        """
+        try:
+            return self.backlog.documents(ticket.id)
+        except UnreadableBacklog:
+            return ticket.documents
+
+    def document(self, request: Request, identifier: str) -> HTMLResponse:
+        """One document in full, with its ticket's other documents a tab away.
+
+        The document is the one read that must succeed. Its ticket's title and its siblings are
+        read after, and a ticket knot cannot find leaves the page with the bare id and the one
+        document rather than a 404 about a ticket for a document knot has just shown in full.
+        """
+        document = self.backlog.document(identifier)
+        project = self.backlog.project()
+        owner, siblings = self._owner_of(document)
+        body, outline = outlined(document.body) if document.body else ("", ())
+        # Compared by the id knot answered with, never the one asked for: knot resolves a start
+        # of an id, and the page must mark the document it resolved to.
+        ordered = project.ordered(siblings or (document,))
+        position = next((at for at, one in enumerate(ordered, 1) if one.id == document.id), 1)
+        return self._rendered(
+            request,
+            "document.html",
+            document=document,
+            owner=owner,
+            documents=ordered,
+            groups=_grouped(ordered),
+            position=position,
+            body=body,
+            outline=outline,
+            selection=Selection(),
+        )
+
+    def _owner_of(self, document: Document) -> tuple[Ticket | None, tuple[Document, ...]]:
+        """The ticket a document belongs to and every document it owns, or nothing of either."""
+        try:
+            return self.backlog.ticket(document.ticket), self.backlog.documents(document.ticket)
+        except MissingTicket:
+            return None, ()
 
     def _parent_of(self, ticket: Ticket) -> Ticket | None:
         """The ticket this one is filed under, read in full, or nothing if it names none.
@@ -246,23 +307,9 @@ class Pages:
         except MissingTicket:
             return None
 
-    async def digest(self) -> str:
+    def digest(self) -> str:
         """What the backlog looks like right now, as one short value the page can compare."""
         return self.backlog.digest()
-
-    async def live(self) -> StreamingResponse:
-        """A one-way stream that says when the backlog changed, and never what to do about it.
-
-        One direction by construction: a stream that cannot carry a command keeps the read-only
-        guarantee structural rather than conventional. It sends the digest, and the page decides
-        to reload; the server never pushes markup, so there is one rendering path whether a
-        reader arrived, refreshed, or was told something moved.
-        """
-        return StreamingResponse(
-            _changes(self.backlog, self.heartbeat),
-            media_type="text/event-stream",
-            headers={"cache-control": "no-store", "x-accel-buffering": "no"},
-        )
 
 
 # The route table, written out as data so the surface can be read in one place and asserted by
@@ -275,13 +322,13 @@ ROUTES: tuple[tuple[str, str, type[Response] | None], ...] = (
     ("/tree", "tree", HTMLResponse),
     ("/queue/{which}", "queue", HTMLResponse),
     ("/ticket/{identifier}", "ticket", HTMLResponse),
+    ("/document/{identifier}", "document", HTMLResponse),
     ("/digest", "digest", PlainTextResponse),
-    ("/live", "live", None),
     ("/tags", "tags", None),
 )
 
 
-def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
+def panel(backlog: Backlog) -> FastAPI:
     """The panel over one backlog.
 
     Built around an injected backlog rather than reaching for knot itself, which is what lets
@@ -294,33 +341,33 @@ def panel(backlog: Backlog, *, heartbeat: float = HEARTBEAT) -> FastAPI:
     templates.env.filters["humanise"] = _humanise
     templates.env.filters["prose"] = prose
     templates.env.filters["ago"] = _ago
+    templates.env.filters["segment"] = _segment
     templates.env.tests["instant"] = _is_instant
     templates.env.globals["assets"] = _asset_stamp(HERE / "static")
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
-    pages = Pages(backlog, templates=templates, heartbeat=heartbeat)
+    pages = Pages(backlog, templates=templates)
     app.add_exception_handler(UnreadableBacklog, pages.unreadable)
     app.add_exception_handler(MissingTicket, pages.missing)
+    app.add_exception_handler(MissingDocument, pages.missing_document)
     for path, name, response_class in ROUTES:
         chosen = {"response_class": response_class} if response_class else {}
         app.add_api_route(path, getattr(pages, name), methods=["GET"], **chosen)
     return app
 
 
-async def _changes(backlog: Backlog, heartbeat: float):
-    """Yield an event whenever the backlog's digest moves, and a comment while it does not."""
-    last = None
-    while True:
-        try:
-            current = backlog.digest()
-        except UnreadableBacklog as refusal:
-            yield f"event: unreadable\ndata: {refusal.message}\n\n"
-            return
-        if current != last:
-            last = current
-            yield f"event: changed\ndata: {current}\n\n"
+def _grouped(ordered: tuple[Document, ...]) -> tuple[tuple[str, tuple[Document, ...]], ...]:
+    """Documents in runs of one type, keeping the order given rather than sorting by type name.
+
+    Jinja's own groupby sorts by the key, which would put "other" above "spec"; the order a
+    project declares its types in is decided once, by `Project.ordered`, and kept here.
+    """
+    runs: list[tuple[str, list[Document]]] = []
+    for one in ordered:
+        if runs and runs[-1][0] == one.type:
+            runs[-1][1].append(one)
         else:
-            yield KEEPALIVE
-        await asyncio.sleep(heartbeat)
+            runs.append((one.type, [one]))
+    return tuple((kind, tuple(owned)) for kind, owned in runs)
 
 
 def _among(tickets: tuple[Ticket, ...], kept: set[str]) -> tuple[Ticket, ...]:
@@ -397,6 +444,15 @@ def _ago(stamped: str | None, now: datetime | None = None) -> str:
     if minutes < 60 * 24:
         return f"{minutes // 60} h ago"
     return f"{minutes // (60 * 24)} d ago"
+
+
+def _segment(identifier: str) -> str:
+    """An id made safe as one path segment, slashes included, which Jinja's urlencode keeps.
+
+    knot writes ids it makes from safe characters, but reads whatever a hand-edited file names,
+    and an id with a `#`, `?` or `/` in it would otherwise link somewhere other than itself.
+    """
+    return quote(identifier, safe="")
 
 
 def _humanise(stamped: str | None) -> str:

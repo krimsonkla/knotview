@@ -1,3 +1,12 @@
+---
+id: kno-01m2ebf3c8mx-d55sa
+ticket: kno-01m2ebf3c8mx
+title: Test coverage brainstorm
+type: other
+created: '2026-09-30T00:16:17.479551Z'
+updated: '2026-09-30T00:16:17.479551Z'
+---
+
 # kno-01m2ebf3c8mx — Test coverage brainstorm
 
 Story: kno-01m2ebf3c8mx, "Test coverage: the reading and panel layers are untested against a

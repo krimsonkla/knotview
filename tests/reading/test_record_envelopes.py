@@ -1,0 +1,80 @@
+"""The recorder's guard and its refusal, which run without knot.
+
+A recording that carries the recorder's home directory, scratch directory or name would be
+committed into the repository with nothing failing, and a clean check that reports an issue would
+make every test built on it meaningless. So the recorder refuses both, and writes nothing when it
+does; these tests hold it to that without a knot binary.
+"""
+
+from pathlib import Path
+
+import pytest
+
+from tests.reading import record_envelopes
+from tests.reading.probe import TICKETS, write_probe
+from tests.reading.record_envelopes import (
+    CLEAN_TICKETS,
+    finish,
+    forbidden_strings,
+    leaks,
+    vetted,
+)
+
+CLEAN = '{"ok": true, "data": {"issues": []}}'
+
+
+def test_a_leak_is_named_by_recording_and_string():
+    found = leaks({"info": '{"p": "/tmp/xyz/probe/.tickets"}', "list": "[]"}, {"/tmp/xyz", "alice"})
+
+    assert found == [("info", "/tmp/xyz")]
+
+
+def test_an_empty_or_missing_forbidden_string_is_not_searched_for():
+    assert not leaks({"info": "anything"}, {"", None})
+
+
+def test_a_dirty_clean_check_refuses_and_a_clean_set_passes():
+    dirty = '{"ok": false, "data": {"issues": [{"code": "doc_unknown_ticket"}]}}'
+
+    assert not vetted({"check-clean": CLEAN}, {"/tmp/x"})
+    assert vetted({"check-clean": dirty}, {"/tmp/x"}) == ["check-clean reports 1 issue"]
+    assert vetted({"check-clean": CLEAN, "info": "/tmp/x/a"}, {"/tmp/x"}) == [
+        "info contains /tmp/x"
+    ]
+
+
+def test_a_refused_set_writes_nothing_and_a_clean_one_writes_everything():
+    written: list[str] = []
+
+    assert finish({"check-clean": CLEAN, "info": "/tmp/x"}, {"/tmp/x"}, written.append) == 1
+    assert not written
+    assert finish({"check-clean": CLEAN, "info": "ok"}, {"/tmp/x"}, written.append) == 0
+    assert sorted(written) == ["check-clean", "info"]
+
+
+def test_the_forbidden_strings_are_both_scratch_spellings_the_home_and_the_git_name(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.setattr(record_envelopes, "git_user_name", lambda: "Someone Real")
+    link = tmp_path / "link"
+    link.symlink_to(tmp_path / "..")
+
+    forbidden = forbidden_strings(str(link))
+
+    assert forbidden == {
+        str(link),
+        str(link.resolve()),
+        str(Path.home()),
+        "Someone Real",
+    }
+
+
+def test_the_clean_probe_names_tickets_that_exist():
+    assert set(CLEAN_TICKETS) <= set(TICKETS)
+
+
+def test_a_document_that_does_not_name_its_owner_is_refused(tmp_path: Path):
+    with pytest.raises(ValueError, match="is not docs/"):
+        write_probe(tmp_path, {}, {"pro-01m2aaaaaaaa/loose.md": "x"})
+    with pytest.raises(ValueError, match="is not docs/"):
+        write_probe(tmp_path, {}, {"docs/pro-01m2aaaaaaaa/other-d1--x.md": "x"})
