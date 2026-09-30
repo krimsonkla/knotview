@@ -6,6 +6,7 @@ import pytest
 
 from knotview.reading.knot_command import LINKED, TICKET_CODES, _issue
 from knotview.values.issue import Issue
+from tests.reading.envelopes import envelope
 
 ROOT = Path("/work/project")
 MEMO = "/work/project/.tickets/docs/pro-1/pro-1-d5memo--memo.md"
@@ -137,3 +138,16 @@ def test_an_unknown_id_links_its_holder_and_leaves_the_missing_target_in_the_mes
     issue = _issue(stated_issue, ROOT)
 
     assert issue.ticket_ids == ("pro-1",) and "pro-gone" in issue.text
+
+
+def test_every_code_in_a_committed_check_recording_has_been_classified():
+    """A code knot renames or adds reaches the panel first through a re-recording; this fails
+    there rather than letting the new code be shown unlinked without anyone deciding so."""
+    classified = TICKET_CODES | LINKED | set(NEITHER)
+    recorded = {
+        issue["code"]
+        for name in ("check-issues", "check-clean")
+        for issue in envelope(name)["data"]["issues"]
+    }
+
+    assert recorded and recorded <= classified
