@@ -6,13 +6,13 @@ type: task
 priority: 2
 mode: afk
 created: '2026-09-29T20:32:26.700764Z'
-updated: '2026-09-30T03:30:14.497638Z'
+updated: '2026-09-30T03:52:35.363611Z'
 assignee: Jason Risch
 acceptance:
 - title: The CI fidelity job fails when a committed recording differs from a fresh recording
   done: false
 - title: The recorder can write to a directory other than tests/reading/envelopes
-  done: false
+  done: true
 ---
 
 ## Description
@@ -32,3 +32,19 @@ Record a check issue carrying `path`. After kno-01m3q9rx099f the panel reads an 
 **2026-09-30T03:30:14.497638Z**
 
 Starting work on this task.
+
+**2026-09-30T03:45:05.226554Z**
+
+Done in 7d8821c and be908dc:
+- The recorder gains --check. It records exactly as a write does, through the same guard, and compares each recording with its committed *.json byte for byte. It names each difference with a diff, each missing or unrecorded file, and the command that re-records.
+- CI's fidelity job runs --check as its own named step against the pinned knot.
+- The scrub replaces every spelling of the scratch directory anywhere in a recording, longest first.
+- A faults probe records check-documents: doc_unknown_ticket and invalid_doc_type with their document ids and paths, and legacy_documents_section with a ticket id. The reader test and the real-knot test both read them.
+
+The first /code-review high found that CI's git name "probe" matched every scrubbed /probe path, so --check would have refused every run. The guard now skips forbidden strings the scrub's placeholders contain. That was reproduced before and after the fix, and the re-review found nothing.
+
+The brainstorm, spec and plan are attached to this ticket as documents.
+
+**2026-09-30T03:52:35.363611Z**
+
+Acceptance criteria ticked as verified: The recorder can write to a directory other than tests/reading/envelopes
