@@ -139,7 +139,7 @@ def test_a_ticket_file_with_no_id_leaves_the_rest_of_the_backlog_readable(tmp_pa
     command = KnotCommand(repository=tmp_path)
 
     assert "pro-01m2aaaaaaaa" in [one.id for one in command.live()]
-    assert command.ready() and command.blocked() is not None
+    assert command.ready() and "pro-01m2bbbbbbbb" in [one.id for one in command.blocked()]
     assert "missing_required_field" in [
         issue.text.split(":")[0].split()[-1] for issue in command.integrity()
     ]
