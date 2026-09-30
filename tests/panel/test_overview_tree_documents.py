@@ -88,8 +88,9 @@ def test_no_documents_card_when_the_chosen_tag_leaves_no_ticket_owning_one(clien
 def test_a_type_row_links_to_that_type_alone_whatever_was_chosen(client):
     text = page(client, "/?doc=plan&nodocs=1&type=task")
 
+    # The overview ignores its URL (kno-01m3qneqctfh), so the row carries its type and nothing else.
     card = section(text, "<h2>by document</h2>", "</ul>")
-    assert '<a href="/tickets?type=task&amp;doc=spec">spec</a>' in card
+    assert '<a href="/tickets?doc=spec">spec</a>' in card
 
 
 def test_the_footer_counts_the_projects_documents_zero_included(client):

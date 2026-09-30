@@ -44,6 +44,8 @@
         <span class="num">{{ tally.count }}</span>
       </li>
       {% endfor %}
+      {# The terminal rows build closed=1 themselves: it is what these rows mean, not a filter
+      carried from the page's URL, which the overview ignores. #}
       {% for tally in overview.by_terminal %}
       <li>
         <a href="/tickets?{{ selection.query_string(closed='1', status=tally.value) }}"
