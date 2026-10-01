@@ -104,10 +104,13 @@ def test_an_unknown_value_shows_every_child(client):
     assert len(order(page(client, "?children=bogus"))) == 9
 
 
-def test_no_closed_child_means_no_toggle(client):
+def test_no_closed_child_means_no_toggle_even_when_the_url_asks_to_hide(client):
+    """A kept link to the hidden view, once every closed child was reopened, draws the plain
+    card rather than "2 of 2" and a toggle that changes nothing."""
     young = ticket("pro-01m2epic0000", type="epic", children=CHILDREN[1:2] + CHILDREN[4:5])
 
     assert heading(page(client, epic=young)) == "children 2"
+    assert heading(page(client, "?children=live", epic=young)) == "children 2"
 
 
 def test_no_link_but_the_toggle_carries_the_choice(client):

@@ -238,9 +238,12 @@ class Pages:
         # The one parameter this page owns. Only "live" hides anything, so a stale or mistyped
         # value shows every child rather than hiding some for a reason the reader cannot see; and
         # no other link on the page carries it.
-        hiding = request.query_params.get("children") == "live"
         children = project.by_status(ticket.children)
         closed = tuple(one for one in children if one.status in project.terminal_statuses)
+        live = tuple(one for one in children if one.status not in project.terminal_statuses)
+        # Hiding only where there is something to hide: a kept link, after the closed children
+        # were reopened, otherwise shows "3 of 3" and a toggle that changes nothing.
+        hiding = request.query_params.get("children") == "live" and bool(closed)
         siblings = project.by_status(
             one for one in (parent.children if parent else ()) if one.id != ticket.id
         )
@@ -249,7 +252,7 @@ class Pages:
             "ticket.html",
             ticket=ticket,
             parent=parent,
-            children=tuple(one for one in children if one not in closed) if hiding else children,
+            children=live if hiding else children,
             children_total=len(children),
             children_closed=len(closed),
             hiding_closed=hiding,
