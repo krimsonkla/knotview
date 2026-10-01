@@ -3,6 +3,7 @@
 from dataclasses import replace
 
 from knotview.values.document import Document
+from knotview.values.reference import Reference
 from tests.panel.declared import PROJECT, ticket
 
 
@@ -96,3 +97,16 @@ def test_missing_types_are_grouped_by_type_in_declared_order_with_every_status_n
 def test_a_ticket_is_live_unless_its_status_is_terminal():
     assert DOCUMENTED.is_live(ticket("a", status="open"))
     assert not DOCUMENTED.is_live(ticket("b", status="closed"))
+
+
+def test_references_sort_by_declared_status_then_undeclared_then_missing_whatever_the_input():
+    """Missing is its own key, ahead of the status rank, so a missing reference listed before an
+    undeclared one still sorts last; within a status, the given order is kept."""
+    gone = Reference(id="g", title="", status="", missing=True)
+    odd = Reference(id="u", title="", status="parked")
+    first, second = (Reference(id=name, title="", status="open") for name in ("o1", "o2"))
+    shut = Reference(id="c", title="", status="closed")
+
+    ordered = DOCUMENTED.by_status((gone, shut, odd, first, second))
+
+    assert [one.id for one in ordered] == ["o1", "o2", "c", "u", "g"]
