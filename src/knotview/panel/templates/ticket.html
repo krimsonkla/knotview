@@ -83,58 +83,75 @@ block main %}
   </section>
   {% endfor %}
 
-  <section class="graph">
-    {# Each card's rows are its references, then any extra rows: only "blocked by" has extras, a
-    ticket's missing required documents, since a document is not a ticket to reference. #}
-    {% for label, references, extras in (("blocked by", ticket.blockers, missing_types), ("blocking",
-    ticket.blocking, ()), ("children", ticket.children, ()), ("linked", ticket.linked, ()))
-    %} {% if references or extras %}
-    <div class="card">
-      <h2>
-        {{ label }}
-        <span
-          class="num"
-          {% if extras %}title="the tickets blocking this, and the required documents it lacks"{% endif %}
-          >{{ references | length + extras | length }}</span
+  {# One card of references, then any extra rows: only "blocked by" has extras, a ticket's missing
+  required documents, since a document is not a ticket to reference. The heading's number and any
+  toggle are passed in, so the children card can count what it hides. #}
+  {% macro reference_card(label, references, extras=(), count=none, toggle=none, kept=false) %}
+  {% if references or extras or kept %}
+  <div class="card">
+    <h2>
+      {{ label }}
+      <span
+        class="num"
+        {% if extras %}title="the tickets blocking this, and the required documents it lacks"{% endif %}
+        >{{ count if count is not none else references | length + extras | length }}</span
+      >
+      {% if toggle %}<a class="toggle" href="{{ toggle[0] }}">{{ toggle[1] }}</a>{% endif %}
+    </h2>
+    <ul class="refs">
+      {% for reference in references %}
+      <li>
+        {% if reference.missing %}
+        <span class="chip muted">missing</span>
+        <span class="muted">no ticket has this id</span>
+        {% else %}
+        <a
+          class="chip status-{{ reference.status }}"
+          href="/ticket/{{ reference.id }}"
+          >{{ reference.status }}</a
         >
-      </h2>
-      <ul class="refs">
-        {% for reference in references %}
-        <li>
-          {% if reference.missing %}
-          <span class="chip muted">missing</span>
-          <span class="muted">no ticket has this id</span>
-          {% else %}
-          <a
-            class="chip status-{{ reference.status }}"
-            href="/ticket/{{ reference.id }}"
-            >{{ reference.status }}</a
-          >
-          <a href="/ticket/{{ reference.id }}">{{ reference.title }}</a>
-          {% endif %}
-          <span class="id">{{ reference.id }}</span>
-        </li>
-        {% endfor %}
-        {% for kind, statuses in extras %}
-        <li class="lacking">
-          <span class="doctype missing">{{ kind }}</span>
-          <span>no {{ kind }} attached</span>
-          <span class="muted">needed to enter {{ statuses | join(", ") }}</span>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %} {% endfor %}
+        <a href="/ticket/{{ reference.id }}">{{ reference.title }}</a>
+        {% endif %}
+        <span class="id">{{ reference.id }}</span>
+      </li>
+      {% endfor %}
+      {% for kind, statuses in extras %}
+      <li class="lacking">
+        <span class="doctype missing">{{ kind }}</span>
+        <span>no {{ kind }} attached</span>
+        <span class="muted">needed to enter {{ statuses | join(", ") }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% endmacro %}
+
+  <section class="graph">
+    {{ reference_card("blocked by", ticket.blockers, missing_types) }}
+    {{ reference_card("blocking", ticket.blocking) }}
+    {# Children by status; the reader may hide the closed ones, and the card stays while it hides
+    any, so the way back is never hidden with them. Blocked by, blocking and linked keep knot's
+    order: children are the relation an epic's page exists to show. #}
+    {% if hiding_closed %}
+    {{ reference_card("children", children, count=(children | length) ~ " of " ~ children_total,
+       toggle=("/ticket/" ~ (ticket.id | segment), "show closed"), kept=children_closed > 0) }}
+    {% else %}
+    {{ reference_card("children", children,
+       toggle=("/ticket/" ~ (ticket.id | segment) ~ "?children=live",
+       "hide closed (" ~ children_closed ~ ")") if children_closed else none) }}
+    {% endif %}
+    {{ reference_card("linked", ticket.linked) }}
   </section>
 
-  {% if parent and parent.children | length > 1 %}
+  {% if siblings %}
   <section class="card">
     <h2>
       also under {{ parent.title }}
-      <span class="num">{{ parent.children | length - 1 }}</span>
+      <span class="num">{{ siblings | length }}</span>
     </h2>
     <ul class="refs">
-      {% for sibling in parent.children if sibling.id != ticket.id %}
+      {% for sibling in siblings %}
       <li>
         <a class="chip status-{{ sibling.status }}" href="/ticket/{{ sibling.id }}"
           >{{ sibling.status }}</a

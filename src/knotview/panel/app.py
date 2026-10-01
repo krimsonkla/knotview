@@ -234,11 +234,26 @@ class Pages:
         """One ticket in full: its sections, its criteria, its graph and its notes."""
         ticket = self.backlog.ticket(identifier)
         project = self.backlog.project()
+        parent = self._parent_of(ticket)
+        # The one parameter this page owns. Only "live" hides anything, so a stale or mistyped
+        # value shows every child rather than hiding some for a reason the reader cannot see; and
+        # no other link on the page carries it.
+        hiding = request.query_params.get("children") == "live"
+        children = project.by_status(ticket.children)
+        closed = tuple(one for one in children if one.status in project.terminal_statuses)
+        siblings = project.by_status(
+            one for one in (parent.children if parent else ()) if one.id != ticket.id
+        )
         return self._rendered(
             request,
             "ticket.html",
             ticket=ticket,
-            parent=self._parent_of(ticket),
+            parent=parent,
+            children=tuple(one for one in children if one not in closed) if hiding else children,
+            children_total=len(children),
+            children_closed=len(closed),
+            hiding_closed=hiding,
+            siblings=siblings,
             dependencies=self.backlog.dependencies(ticket.id),
             documents=project.ordered(self._documents_of(ticket)),
             # knot checks required documents only on a move, and a closed ticket makes none.
