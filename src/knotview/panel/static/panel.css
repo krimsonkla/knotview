@@ -655,3 +655,10 @@ th a.on {
 .outline li.sub {
   padding-left: 12px;
 }
+
+/* A card's own control, such as hiding an epic's closed children: quiet, at the heading's end. */
+.card h2 .toggle {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 400;
+}

@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from knotview.values.document import Document
+from knotview.values.reference import Reference
 from knotview.values.ticket import Ticket
 
 
@@ -102,6 +103,23 @@ class Project:  # pylint: disable=too-many-instance-attributes
         ticket moves, and a closed ticket makes no more moves.
         """
         return ticket.status not in self.terminal_statuses
+
+    def by_status(self, references: Iterable[Reference]) -> tuple[Reference, ...]:
+        """Those references in the order the project declares its statuses, open work first.
+
+        A status the project does not declare goes after every declared one, and a reference to no
+        ticket last of all. The sort is stable, so knot's own order is kept within each status.
+        """
+        last = len(self.statuses)
+        return tuple(
+            sorted(
+                references,
+                key=lambda one: (
+                    one.missing,
+                    self.statuses.index(one.status) if one.status in self.statuses else last,
+                ),
+            )
+        )
 
     def missing_by_type(self, ticket: Ticket) -> tuple[tuple[str, tuple[str, ...]], ...]:
         """Each type the ticket lacks, in declared order, with every status that needs it.
