@@ -22,8 +22,8 @@
 - `src/knotview/values/` frozen dataclasses: Ticket, Project, Criterion, Reference, Worktree, and
   the two refusals
 - `scripts/` maintenance tools outside the package and the coverage gate: `vendor_primer.py`
-  rebuilds the Primer tokens, `capture_screenshots.py` (with `capture_check.py`) rebuilds every
-  README image from a demo backlog
+  rebuilds the Primer tokens, `capture_screenshots.py` (with `capture_check.py`) rebuilds the
+  README's tour from a demo backlog
 - `tests/` mirrors `src/`; `tests/reading/envelopes/` holds JSON recorded from knot 0.15.0
 - `.tickets/docs/` each ticket's attached knot documents, including its brainstorm, spec and plan
 - `.tickets/` this project's own knot backlog, which is also the fixture it is developed against
@@ -141,5 +141,7 @@ page render's listing and never runs git.
   across visits (localStorage) on the tree and the overview's charts.
 - The worktree and pinned-tag cookies ignore the port, so a second panel on the same machine
   over the same directory shares them; a panel left on another worktree moves the others too.
-- README images are rebuilt with `uv run python -m scripts.capture_screenshots`; it needs
-  Chrome (`KNOTVIEW_CHROME` overrides the path) and Pillow from the dev group.
+- The README's one image, `docs/screenshots/tour.webp`, is rebuilt with
+  `uv run python -m scripts.capture_screenshots`; it needs Chrome (`KNOTVIEW_CHROME` overrides the
+  path) and Pillow from the dev group. Keep it the only image, so the README has one picture to
+  refresh and nothing per view to fall out of date.
