@@ -6,10 +6,12 @@ from dataclasses import dataclass
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-# CommonMark only, with raw HTML off: a ticket body is written by whoever writes tickets, agents
-# included, and a tag in it is text to show, not markup to run. Everything the renderer emits is
-# its own, which is why the templates may mark its result safe, and why nothing else is.
-_RENDERER = MarkdownIt("commonmark", {"html": False, "linkify": False})
+# CommonMark plus tables, with raw HTML off: a ticket body is written by whoever writes tickets,
+# agents included, and a tag in it is text to show, not markup to run. Tables are the one
+# extension, since tickets and documents use them and a table read as raw pipes is unreadable.
+# Everything the renderer emits is its own, which is why the templates may mark its result safe,
+# and why nothing else is.
+_RENDERER = MarkdownIt("commonmark", {"html": False, "linkify": False}).enable("table")
 
 # A ticket's own headings sit inside a card whose heading is the section name, so they are pushed
 # two levels down: a `#` in a body becomes an h3 under the section's h2, never a rival h1.
@@ -36,6 +38,20 @@ def rendered(text: str) -> str:
     page text escapes autoescaping is visible beside the filter that makes it safe to.
     """
     return _RENDERER.renderer.render(_walk(text, _DEMOTE), _RENDERER.options, {})
+
+
+def split(text: str, keep: int = 2) -> tuple[str, str]:
+    """The first `keep` top-level blocks as HTML, and everything after them, for a folded page.
+
+    Counted on the parsed tokens, so a list or a table is one block however many lines it takes,
+    and both halves come from the same renderer with raw HTML escaped. The rest is empty when the
+    text has no more than `keep` blocks, so a short text gets no fold.
+    """
+    tokens = _walk(text, _DEMOTE)
+    ends = [at for at, token in enumerate(tokens) if token.level == 0 and token.nesting <= 0]
+    cut = ends[keep - 1] + 1 if len(ends) > keep else len(tokens)
+    render = _RENDERER.renderer.render
+    return render(tokens[:cut], _RENDERER.options, {}), render(tokens[cut:], _RENDERER.options, {})
 
 
 def outlined(text: str) -> tuple[str, tuple[Outline, ...]]:
