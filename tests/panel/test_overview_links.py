@@ -54,7 +54,7 @@ def rows(page: str) -> list[tuple[str, str, int]]:
 
 def listed(page: str) -> int:
     """How many tickets a list or queue page draws."""
-    return page.count("<tr data-updated")
+    return page.count('class="kv-row" data-updated')
 
 
 @pytest.fixture(name="browser")

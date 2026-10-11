@@ -112,7 +112,7 @@
     In progress with every acceptance criterion ticked. knot's own advice is to
     close these before picking up new work.
   </p>
-  {% set tickets = overview.ready_to_close %} {% include "_ticket_table.html"
+  {% set tickets = overview.ready_to_close %} {% include "_rows.html"
   %}
 </section>
 {% endif %} {% if overview.stale %}
@@ -121,7 +121,7 @@
   <p class="muted">
     In progress for two weeks without a change: started, and stopped.
   </p>
-  {% set tickets = overview.stale %} {% include "_ticket_table.html" %}
+  {% set tickets = overview.stale %} {% include "_rows.html" %}
 </section>
 {% endif %}
 
@@ -152,7 +152,7 @@
     Everything something else is filed under, whatever this project calls that
     type.
   </p>
-  {% set tickets = overview.parents %} {% include "_ticket_table.html" %}
+  {% set tickets = overview.parents %} {% include "_rows.html" %}
 </section>
 
 <section class="card">
@@ -176,7 +176,7 @@
 
 <section class="card">
   <h2>recently closed</h2>
-  {% set tickets = overview.recently_closed %} {% include "_ticket_table.html"
+  {% set tickets = overview.recently_closed %} {% include "_rows.html"
   %}
 </section>
 {% endblock %}

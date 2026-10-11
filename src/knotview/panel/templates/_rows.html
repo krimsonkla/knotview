@@ -1,0 +1,8 @@
+{# A list of rows, used by every list so they cannot drift apart, or a plain empty state. #}
+{# Missing required documents show only where the including page asks: the lists and queues. #}
+{% set show_missing = show_missing is defined and show_missing %}
+<section class="kv-card kv-list">
+  {% for one in tickets %}{% include "_row.html" %}{% else %}
+  <p class="kv-row kv-muted">Nothing here.</p>
+  {% endfor %}
+</section>

@@ -1,0 +1,127 @@
+"""One row per ticket, everywhere a list of tickets is shown, and the filters above them."""
+
+import re
+from pathlib import Path
+
+from knotview.values.document import Document
+from tests.panel.declared import DeclaredBacklog, ticket
+
+STATIC = Path("src/knotview/panel/static")
+TAGGED = ticket(
+    "kno-r1",
+    type="task",
+    status="open",
+    tags=("teams",),
+    priority=1,
+    updated="2026-10-01T10:00:00.000000Z",
+    created="2026-09-01T10:00:00.000000Z",
+    leverage=4,
+    assignee="ada",
+)
+
+
+def _rows(page: str) -> list[str]:
+    """Each row's markup, from its opening tag to the next row or the list's end."""
+    return re.findall(
+        r'<div class="kv-row" data-updated=.*?(?=<div class="kv-row"|</section>|$)', page, re.S
+    )
+
+
+def _script(name: str) -> str:
+    """One static script's text."""
+    return (STATIC / name).read_text(encoding="utf-8")
+
+
+def test_a_row_shows_status_title_tags_id_type_time_assignee_and_priority(client):
+    page = client(DeclaredBacklog(live_value=(TAGGED,))).get("/tickets").text
+    (row,) = _rows(page)
+
+    assert 'class="kv-dot s-open" href="/tickets?status=open">open<' in row
+    assert ">teams<" in row and "kno-r1" in row and 'href="/tickets?type=task">task<' in row
+    assert re.search(r"updated <time class=\"ago\" datetime=\"2026-10-01T10:00:00.000000Z\"", row)
+    assert 'href="/tickets?assignee=ada">ada<' in row
+    assert 'class="kv-badge p1">P1<' in row
+    assert "blocked by" not in row and "acceptance" not in row
+
+
+def test_ordered_by_created_a_row_shows_when_it_was_created(client):
+    page = client(DeclaredBacklog(live_value=(TAGGED,))).get("/tickets?order=created").text
+
+    assert 'created <time class="ago" datetime="2026-09-01T10:00:00.000000Z"' in page
+
+
+def test_a_row_without_a_time_shows_none(client):
+    bare = ticket("kno-r3", updated=None, created=None)
+
+    (row,) = _rows(client(DeclaredBacklog(live_value=(bare,))).get("/tickets").text)
+
+    assert "<time" not in row
+
+
+def test_ordered_by_leverage_each_row_shows_its_leverage(client):
+    page = client(DeclaredBacklog(live_value=(TAGGED,))).get("/tickets?order=leverage").text
+
+    assert "leverage 4" in page
+
+
+def test_a_row_names_its_document_types_and_a_row_without_documents_names_none(client):
+    spec = Document(id="kno-r1-d1", ticket="kno-r1", title="Spec", type="spec")
+    owner = ticket("kno-r1", documents=(spec,))
+    other = ticket("kno-r2")
+
+    rows = _rows(client(DeclaredBacklog(live_value=(owner, other))).get("/tickets").text)
+
+    assert 'class="kv-chip doc"' in rows[0] and ">spec<" in rows[0]
+    assert 'class="kv-chip doc"' not in rows[1]
+
+
+def test_clearing_the_tag_pill_leaves_pinned_tags_in_force(client):
+    other = ticket("kno-r2", type="task", status="open")
+    browser = client(DeclaredBacklog(live_value=(TAGGED, other)))
+    browser.cookies.set("knotview_tags", "teams")
+
+    page = browser.get("/tickets").text
+
+    assert len(_rows(page)) == 1 and "kno-r2" not in page
+    assert 'class="kv-pinned"' in page
+
+
+def test_the_filter_form_applies_on_change_and_carries_a_visible_fallback_button(client):
+    page = client(DeclaredBacklog()).get("/tickets").text
+
+    assert '<form class="kv-filters" method="get" action="/tickets" data-auto>' in page
+    assert '<noscript><button type="submit">Apply</button></noscript>' in page
+    assert 'data-fold="more-filters"' in page
+    assert 'src="/static/fold.js?v=' in page
+
+
+def test_more_filters_opens_by_default_when_a_filter_inside_is_active(client):
+    page = client(DeclaredBacklog()).get("/tickets?mode=afk").text
+
+    assert (
+        '<details class="kv-more" data-fold="more-filters" data-fold-store="session" open>' in page
+    )
+
+
+def test_an_empty_list_says_so(client):
+    page = client(DeclaredBacklog(live_value=())).get("/tickets").text
+
+    assert "Nothing here." in page
+
+
+def test_follow_js_submits_the_whole_form_on_change_and_never_on_input():
+    script = _script("follow.js")
+
+    assert 'querySelectorAll("form[data-auto]")' in script
+    assert "new FormData(form)" in script and "location.replace" in script
+    assert '"input"' not in script
+    assert 'querySelectorAll("[data-updated]")' in script
+    assert "knotview:search:" in script
+
+
+def test_fold_js_matches_stored_ids_against_the_page_and_never_builds_selectors():
+    script = _script("fold.js")
+
+    assert 'querySelectorAll("details[data-fold]")' in script
+    assert "querySelector(" not in script.replace('querySelector("[data-tabs]")', "")
+    assert "innerHTML" not in script

@@ -65,7 +65,6 @@ def test_no_other_route_redirects_on_its_query(client, path):
     assert _client(client).get(path, follow_redirects=False).status_code in (200, 503)
 
 
-@pytest.mark.xfail(strict=True, reason="the pill markup lands in Task 4")
 def test_pill_options_count_under_the_other_filters(client):
     page = _client(client).get("/tickets?status=open").text
 
@@ -73,7 +72,6 @@ def test_pill_options_count_under_the_other_filters(client):
     assert 'value="task">task (2)</option>' in page
 
 
-@pytest.mark.xfail(strict=True, reason="the pill markup lands in Task 4")
 def test_an_applied_terminal_status_stays_selected_without_include_closed(client):
     page = _client(client).get("/tickets?status=closed").text
 

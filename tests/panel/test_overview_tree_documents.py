@@ -59,8 +59,8 @@ def test_a_closed_leaf_draws_no_dashed_type(client):
 def test_an_orphan_row_on_the_tree_shows_its_dashed_types(client):
     text = page(client, "/tree")
 
-    row = section(text, "The orphan", "</tr>")
-    assert 'class="doctype missing"' in row
+    row = section(text, "The orphan", '<div class="kv-row-end">')
+    assert 'class="kv-chip doc missing"' in row
 
 
 def test_the_overview_counts_live_tickets_by_the_types_they_own_linking_to_each_list(client):

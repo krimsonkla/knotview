@@ -72,7 +72,7 @@
     Each names a parent that is closed or missing, so no branch above holds it.
     The parent it claims is shown on its own page.
   </p>
-  {% set tickets = tree.strays %} {% include "_ticket_table.html" %}
+  {% set tickets = tree.strays %} {% include "_rows.html" %}
 </section>
 {% endif %} {% if tree.orphans %}
 <section class="card">
@@ -83,8 +83,7 @@
     Not in any parent, so not visible in the branches above. This is where work
     goes missing.
   </p>
-  {% set tickets = tree.orphans %} {% include "_ticket_table.html" %}
+  {% set tickets = tree.orphans %} {% include "_rows.html" %}
 </section>
 {% endif %}
-<script src="/static/tree.js?v={{ assets }}"></script>
 {% endblock %}

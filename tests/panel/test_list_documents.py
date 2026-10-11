@@ -93,7 +93,7 @@ def test_a_row_shows_its_types_in_declared_order_linking_to_its_documents(client
     text = page(client, "/tickets")
 
     row = text[text.index("The parent") :]
-    row = row[: row.index("</tr>")]
+    row = row[: row.index('<div class="kv-row-end">')]
     assert row.index(">spec<") < row.index(">plan<")
     assert 'href="/ticket/pro-01m2aaaaaaaa#documents"' in row
 
@@ -102,8 +102,8 @@ def test_missing_types_are_dashed_on_the_list_and_the_ready_queue(client):
     listed = page(client, "/tickets")
     queued = page(client, "/queue/ready")
 
-    assert 'class="doctype missing" title="needed to enter in_progress"' in listed
-    assert 'class="doctype missing"' in queued
+    assert 'class="kv-chip doc missing" title="needed to enter in_progress"' in listed
+    assert 'class="kv-chip doc missing"' in queued
 
 
 def test_no_dashed_type_on_the_overview_even_where_a_card_shows_a_lacking_ticket(client):
@@ -111,31 +111,33 @@ def test_no_dashed_type_on_the_overview_even_where_a_card_shows_a_lacking_ticket
 
     text = page(client, "/", attention_value=stale)
 
-    assert "The orphan" in text and 'class="doctype missing"' not in text
+    assert "The orphan" in text and 'class="kv-chip doc missing"' not in text
 
 
 def test_the_tree_lists_show_dashed_types_as_its_rows_do(client):
     # Story 3 kept dashes off the tree; kno-01m3q9rs9632 turned them on, rows and lists alike.
     text = page(client, "/tree")
 
-    assert "The orphan" in text and 'class="doctype missing"' in text
+    assert "The orphan" in text and 'class="kv-chip doc missing"' in text
 
 
-def test_the_empty_row_spans_every_column_when_the_docs_column_shows(client):
+def test_a_documents_filter_that_leaves_nothing_says_so(client):
+    # Replaces the table's colspan check: the rows have no columns, so an empty list is one line.
     bare = (ticket("pro-01m2eeeeeeee", title="Bare"),)
 
     text = client(DeclaredBacklog(live_value=bare)).get("/tickets?doc=spec").text
 
-    assert text.count("</th>") == 11 and 'colspan="11"' in text
+    assert "Nothing here." in text and "Bare" not in text
 
 
-def test_the_column_hides_without_any_types_and_shows_when_a_documents_filter_is_on(client):
+def test_a_row_owning_nothing_draws_no_document_chip_and_still_lists_under_none_attached(client):
+    # Replaces the docs column's show-and-hide: a row names its documents inline, or nothing.
     bare = (ticket("pro-01m2eeeeeeee", title="Bare"),)
     plain = client(DeclaredBacklog(live_value=bare)).get("/tickets").text
     filtered = client(DeclaredBacklog(live_value=bare)).get("/tickets?nodocs=1").text
 
-    assert "<th>docs</th>" not in plain
-    assert "<th>docs</th>" in filtered and "Bare" in filtered
+    assert 'class="kv-chip doc"' not in plain
+    assert "Bare" in filtered
 
 
 def test_the_filter_keeps_tickets_owning_every_ticked_type(client):
@@ -154,7 +156,7 @@ def test_none_attached_shows_only_tickets_owning_nothing_and_drops_ticked_types(
     text = page(client, "/tickets?nodocs=1&doc=spec")
 
     assert "The orphan" in text and "The parent" not in text
-    assert "none attached" in text and "has spec" not in text
+    assert ">none attached<a" in text and ">has spec<a" not in text
 
 
 def test_lacking_shows_live_tickets_missing_a_type_each_with_its_dashes(client):
@@ -167,8 +169,8 @@ def test_lacking_shows_live_tickets_missing_a_type_each_with_its_dashes(client):
 def test_each_type_chip_links_to_the_list_without_only_that_type(client):
     text = page(client, "/tickets?doc=spec&doc=plan")
 
-    assert 'href="/tickets?doc=plan" title="drop this filter"' in text
-    assert 'href="/tickets?doc=spec" title="drop this filter"' in text
+    assert 'href="/tickets?doc=plan" aria-label="remove has spec"' in text
+    assert 'href="/tickets?doc=spec" aria-label="remove has plan"' in text
 
 
 def test_the_filter_offers_each_declared_type_as_a_checkbox_ticked_as_asked(client):
@@ -207,4 +209,4 @@ def test_a_dashed_tag_names_every_status_that_needs_its_type(client):
 
     text = client(DeclaredBacklog(project_value=gated)).get("/tickets").text
 
-    assert 'class="doctype missing" title="needed to enter open, in_progress">spec<' in text
+    assert 'class="kv-chip doc missing" title="needed to enter open, in_progress">spec<' in text

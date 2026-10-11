@@ -144,11 +144,11 @@ def test_a_recently_changed_ticket_without_an_updated_instant_shows_a_dash(clien
     assert 'class="ago"' not in section
 
 
-def test_the_recently_closed_cells_are_stamps(client):
+def test_the_recently_closed_rows_carry_their_instant(client):
     page = client(DeclaredBacklog()).get("/").text
 
     closed = page[page.index("recently closed") :]
-    assert '<time class="stamp" datetime="2026-09-02T10:00:00.000000Z" title=' in closed
+    assert '<time class="ago" datetime="2026-09-02T10:00:00.000000Z" title=' in closed
 
 
 def test_an_instant_reads_as_a_distance_from_now():

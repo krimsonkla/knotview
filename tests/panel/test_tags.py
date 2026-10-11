@@ -99,7 +99,7 @@ def test_a_tag_nobody_carries_narrows_every_view_to_nothing(client):
     browser.get("/tags?add=nowhere&back=/")
 
     assert "0 of 0" in browser.get("/tickets").text
-    assert "nothing here" in browser.get("/queue/blocked").text
+    assert "Nothing here." in browser.get("/queue/blocked").text
     assert not ticket("x").tags
 
 

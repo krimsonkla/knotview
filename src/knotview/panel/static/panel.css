@@ -59,66 +59,12 @@ a:hover {
   text-decoration: underline;
 }
 
-.bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--card);
-  border-bottom: 1px solid var(--line);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  flex-wrap: wrap;
-}
-
-.brand {
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--ink);
-}
-.bar nav {
-  display: flex;
-  gap: 12px;
-  margin-left: auto;
-  flex-wrap: wrap;
-}
 .muted {
   color: var(--faint);
 }
 /* Clauses of the ticket header, separated by a dot only between two that are present. */
 .when + .when::before {
   content: " · ";
-}
-
-.live {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--faint);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 2px 8px;
-}
-.live.following {
-  color: var(--done);
-  border-color: currentColor;
-}
-.live.stale {
-  color: var(--warn);
-  border-color: currentColor;
-}
-
-main {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--line);
-  font-size: 12px;
 }
 
 .card {
@@ -169,34 +115,7 @@ footer {
   color: var(--faint);
 }
 
-table.tickets {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-table.tickets th {
-  text-align: left;
-  font-weight: 600;
-  color: var(--faint);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--line);
-}
-table.tickets td {
-  padding: 5px 6px;
-  border-bottom: 1px solid var(--line);
-  vertical-align: top;
-}
-table.tickets tr:last-child td {
-  border-bottom: 0;
-}
 td.num,
-th.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
 .title {
   font-weight: 600;
 }
@@ -239,37 +158,7 @@ th.num {
   color: var(--faint);
 }
 /* The documents filter: checkboxes in a disclosure, so it works without script. */
-details.multi {
-  position: relative;
-  align-self: flex-end;
-}
-details.multi > summary {
-  cursor: pointer;
-  font-size: 13px;
-  padding: 3px 8px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--ground);
-}
 /* A dropdown over the page rather than a panel inside the bar, so opening it moves nothing. */
-details.multi .menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 3;
-  display: grid;
-  gap: 2px;
-  min-width: 200px;
-  padding: 8px 10px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
-}
-details.multi .hint {
-  font-size: 11px;
-  color: var(--faint);
-}
 .status-in_progress {
   color: var(--accent);
   border-color: currentColor;
@@ -290,47 +179,7 @@ details.multi .hint {
   color: #c2410c;
 }
 
-.filters {
-  display: flex;
-  gap: 10px;
-  align-items: end;
-  flex-wrap: wrap;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-.filters label {
-  display: flex;
-  flex-direction: column;
-  font-size: 11px;
-  color: var(--faint);
-  gap: 3px;
-}
-.filters label.check {
-  flex-direction: row;
-  align-items: center;
-  gap: 5px;
-}
 .filters select,
-.filters input {
-  font: inherit;
-  padding: 3px 6px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  background: var(--ground);
-  color: var(--ink);
-}
-.filters button {
-  font: inherit;
-  padding: 4px 12px;
-  border-radius: 5px;
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: white;
-  cursor: pointer;
-}
-
 .criteria {
   margin: 0;
   padding-left: 18px;
@@ -382,11 +231,6 @@ details.multi .hint {
   flex-wrap: wrap;
   margin: 0 0 4px;
 }
-.clear {
-  align-self: center;
-  font-size: 12px;
-}
-
 /* Ticket text is rendered markdown; keep it readable without letting it shout. */
 .prose p,
 .prose ul,
@@ -457,11 +301,6 @@ ul.branch > li {
   border-style: dashed;
 }
 
-h3.wave {
-  margin: 1em 0 0.3em;
-  font-size: 0.95em;
-}
-
 ul.progress {
   list-style: none;
   margin: 0;
@@ -480,60 +319,7 @@ ul.progress progress {
 
 /* Rows saved since the reader last looked, and the count in the bar that clears on click. */
 tr.since-last-look td.title-cell,
-tr.since-last-look > td:first-child {
-  box-shadow: inset 3px 0 0 0 currentColor;
-}
-.since {
-  cursor: pointer;
-  font-size: 0.85em;
-  margin-right: 0.8em;
-}
-
-th a.on {
-  text-decoration: underline;
-}
-
-.chip.filter .drop {
-  margin-left: 0.3em;
-  text-decoration: none;
-}
-
-.excerpt {
-  display: block;
-  font-size: 0.85em;
-}
-
 /* The reader's chosen tags, in the bar on every page. */
-.bar .tags {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  margin-right: 0.8em;
-}
-.bar .addtag {
-  display: inline;
-}
-.bar .addtag input[type="text"] {
-  font: inherit;
-  font-size: 0.85em;
-  padding: 0.1em 0.4em;
-}
-.bar .worktrees {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  margin-right: 0.8em;
-  font-size: 0.85em;
-}
-.bar .worktrees label {
-  color: var(--faint);
-}
-.bar .worktrees select {
-  font: inherit;
-  max-width: 28em;
-  padding: 0.1em 0.3em;
-}
-
 /* A card's footnote, under its rows so they line up with the cards beside it. */
 .muted.note {
   margin: 8px 0 0;
@@ -961,6 +747,143 @@ a.kv-chip:hover {
   font-size: 12px;
 }
 
+/* Lists of tickets: one row each, shared by every list. */
+.kv-list {
+  overflow: hidden;
+}
+.kv-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--kv-space-3);
+  margin: 0;
+  padding: var(--kv-space-3) var(--kv-space-4);
+  border-top: 1px solid var(--borderColor-default);
+}
+.kv-row:first-child {
+  border-top: 0;
+}
+.kv-row:hover {
+  background: var(--bgColor-muted);
+}
+.kv-row.since-last-look {
+  box-shadow: inset 3px 0 0 var(--kv-accent);
+}
+.kv-row > .kv-dot {
+  flex: 0 0 auto;
+  min-width: 7.5em;
+  padding-top: 2px;
+}
+.kv-row-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.kv-row-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--kv-space-2);
+}
+.kv-row-title > a.title {
+  color: var(--fgColor-default);
+  font-weight: 600;
+  font-size: 15px;
+}
+.kv-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  margin-top: 2px;
+  color: var(--fgColor-muted);
+  font-size: 12px;
+}
+.kv-meta a {
+  color: inherit;
+}
+.kv-excerpt {
+  font-style: italic;
+}
+.kv-row-end {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--kv-space-2);
+}
+.kv-title {
+  margin: 0 0 var(--kv-space-2);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.kv-wave {
+  display: flex;
+  align-items: center;
+  gap: var(--kv-space-2);
+  margin: var(--kv-space-6) 0 var(--kv-space-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* The tickets page's filters. */
+.kv-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kv-space-3);
+  margin-bottom: var(--kv-space-3);
+}
+.kv-pillbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--kv-space-2);
+}
+.kv-pill {
+  height: 32px;
+  max-width: 100%;
+  padding: 0 var(--kv-space-3);
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--kv-radius);
+  background: var(--bgColor-muted);
+  color: var(--fgColor-default);
+  font: inherit;
+  font-size: 13px;
+}
+.kv-pill.set {
+  border-color: var(--kv-accent);
+  background: var(--kv-accent-muted);
+}
+.kv-search {
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 420px;
+  height: 32px;
+  padding: 0 var(--kv-space-3);
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--kv-radius);
+  background: var(--bgColor-default);
+  color: var(--fgColor-default);
+  font: inherit;
+  font-size: 13px;
+}
+.kv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--kv-space-2);
+  font-size: 12px;
+}
+.kv-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.kv-more > summary {
+  cursor: pointer;
+  margin-bottom: var(--kv-space-2);
+  color: var(--fgColor-muted);
+  font-size: 13px;
+}
+
 @media (max-width: 760px) {
   .kv-header {
     position: static;
@@ -968,5 +891,11 @@ a.kv-chip:hover {
   }
   .kv-main {
     padding: var(--kv-space-4);
+  }
+  .kv-row {
+    flex-wrap: wrap;
+  }
+  .kv-row > .kv-dot {
+    min-width: 0;
   }
 }

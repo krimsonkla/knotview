@@ -1,0 +1,49 @@
+{# The tickets page's filters. Any change submits the whole form, so a typed but unsubmitted #}
+{# search travels with a changed pill; the server redirects to the canonical URL. Without #}
+{# script, the Apply button submits the same form. Every active filter is a removable chip. #}
+<form class="kv-filters" method="get" action="/tickets" data-auto>
+  <div class="kv-pillbar">
+    <input class="kv-search" type="search" name="q" value="{{ selection.query }}" placeholder="Search id, title or tag" aria-label="Search tickets" />
+    {% for field, label in (("status", "Status"), ("type", "Type"), ("priority", "Priority"), ("tag", "Tag")) %}
+    {% set chosen = selection[field] %}
+    <select class="kv-pill{% if chosen != any %} set{% endif %}" name="{{ field }}" aria-label="{{ label }}">
+      <option value="{{ any }}"{% if chosen == any %} selected{% endif %}>{{ label }}: any</option>
+      {% for value, count in options[field] %}<option value="{{ value }}"{% if chosen == value %} selected{% endif %}>{{ "P" ~ value if field == "priority" else value }} ({{ count }})</option>
+      {% endfor %}
+    </select>
+    {% endfor %}
+    <select class="kv-pill" name="order" aria-label="Sort">
+      {% for one in orders %}<option value="{{ one }}"{% if selection.order == one %} selected{% endif %}>Sort: {{ one }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% set inside = selection.mode != any or selection.assignee != any or selection.component != any
+  or selection.docs or selection.undocumented or selection.lacking or selection.deep or
+  selection.closed %}
+  <details class="kv-more" data-fold="more-filters" data-fold-store="session"{% if inside %} open{% endif %}>
+    <summary>More filters</summary>
+    <div class="kv-pillbar">
+      <select class="kv-pill" name="mode" aria-label="Mode">
+        <option value="{{ any }}"{% if selection.mode == any %} selected{% endif %}>Mode: any</option>
+        {% for one in project.modes %}<option value="{{ one }}"{% if selection.mode == one %} selected{% endif %}>{{ one }}</option>
+        {% endfor %}
+      </select>
+      <input class="kv-pill" type="text" name="assignee" value="{{ '' if selection.assignee == any else selection.assignee }}" placeholder="assignee, or nobody" aria-label="Assignee" />
+      <input class="kv-pill" type="text" name="component" value="{{ '' if selection.component == any else selection.component }}" placeholder="island" aria-label="Island" size="6" />
+      {% for kind in project.doc_types %}<label class="kv-check"><input type="checkbox" name="doc" value="{{ kind }}"{% if kind in selection.docs %} checked{% endif %} /> has {{ kind }}</label>
+      {% endfor %}
+      <label class="kv-check"><input type="checkbox" name="nodocs" value="1"{% if selection.undocumented %} checked{% endif %} /> no documents</label>
+      {% if project.required_docs %}<label class="kv-check"><input type="checkbox" name="lacking" value="1"{% if selection.lacking %} checked{% endif %} /> missing a required document</label>{% endif %}
+      <label class="kv-check" title="also match the ticket's text; reads every ticket in full"><input type="checkbox" name="deep" value="1"{% if selection.deep %} checked{% endif %} /> search in text</label>
+      <label class="kv-check"><input type="checkbox" name="closed" value="1"{% if selection.closed %} checked{% endif %} /> include closed</label>
+    </div>
+  </details>
+  <noscript><button type="submit">Apply</button></noscript>
+  {% if selection.filtering %}
+  <div class="kv-chips">
+    {% for field, value, dropping in selection.chips() %}<span class="kv-chip active">{{ field }}{% if value %} {{ value }}{% endif %}<a class="drop" href="/tickets{% if dropping %}?{{ dropping }}{% endif %}" aria-label="remove {{ field }}">×</a></span>
+    {% endfor %}
+    <a href="/tickets">Clear all</a>
+  </div>
+  {% endif %}
+</form>
