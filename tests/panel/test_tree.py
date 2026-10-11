@@ -62,7 +62,7 @@ def test_the_page_nests_a_grandchild_inside_its_parent_and_lists_the_rest(client
     assert "children 1" in page and "beneath 2" in page and "criteria 1/2" in page
     assert "filed under a parent that is not live" in page and "The stray" in page
     assert "filed under nothing" in page and "The orphan" in page
-    assert 'src="/static/tree.js?v=' in page
+    assert 'src="/static/fold.js?v=' in page
     assert page.count("The grandchild") == 1
 
 
@@ -72,3 +72,11 @@ def test_a_root_shows_its_island_as_a_link_to_that_component(client):
     page = client(DeclaredBacklog(live_value=(islanded, kid))).get("/tree").text
 
     assert 'href="/tickets?component=2"' in page and "island 2" in page
+
+
+def test_tree_branches_hold_shared_rows_inside_remembered_folds(client):
+    page = client(DeclaredBacklog(live_value=(PARENT, CHILD))).get("/tree").text
+
+    assert '<details class="kv-branch" open data-fold="' in page
+    assert 'class="kv-row"' in page
+    assert 'src="/static/fold.js?v=' in page

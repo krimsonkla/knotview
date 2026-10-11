@@ -35,6 +35,19 @@ class Progress:
 
 
 @dataclass(frozen=True, kw_only=True)
+class Epic:
+    """A parent and how many of the children filed under it are closed.
+
+    Counted from the live and closed lists the overview already holds, so a parent's progress
+    costs no further knot read.
+    """
+
+    ticket: Ticket
+    done: int
+    total: int
+
+
+@dataclass(frozen=True, kw_only=True)
 class Overview:  # pylint: disable=too-many-instance-attributes
     """The backlog counted by type, by status and by priority, plus the queues and the parents.
 
@@ -67,6 +80,14 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     # each links to its own list the way the open statuses do.
     by_terminal: tuple[Tally, ...]
     parents: tuple[Ticket, ...]
+    epics: tuple[Epic, ...]
+    # What the parents are called, from the types the project declares, so a project whose
+    # parents are all epics reads "epics" and one with none of that type never sees the word.
+    parents_label: str
+    # What the parents card shows when nothing is filed under anything: the ready queue, or the
+    # open tickets when nothing is ready either, highest priority first.
+    ready_first: tuple[Ticket, ...]
+    open_first: tuple[Ticket, ...]
     progress: tuple[Progress, ...]
     ready_to_close: tuple[Ticket, ...]
     stale: tuple[Ticket, ...]
@@ -75,7 +96,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     integrity: tuple[Issue, ...]
 
     @classmethod
-    def over(cls, snapshot: Snapshot, *, showing: int = 8) -> "Overview":
+    def over(cls, snapshot: Snapshot, *, showing: int = 5) -> "Overview":
         """The overview of one snapshot, counted over its live tickets."""
         project, live = snapshot.project, snapshot.live
         return cls(
@@ -129,6 +150,10 @@ class Overview:  # pylint: disable=too-many-instance-attributes
                 for status in project.terminal_statuses
             ),
             parents=_parents(live),
+            epics=_epics(_parents(live), snapshot),
+            parents_label=_named(_parents(live), project.types),
+            ready_first=tuple(sorted(snapshot.ready, key=lambda t: (t.priority, t.id))),
+            open_first=tuple(sorted(live, key=lambda t: (t.priority, t.id))),
             progress=_progress(live),
             ready_to_close=snapshot.attention.ready_to_close,
             stale=snapshot.attention.stale,
@@ -167,6 +192,40 @@ def _progress(live: tuple[Ticket, ...]) -> tuple[Progress, ...]:
         if r.criteria
     ]
     return tuple(sorted(stated, key=lambda p: (p.remaining, p.ticket.priority, p.ticket.id)))
+
+
+def _named(parents: tuple[Ticket, ...], types: tuple[str, ...]) -> str:
+    """The parents named by their declared types, in the project's order, as plurals.
+
+    knot declares no type for a parent: a parent is whatever something else names, so the label
+    comes from the types the parents actually have rather than from a word chosen here.
+    """
+    held = {one.type for one in parents}
+    kinds = [_plural(kind) for kind in types if kind in held]
+    if not kinds:
+        return "parents"
+    return kinds[0] if len(kinds) == 1 else ", ".join(kinds[:-1]) + " and " + kinds[-1]
+
+
+def _plural(word: str) -> str:
+    """An English plural good enough for a ticket type's name."""
+    if word.endswith(("s", "x", "z", "ch", "sh")):
+        return word + "es"
+    if word.endswith("y") and word[-2:-1] not in "aeiou":
+        return word[:-1] + "ies"
+    return word + "s"
+
+
+def _epics(parents: tuple[Ticket, ...], snapshot: Snapshot) -> tuple[Epic, ...]:
+    """Each parent with the share of its children that are closed."""
+    return tuple(
+        Epic(
+            ticket=parent,
+            done=sum(1 for one in snapshot.closed if one.parent == parent.id),
+            total=sum(1 for one in snapshot.live + snapshot.closed if one.parent == parent.id),
+        )
+        for parent in parents
+    )
 
 
 def _parents(live: tuple[Ticket, ...]) -> tuple[Ticket, ...]:

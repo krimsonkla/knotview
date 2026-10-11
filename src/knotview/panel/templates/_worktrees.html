@@ -4,9 +4,9 @@ browser and nothing else. follow.js submits it as soon as the choice changes; wi
 the button does. Each option's full path is its title, since two can share a name or a
 directory. #}
 {% if worktrees %}
-<form class="worktrees" method="get" action="/worktree">
+<form class="kv-worktrees" method="get" action="/worktree">
   <label for="worktree-choice">worktree</label>
-  <select id="worktree-choice" name="path">
+  <select id="worktree-choice" class="kv-pill" name="path">
     {% if reading not in worktrees | map(attribute="path") %}
     <option value="" selected disabled>choose one</option>
     {% endif %}

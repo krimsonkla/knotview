@@ -1,21 +1,18 @@
-{% extends "layout.html" %} {% block title %}{{ which }}{% endblock %} {% block
-main %}
+{% extends "layout.html" %} {% block title %}{{ which }}{% endblock %} {% block main %}
 {% set show_missing = true %}
-<section class="card">
-  <h2>{{ which }}</h2>
-  <p class="muted">
-    {% if which == "ready" %}Every blocker closed, so nothing outside the ticket
-    is in the way. When several are ready, the highest leverage dissolves the
-    most waiting work. {% else %}At least one blocker still open. The level is
-    how many rounds of closing stand before each can start.{% endif %}
-  </p>
-  {% if which == "blocked" and waves %} {% for level, tickets in waves %}
-  <h3 class="wave">
-    {% if level is none %}on a cycle, which no round reaches{% elif level == 1 %}next:
-    ready once today's ready tickets close{% else %}{{ level }} rounds away{% endif %}
-    <span class="num">{{ tickets | length }}</span>
-  </h3>
-  {% include "_ticket_table.html" %} {% endfor %} {% else %} {% include
-  "_ticket_table.html" %} {% endif %}
-</section>
+<h1 class="kv-title">{{ which | capitalize }}</h1>
+{% if which == "ready" %}
+<p class="kv-muted">Every blocker closed, so nothing outside the ticket is in the way.
+  When several are ready, the highest leverage dissolves the most waiting work.</p>
+{% else %}
+<p class="kv-muted">At least one blocker still open.
+  The level is how many rounds of closing stand before each can start.</p>
+{% endif %}
+{% if which == "blocked" and waves %} {% for level, tickets in waves %}
+<h2 class="kv-wave">
+  {% if level is none %}on a cycle, which no round reaches{% elif level == 1 %}next:
+  ready once today's ready tickets close{% else %}{{ level }} rounds away{% endif %}
+  <span class="kv-count">{{ tickets | length }}</span>
+</h2>
+{% include "_rows.html" %} {% endfor %} {% else %} {% include "_rows.html" %} {% endif %}
 {% endblock %}

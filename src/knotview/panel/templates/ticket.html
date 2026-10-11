@@ -1,219 +1,177 @@
-{% extends "layout.html" %} {% block title %}{{ ticket.id }}{% endblock %} {%
-block main %}
-{% from "_time.html" import stamp %}
-<article class="ticket">
-  <header>
-    {% if parent %}
-    <p class="crumb muted">
-      under <a href="/ticket/{{ parent.id }}">{{ parent.title }}</a>
-      <span class="id">{{ parent.id }}</span>
-    </p>
-    {% elif ticket.parent %}
-    <p class="crumb muted">
-      under <span class="id">{{ ticket.parent }}</span>, which is not live
-    </p>
-    {% endif %}
-    <h1>{{ ticket.title }}</h1>
-    <p class="meta">
-      <span class="id">{{ ticket.id }}</span>
-      <a class="chip" href="/tickets?type={{ ticket.type | urlencode }}"
-        >{{ ticket.type }}</a
-      >
-      <a
-        class="chip status-{{ ticket.status }}"
-        href="/tickets?status={{ ticket.status | urlencode }}"
-        >{{ ticket.status }}</a
-      >
-      <span class="pri p{{ ticket.priority }}">p{{ ticket.priority }}</span>
-      {% if ticket.mode %}<a class="chip" href="/tickets?mode={{ ticket.mode | urlencode }}"
-        >{{ ticket.mode }}</a
-      >{% endif %} {% if ticket.assignee %}<a
-        class="chip"
-        href="/tickets?assignee={{ ticket.assignee | urlencode }}"
-        >{{ ticket.assignee }}</a
-      >
-      {% else %}<span class="chip muted">nobody</span>{% endif %} {% for tag in
-      ticket.tags %}<a class="tag" href="/tickets?tag={{ tag | urlencode }}">{{ tag }}</a>{%
-      endfor %}
-      {% if documents %}<a class="chip" href="#documents">{{ documents | length }} document{{ "s" if documents | length != 1 }}</a>{% endif %}
-    </p>
-    <p class="muted">
-      {% if ticket.created %}<span class="when">created {{ stamp(ticket.created) }}</span>{% endif %}
-      {% if ticket.updated %}<span class="when">updated {{ stamp(ticket.updated) }}</span>{% endif %}
-      {% if ticket.closed %}<span class="when">closed {{ stamp(ticket.closed) }}</span>{% endif %}
-      {% if ticket.parent %}<span class="when">under
-        <a href="/ticket/{{ ticket.parent }}">{{ ticket.parent }}</a></span>{% endif %}
-    </p>
-  </header>
+{% extends "layout.html" %} {% block title %}{{ ticket.id }}{% endblock %} {% block main %}
+{% from "_time.html" import stamp, ago %}
+{# One ticket, leading with what a reader came for: the title and one summary line, then its
+documents, then the description. Later sections fold, related tickets sit behind tabs, and the
+facts about the ticket sit in a sidebar. Nothing empty is drawn. Folds and the chosen tab are
+remembered for the tab by fold.js, so the page's own reload after a backlog change keeps them. #}
+{% macro ref_rows(references) %}{% for reference in references %}
+<div class="kv-row">
+  {% if reference.missing %}<span class="kv-chip">missing</span><span class="kv-muted">no ticket has this id</span>{% else %}<a class="kv-dot s-{{ reference.status }}" href="/ticket/{{ reference.id | segment }}">{{ reference.status }}</a><div class="kv-row-main"><a class="title" href="/ticket/{{ reference.id | segment }}">{{ reference.title }}</a></div>{% endif %}
+  <span class="kv-mono kv-muted">{{ reference.id }}</span>
+</div>
+{% endfor %}{% endmacro %}
 
-  {% if documents %}
-  <section class="card" id="documents">
-    <h2>documents <span class="num">{{ documents | length }}</span></h2>
-    <ul class="refs">
+<p class="kv-muted kv-crumb">
+  <a href="/tickets">Tickets</a> /
+  {% if parent %}<a href="/ticket/{{ parent.id | segment }}">{{ parent.title }}</a> <span class="kv-mono">{{ parent.id }}</span> /
+  {% elif ticket.parent %}under <span class="kv-mono">{{ ticket.parent }}</span>, which is not live /{% endif %}
+</p>
+<h1 class="kv-title">{{ ticket.title }} <span class="kv-mono kv-muted">{{ ticket.id }}</span></h1>
+<p class="kv-summary">
+  <a class="kv-dot s-{{ ticket.status }}" href="/tickets?status={{ ticket.status | urlencode }}">{{ ticket.status }}</a>
+  <span class="kv-muted"><a href="/tickets?type={{ ticket.type | urlencode }}">{{ ticket.type }}</a>{% if ticket.created %} · created {{ ago(ticket.created) }}{% endif %}{% if ticket.updated %} · updated {{ ago(ticket.updated) }}{% endif %}{% if ticket.closed %} · closed {{ ago(ticket.closed) }}{% endif %}{% if documents %} · {{ documents | length }} document{{ "s" if documents | length != 1 }}{% endif %}{% if children_total %} · {{ children_closed }} of {{ children_total }} children closed{% endif %}</span>
+</p>
+
+<div class="kv-layout">
+  <div class="kv-primary">
+    {% if documents %}
+    <section id="documents" class="kv-docs" aria-label="documents">
       {% for one in documents %}
-      <li>
-        {% if one.type %}<span class="doctype">{{ one.type }}</span>{% endif %}
-        <a href="/document/{{ one.id | segment }}">{{ one.title }}</a>
-        <span class="id">{{ one.id }}</span>
-        {% if one.updated %}<span class="muted">updated {{ stamp(one.updated) }}</span>{% endif %}
-      </li>
+      <a class="kv-doccard" href="/document/{{ one.id | segment }}">
+        {% if one.type %}<span class="kv-chip doc">{{ one.type }}</span>{% endif %}
+        <strong>{{ one.title }}</strong>
+        <span class="kv-muted kv-mono">{{ one.id }}</span>
+        {% if one.updated %}<span class="kv-muted">updated {{ stamp(one.updated) }}</span>{% endif %}
+      </a>
       {% endfor %}
-    </ul>
-  </section>
-  {% endif %}
-
-  {% if ticket.acceptance %}
-  <section class="card">
-    <h2>
-      acceptance <span class="num">{{ ticket.met }}/{{ ticket.criteria }}</span>
-    </h2>
-    <ol class="criteria">
-      {% for criterion in ticket.acceptance %}
-      <li class="{% if criterion.done %}met{% else %}unmet{% endif %}">
-        <span class="box">{% if criterion.done %}✓{% else %}○{% endif %}</span>
-        {{ criterion.title }}
-      </li>
-      {% endfor %}
-    </ol>
-  </section>
-  {% endif %} {% for heading, text in ticket.narrative() %}
-  <section class="card">
-    <h2>{{ heading }}</h2>
-    <div class="prose">{{ text | prose | safe }}</div>
-  </section>
-  {% endfor %}
-
-  {# One card of references, then any extra rows: only "blocked by" has extras, a ticket's missing
-  required documents, since a document is not a ticket to reference. The heading's number and any
-  toggle are passed in, so the children card can count what it hides. #}
-  {% macro reference_card(label, references, extras=(), count=none, toggle=none, kept=false) %}
-  {% if references or extras or kept %}
-  <div class="card">
-    <h2>
-      {{ label }}
-      <span
-        class="num"
-        {% if extras %}title="the tickets blocking this, and the required documents it lacks"{% endif %}
-        >{{ count if count is not none else references | length + extras | length }}</span
-      >
-      {% if toggle %}<a class="toggle" href="{{ toggle[0] }}">{{ toggle[1] }}</a>{% endif %}
-    </h2>
-    <ul class="refs">
-      {% for reference in references %}
-      <li>
-        {% if reference.missing %}
-        <span class="chip muted">missing</span>
-        <span class="muted">no ticket has this id</span>
-        {% else %}
-        <a
-          class="chip status-{{ reference.status }}"
-          href="/ticket/{{ reference.id }}"
-          >{{ reference.status }}</a
-        >
-        <a href="/ticket/{{ reference.id }}">{{ reference.title }}</a>
-        {% endif %}
-        <span class="id">{{ reference.id }}</span>
-      </li>
-      {% endfor %}
-      {% for kind, statuses in extras %}
-      <li class="lacking">
-        <span class="doctype missing">{{ kind }}</span>
-        <span>no {{ kind }} attached</span>
-        <span class="muted">needed to enter {{ statuses | join(", ") }}</span>
-      </li>
-      {% endfor %}
-    </ul>
-  </div>
-  {% endif %}
-  {% endmacro %}
-
-  <section class="graph">
-    {{ reference_card("blocked by", ticket.blockers, missing_types) }}
-    {{ reference_card("blocking", ticket.blocking) }}
-    {# Children by status; the reader may hide the closed ones, and the card stays while it hides
-    any, so the way back is never hidden with them. Blocked by, blocking and linked keep knot's
-    order: children are the relation an epic's page exists to show. #}
-    {% if hiding_closed %}
-    {{ reference_card("children", children, count=(children | length) ~ " of " ~ children_total,
-       toggle=("/ticket/" ~ (ticket.id | segment), "show closed"), kept=children_closed > 0) }}
-    {% else %}
-    {{ reference_card("children", children,
-       toggle=("/ticket/" ~ (ticket.id | segment) ~ "?children=live",
-       "hide closed (" ~ children_closed ~ ")") if children_closed else none) }}
+    </section>
     {% endif %}
-    {{ reference_card("linked", ticket.linked) }}
-  </section>
 
-  {% if siblings %}
-  <section class="card">
-    <h2>
-      also under {{ parent.title }}
-      <span class="num">{{ siblings | length }}</span>
-    </h2>
-    <ul class="refs">
-      {% for sibling in siblings %}
-      <li>
-        <a class="chip status-{{ sibling.status }}" href="/ticket/{{ sibling.id }}"
-          >{{ sibling.status }}</a
-        >
-        <a href="/ticket/{{ sibling.id }}">{{ sibling.title }}</a>
-        <span class="id">{{ sibling.id }}</span>
-      </li>
+    {% if ticket.acceptance %}
+    <section class="kv-card">
+      <h2>acceptance <span class="kv-count">{{ ticket.met }}/{{ ticket.criteria }}</span></h2>
+      <div class="kv-body">
+        <span class="kv-track"><span class="kv-fill done" style="width: {{ (ticket.met * 100 / ticket.criteria) | round | int }}%"></span></span>
+        <ol class="criteria">
+          {% for criterion in ticket.acceptance %}
+          <li class="{% if criterion.done %}met{% else %}unmet{% endif %}">
+            <span class="box">{% if criterion.done %}✓{% else %}○{% endif %}</span>
+            {{ criterion.title }}
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+    </section>
+    {% endif %}
+
+    {% for heading, text in ticket.narrative() %}
+    {% if heading in ("", "description") %}
+    {% set head, rest = text | prose_split %}
+    <article class="kv-prose kv-section">
+      {% if heading %}<h2>{{ heading }}</h2>{% endif %}
+      {{ head | safe }}
+      {% if rest %}<details class="kv-fold kv-more-text" data-fold="t-{{ ticket.id }}-{{ heading or 'lead' }}" data-fold-store="session"><summary>Read the full description</summary>{{ rest | safe }}</details>{% endif %}
+    </article>
+    {% else %}
+    <details class="kv-card kv-fold" data-fold="t-{{ ticket.id }}-{{ heading }}" data-fold-store="session">
+      <summary>{{ heading }}</summary>
+      <div class="kv-body kv-prose">{{ text | prose | safe }}</div>
+    </details>
+    {% endif %}
+    {% endfor %}
+
+    {% if ticket.notes %}
+    <details class="kv-card kv-fold" data-fold="t-{{ ticket.id }}-notes" data-fold-store="session">
+      <summary>notes <span class="kv-count">{{ ticket.timeline() | length }}</span></summary>
+      <ol class="timeline kv-body">
+        {% for note in ticket.timeline() %}
+        <li>
+          <h3 class="kv-muted">
+            {% if note.at %}{{ stamp(note.at) }}{% else %}undated{% endif %}
+          </h3>
+          <div class="kv-prose">{{ note.text | prose | safe }}</div>
+        </li>
+        {% endfor %}
+      </ol>
+    </details>
+    {% endif %}
+
+    {% set relations = ticket.blockers | length + ticket.blocking | length + missing_types | length %}
+    {% set tabs = [] %}
+    {% if children_total %}{% set _ = tabs.append(("tab-children", "Children", children_total)) %}{% endif %}
+    {% if relations %}{% set _ = tabs.append(("tab-relations", "Blocked by & blocking", relations)) %}{% endif %}
+    {% if ticket.linked %}{% set _ = tabs.append(("tab-linked", "Linked", ticket.linked | length)) %}{% endif %}
+    {% if siblings %}{% set _ = tabs.append(("tab-siblings", "Siblings", siblings | length)) %}{% endif %}
+    {% if dependencies.deps %}{% set _ = tabs.append(("tab-graph", "Depends on", "")) %}{% endif %}
+    {% if tabs %}
+    <nav class="kv-tabbar" data-tabs aria-label="related tickets">
+      {% for id, label, count in tabs %}<a href="#{{ id }}" data-tab="{{ id }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ label }}{% if count != "" %} <span class="kv-count">{{ count }}</span>{% endif %}</a>
       {% endfor %}
-    </ul>
-  </section>
-  {% endif %} {% if dependencies.deps %}
-  <section class="card">
-    <h2>depends on, all the way down</h2>
-    <p class="muted">
-      knot's own tree: what this waits on, and what those wait on. A node the
-      tree already drew is not drawn again.
-    </p>
-    <ul class="deps">
-      {% for node in dependencies.deps recursive %}
-      <li>
-        {% if node.missing %}
-        <span class="chip muted">missing</span>
-        <span class="id">{{ node.id }}</span>
-        {% else %}
-        <a class="chip status-{{ node.status }}" href="/ticket/{{ node.id }}"
-          >{{ node.status }}</a
-        >
-        <a href="/ticket/{{ node.id }}">{{ node.title }}</a>
-        <span class="id">{{ node.id }}</span>
-        {% if node.seen_before %}<span class="muted">drawn above</span>{% endif %}
-        {% if node.deps %}
-        <ul class="deps">
-          {{ loop(node.deps) }}
-        </ul>
-        {% endif %} {% endif %}
-      </li>
-      {% endfor %}
-    </ul>
-  </section>
-  {% endif %} {% if ticket.external_refs %}
-  <section class="card">
-    <h2>external</h2>
-    <ul class="refs">
-      {% for ref in ticket.external_refs %}
-      <li>{{ ref }}</li>
-      {% endfor %}
-    </ul>
-  </section>
-  {% endif %} {% if ticket.notes %}
-  <section class="card notes">
-    <h2>notes <span class="num">{{ ticket.timeline() | length }}</span></h2>
-    <ol class="timeline">
-      {% for note in ticket.timeline() %}
-      <li>
-        <h3 class="muted">
-          {% if note.at %}{{ stamp(note.at) }}{% else %}undated{% endif %}
-        </h3>
-        <div class="prose">{{ note.text | prose | safe }}</div>
-      </li>
-      {% endfor %}
-    </ol>
-  </section>
-  {% endif %}
-</article>
+    </nav>
+    {% endif %}
+
+    {% if children_total %}
+    <section class="kv-tabpanel" id="tab-children">
+      <h3 class="kv-wave">
+        children <span class="kv-count">{% if hiding_closed %}{{ children | length }} of {{ children_total }}{% else %}{{ children_total }}{% endif %}</span>
+        {% if hiding_closed %}<a class="kv-toggle" href="/ticket/{{ ticket.id | segment }}">show closed</a>
+        {% elif children_closed %}<a class="kv-toggle" href="/ticket/{{ ticket.id | segment }}?children=live">hide closed ({{ children_closed }})</a>{% endif %}
+      </h3>
+      <div class="kv-card">{{ ref_rows(children) }}</div>
+    </section>
+    {% endif %}
+    {% if relations %}
+    <section class="kv-tabpanel" id="tab-relations">
+      {% if ticket.blockers or missing_types %}
+      <h3 class="kv-wave">blocked by <span class="kv-count" title="the tickets blocking this, and the required documents it lacks">{{ ticket.blockers | length + missing_types | length }}</span></h3>
+      <div class="kv-card">
+        {{ ref_rows(ticket.blockers) }}
+        {% for kind, statuses in missing_types %}
+        <div class="kv-row lacking"><span class="kv-chip doc missing">{{ kind }}</span><span>no {{ kind }} attached</span><span class="kv-muted">needed to enter {{ statuses | join(", ") }}</span></div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if ticket.blocking %}
+      <h3 class="kv-wave">blocking <span class="kv-count">{{ ticket.blocking | length }}</span></h3>
+      <div class="kv-card">{{ ref_rows(ticket.blocking) }}</div>
+      {% endif %}
+    </section>
+    {% endif %}
+    {% if ticket.linked %}
+    <section class="kv-tabpanel" id="tab-linked"><div class="kv-card">{{ ref_rows(ticket.linked) }}</div></section>
+    {% endif %}
+    {% if siblings %}
+    <section class="kv-tabpanel" id="tab-siblings">
+      <h3 class="kv-wave">also under {{ parent.title }} <span class="kv-count">{{ siblings | length }}</span></h3>
+      <div class="kv-card">{{ ref_rows(siblings) }}</div>
+    </section>
+    {% endif %}
+    {% if dependencies.deps %}
+    <section class="kv-tabpanel" id="tab-graph">
+      <h3 class="kv-wave">depends on, all the way down</h3>
+      <p class="kv-muted">knot's own tree: what this waits on, and what those wait on. A node the tree already drew is not drawn again.</p>
+      <ul class="deps">
+        {% for node in dependencies.deps recursive %}
+        <li>
+          {% if node.missing %}
+          <span class="kv-chip">missing</span>
+          <span class="kv-mono">{{ node.id }}</span>
+          {% else %}
+          <a class="kv-dot s-{{ node.status }}" href="/ticket/{{ node.id | segment }}">{{ node.status }}</a>
+          <a href="/ticket/{{ node.id | segment }}">{{ node.title }}</a>
+          <span class="kv-mono kv-muted">{{ node.id }}</span>
+          {% if node.seen_before %}<span class="kv-muted">drawn above</span>{% endif %}
+          {% if node.deps %}
+          <ul class="deps">
+            {{ loop(node.deps) }}
+          </ul>
+          {% endif %} {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="kv-side" aria-label="details">
+    {% if documents %}<div><h2>Documents</h2>{% for one in documents %}<a class="kv-sidedoc" href="/document/{{ one.id | segment }}">{% if one.type %}<span class="kv-muted">{{ one.type }}</span> {% endif %}{{ one.title }}</a>{% endfor %}</div>{% endif %}
+    <div><h2>Priority</h2><a class="kv-badge p{{ ticket.priority }}" href="/tickets?priority={{ ticket.priority }}">P{{ ticket.priority }}</a></div>
+    {% if ticket.assignee %}<div><h2>Assignee</h2><a href="/tickets?assignee={{ ticket.assignee | urlencode }}">{{ ticket.assignee }}</a></div>{% endif %}
+    {% if ticket.tags %}<div><h2>Tags</h2><span class="kv-chips">{% for tag in ticket.tags %}<a class="kv-chip" href="/tickets?tag={{ tag | urlencode }}">{{ tag }}</a>{% endfor %}</span></div>{% endif %}
+    {% if children_total %}<div><h2>Progress</h2><span class="kv-track"><span class="kv-fill done" style="width: {{ (children_closed * 100 / children_total) | round | int }}%"></span></span><span class="kv-muted">{{ children_closed }} of {{ children_total }} children closed</span></div>{% endif %}
+    {% if parent %}<div><h2>Parent</h2><a href="/ticket/{{ parent.id | segment }}">{{ parent.title }}</a></div>{% endif %}
+    {% if ticket.mode %}<div><h2>Mode</h2><a href="/tickets?mode={{ ticket.mode | urlencode }}">{{ ticket.mode }}</a></div>{% endif %}
+    {% if ticket.external_refs %}<div><h2>External</h2>{% for ref in ticket.external_refs %}<div class="kv-mono">{{ ref }}</div>{% endfor %}</div>{% endif %}
+  </aside>
+</div>
 {% endblock %}

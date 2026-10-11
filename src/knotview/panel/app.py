@@ -22,6 +22,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from knotview.panel.overview import Overview
 from knotview.panel.prose import outlined
 from knotview.panel.prose import rendered as prose
+from knotview.panel.prose import split as prose_split
 from knotview.panel.selection import ANY, ORDERS, Selection
 from knotview.panel.tags import COOKIE, Tags
 from knotview.panel.tree import Tree
@@ -32,6 +33,7 @@ from knotview.reading.snapshot import Snapshot
 from knotview.values.document import Document
 from knotview.values.missing_document import MissingDocument
 from knotview.values.missing_ticket import MissingTicket
+from knotview.values.project import Project
 from knotview.values.ticket import Ticket
 from knotview.values.unreadable_backlog import UnreadableBacklog
 
@@ -113,6 +115,7 @@ class Pages:
                 "tags": _tags(request),
                 "known_tags": known,
                 "here": _here(request),
+                "current": _current(request),
                 "worktrees": request.state.worktrees,
                 "reading": request.state.reading,
                 "carried": request.state.carried,
@@ -238,13 +241,22 @@ class Pages:
             selection=Selection(),
         )
 
-    def tickets(self, request: Request) -> HTMLResponse:
-        """Every ticket the filters admit, in the order asked for."""
+    def tickets(self, request: Request) -> Response:
+        """Every ticket the filters admit, in the order asked for.
+
+        A query in any other spelling than the canonical one is redirected to it, so the browser's
+        form submission and every link the panel builds land on one URL per state, and Selection
+        stays the only place a URL is built. The canonical form is a fixed point, so this cannot
+        loop.
+        """
         backlog = self._backlog(request)
         project = backlog.project()
         selection = Selection.asked(
             project, dict(request.query_params), request.query_params.getlist("doc")
         )
+        canonical = selection.query_string()
+        if request.url.query != canonical:
+            return RedirectResponse(f"/tickets?{canonical}" if canonical else "/tickets", 303)
         held = backlog.live() + (backlog.closed() if selection.closed else ())
         held = self._narrowed(request, held)
         if selection.deep and selection.query:
@@ -259,6 +271,7 @@ class Pages:
                 tuple(one for one in held if selection.matches(one, project))
             ),
             counted=len(held),
+            options=_options(selection, held, project),
         )
 
     def tree(self, request: Request) -> HTMLResponse:
@@ -438,6 +451,7 @@ def panel(
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.filters["humanise"] = _humanise
     templates.env.filters["prose"] = prose
+    templates.env.filters["prose_split"] = prose_split
     templates.env.filters["ago"] = _ago
     templates.env.filters["segment"] = _segment
     templates.env.tests["instant"] = _is_instant
@@ -478,9 +492,56 @@ def _among(tickets: tuple[Ticket, ...], kept: set[str]) -> tuple[Ticket, ...]:
     return tuple(one for one in tickets if one.id in kept)
 
 
+def _options(
+    selection: Selection, held: tuple[Ticket, ...], project: Project
+) -> dict[str, tuple[tuple[str, int], ...]]:
+    """Each pill's choices with how many of the held tickets each would leave.
+
+    Terminal statuses are offered only with closed tickets included, except the one the URL
+    already applies, so a pill can always show what it is set to. Tags are those the held
+    tickets carry, plus the applied one.
+    """
+    statuses = tuple(
+        one
+        for one in project.statuses
+        if selection.closed or one not in project.terminal_statuses or one == selection.status
+    )
+    carried = {tag for one in held for tag in one.tags}
+    applied = {selection.tag} if selection.tag != ANY else set()
+    fields = {
+        "status": statuses,
+        "type": project.types,
+        "priority": tuple(str(one) for one in project.priorities),
+        "tag": tuple(sorted(carried | applied)),
+    }
+    options = {}
+    for field, values in fields.items():
+        counts = selection.counted(held, project, field)
+        options[field] = tuple((value, counts.get(value, 0)) for value in values)
+    return options
+
+
 def _given(backlog: Backlog, _path: Path) -> Backlog:
     """The one backlog whatever path is asked for: the factory for a panel given no other."""
     return backlog
+
+
+# Each header tab and the paths it covers; a ticket or a document sits under the tickets tab.
+_TABS = {
+    "/": "overview",
+    "/tickets": "tickets",
+    "/tree": "tree",
+    "/queue/ready": "ready",
+    "/queue/blocked": "blocked",
+}
+
+
+def _current(request: Request) -> str:
+    """Which header tab this page is, by its path; empty for a page under none of them."""
+    path = request.url.path
+    if path.startswith(("/ticket/", "/document/")):
+        return "tickets"
+    return _TABS.get(path, "")
 
 
 def _here(request: Request) -> str:

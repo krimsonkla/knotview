@@ -1,8 +1,9 @@
-{% extends "layout.html" %} {% block title %}not found{% endblock %} {% block
-main %}
-<section class="card">
-  <h1>nothing here</h1>
-  <p>This panel has no {{ looking_for }}.</p>
-  <p class="muted">Every page is reachable from the bar above.</p>
+{% extends "layout.html" %} {% block title %}not found{% endblock %} {% block main %}
+<section class="kv-card">
+  <h2>nothing here</h2>
+  <div class="kv-body">
+    <p>This panel has no {{ looking_for }}.</p>
+    <p class="kv-muted">Every page is reachable from the bar above.</p>
+  </div>
 </section>
 {% endblock %}

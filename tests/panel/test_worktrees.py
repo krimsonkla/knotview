@@ -197,7 +197,7 @@ def test_the_dropdown_switches_on_change_and_offers_a_button_without_script(clie
     page = browser.get("/tickets").text
     script = browser.get("/static/follow.js").text
 
-    assert '<form class="worktrees" method="get" action="/worktree">' in page
+    assert '<form class="kv-worktrees" method="get" action="/worktree">' in page
     assert '<input type="hidden" name="back" value="/tickets" />' in page
     assert "<noscript><button" in page
     assert 'getElementById("worktree-choice")' in script and "form.submit()" in script
@@ -257,8 +257,8 @@ def test_a_removed_worktree_falls_back_to_the_launch_directory_and_leaves_the_pi
 def test_one_worktree_shows_no_picker(client):
     alone, _, _ = _panel(client, source=DeclaredWorktrees(worktrees=(MAIN,)))
 
-    assert 'class="worktrees"' not in alone.get("/tree").text
-    assert 'class="worktrees"' not in client(DeclaredBacklog()).get("/tree").text
+    assert 'class="kv-worktrees"' not in alone.get("/tree").text
+    assert 'class="kv-worktrees"' not in client(DeclaredBacklog()).get("/tree").text
 
 
 def test_a_page_whose_digest_is_refused_renders_without_carrying_one(client):

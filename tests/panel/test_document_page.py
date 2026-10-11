@@ -1,6 +1,7 @@
 """The page that reads one document, its tabs, and the reads it degrades around."""
 
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
@@ -36,8 +37,8 @@ def test_a_document_reads_in_full_under_its_ticket(client):
     text = page(client, f"/document/{PLAN.id}").text
 
     assert '<a href="/ticket/pro-01m2aaaaaaaa">The parent</a>' in text
-    assert text.count("<h1") == 1 and "<h1>Rollout plan</h1>" in text
-    assert '<span class="doctype">plan</span>' in text and PLAN.id in text
+    assert text.count("<h1") == 1 and '<h1 class="kv-title">Rollout plan</h1>' in text
+    assert '<span class="kv-chip doc">plan</span>' in text and PLAN.id in text
     assert '<h2 id="doc-goal">Goal</h2>' in text and "<code>care</code>" in text
     assert 'href="#doc-goal"' in text and 'href="#doc-steps"' in text
     assert f'updated <time class="stamp" datetime="{PLAN.updated}"' in text
@@ -89,7 +90,7 @@ def test_a_closed_tickets_document_reads_the_same(client):
 def test_tabs_follow_the_declared_type_order_and_mark_the_current_one(client):
     text = page(client, f"/document/{PLAN.id}").text
 
-    tabs = text[text.index('class="tabs"') :]
+    tabs = text[text.index('class="kv-tabbar"') :]
     tabs = tabs[: tabs.index("</nav>")]
     assert tabs.index("Design spec") < tabs.index("Rollout plan")
     assert f'href="/document/{PLAN.id}" aria-current="page"' in tabs
@@ -116,7 +117,7 @@ def test_a_start_of_an_id_still_marks_the_document_knot_resolved(client):
 def test_a_lone_document_has_no_tabs_menu_or_position(client):
     text = page(client, f"/document/{PLAN.id}", documents_value={PARENT.id: WRITTEN[:1]}).text
 
-    assert 'class="tabs"' not in text and 'class="all"' not in text and " of 1" not in text
+    assert 'class="kv-tabbar"' not in text and 'class="all"' not in text and " of 1" not in text
 
 
 def test_documents_of_one_type_share_one_heading_in_the_menu(client):
@@ -138,3 +139,25 @@ def test_an_id_that_is_not_safe_in_a_path_is_encoded_in_every_link(client):
     text = page(client, f"/document/{PLAN.id}", documents_value={PARENT.id: (WRITTEN[0], odd)}).text
 
     assert 'href="/document/pro-01m2aaaaaaaa-dx%23y%2Fz"' in text
+
+
+def test_documents_are_tabs_with_the_current_marked_and_an_outline(client):
+    text = page(client, f"/document/{PLAN.id}").text
+
+    assert '<nav class="kv-tabbar" aria-label="This ticket\'s documents">' in text
+    assert 'aria-current="page"' in text and 'class="kv-prose kv-docbody"' in text
+    assert 'aria-label="On this page"' in text
+
+
+def test_a_document_with_no_headings_draws_no_outline(client):
+    plain = (replace(PLAN, body="Just words, no headings."), SPEC)
+
+    text = page(client, f"/document/{PLAN.id}", documents_value={PARENT.id: plain}).text
+
+    assert 'aria-label="On this page"' not in text
+
+
+def test_document_js_scrolls_the_new_tab_bar():
+    script = Path("src/knotview/panel/static/document.js").read_text(encoding="utf-8")
+
+    assert ".kv-tabbar [aria-current]" in script and ".tabs [aria-current]" not in script

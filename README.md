@@ -21,39 +21,52 @@ vocabulary. If you have not met knot, start there: its README explains the desig
 
 ## A look at it
 
-The panel over its own backlog, taken while every ticket in it was closed, so the tickets page
-shows the closed set and the tree was drawn over it. The screenshots predate attached documents,
-so the documents column, cards and page described below are not in them yet. Open a section to
-see a view.
+![A tour of knotview: the overview, the tickets list, the tree, a ticket and one of its documents](docs/screenshots/tour.webp)
 
-<details open>
-<summary><strong>Overview</strong> — the backlog counted by type, status, priority and queue, with what changed and what closed</summary>
+These screenshots show a small demo backlog in the dark theme. The panel follows your system
+theme, and the switch in the header picks light or dark instead. To make them again, run
+`uv run python -m scripts.capture_screenshots`.
 
-![The overview: cards counting tickets by type, status, priority and queue, then parents, recently changed and recently closed](docs/screenshots/overview.jpg)
-</details>
+### Overview
 
-<details>
-<summary><strong>Tickets</strong> — every ticket, filtered, ordered and searched, with the closed ones on request</summary>
+Counts you can click, a chart by priority and one by type, and each epic's progress. Choose more
+charts behind the gear.
 
-![The tickets page: a filter bar over a table of tickets with priority, type, status, title, acceptance, blockers and dates](docs/screenshots/tickets.jpg)
-</details>
+![The overview: open, in progress, ready and blocked counts, charts by priority and by type, epics with their progress, and what changed and closed recently](docs/screenshots/overview.jpg)
 
-<details>
-<summary><strong>Tree</strong> — what is filed under what, each branch foldable, and what is filed under nothing</summary>
+### Tickets
 
-![The tree page: an epic unfolded to its twenty-four children, then a table of tickets filed under nothing](docs/screenshots/tree.jpg)
-</details>
+Filters apply as you choose them. Each active filter is a chip you can remove.
 
-<details>
-<summary><strong>Ticket</strong> — one ticket's sections as markdown, what blocks it, its children, and knot's dependency tree</summary>
+![The tickets list: a search box and filter menus above one row per ticket, each with its status, tags, documents and priority](docs/screenshots/tickets.jpg)
 
-![A ticket page: the title and its chips, the description and design sections, the two tickets blocking it and its twenty-four children](docs/screenshots/ticket.jpg)
+### Tree
 
-![Further down the same page: the rest of the children, then the dependency tree drawn all the way down](docs/screenshots/ticket-graph.jpg)
-</details>
+What is filed under what, to any depth. Each branch folds, and the page remembers the fold.
 
-The queues are empty here because nothing is live; point the panel at a backlog with open
-work and they fill in.
+![The tree: two epics with their children under a guide line, then the tickets filed under nothing](docs/screenshots/tree.jpg)
+
+### Ready and blocked
+
+knot's own queues. The blocked queue is grouped by how many rounds of closing stand before each
+ticket.
+
+![The ready queue: every ticket with nothing in its way](docs/screenshots/ready.jpg)
+
+![The blocked queue, grouped into rounds](docs/screenshots/blocked.jpg)
+
+### Ticket
+
+Documents first, then the description. Later sections fold, and related tickets sit behind tabs.
+
+![A ticket: its spec and plan as cards, the description, its children in a tab, and a sidebar of priority, tags and progress](docs/screenshots/ticket.jpg)
+
+### Document
+
+One document in a readable column, the ticket's other documents as tabs, and an outline of its
+headings.
+
+![A spec: tabs for the ticket's documents, the text with a table in it, and an outline beside it](docs/screenshots/document.jpg)
 
 ## Quick start
 
@@ -103,28 +116,29 @@ machine.
 
 Every page is a GET and every filter is a query parameter, so any view is a link you can keep.
 
-The bar on every page holds the tags you have chosen to see the backlog through. Add one there
-and every view narrows to tickets carrying all of them, on every page, until you clear it. The
-choice lives in a cookie in your browser; the panel still writes nothing.
+The header holds the page tabs, the worktree you are reading, the theme switch, and any tags you
+pinned:
 
-When the repository has more than one git worktree, the bar also lists them, each by its branch
-and directory. Choose one and every page reads that worktree's backlog, since each worktree holds
-its own copy of `.tickets/`. The choice lives in a cookie in your browser, like the tags, and a
-worktree git no longer lists falls back to the directory the panel was started in. Worktrees need
-git 2.36 or later; without it the panel reads the one directory, as before.
+- **Pinned tags** narrow every page to tickets carrying all of them, until you unpin them. The
+  choice lives in a cookie in your browser. The panel still writes nothing.
+- **Worktrees** appear when the repository has more than one. Choose one and every page reads
+  that worktree's backlog, since each worktree holds its own copy of `.tickets/`. A worktree git
+  no longer lists falls back to the directory the panel was started in. This needs git 2.36 or
+  later; without it, the panel reads the one directory.
+- **The theme switch** cycles System, Light and Dark. Your choice is kept in this browser.
 
-Every instant is shown in your browser's timezone, labelled with it, and the exact UTC instant is
-on hover. Without script the page shows UTC, labelled as such.
+Every instant is shown in your browser's timezone, and the exact UTC instant is on hover. Without
+script the page shows UTC, labelled as such.
 
 | Page | What is on it |
 |---|---|
-| **Overview** `/` | The backlog counted by type, status and priority, each read from the project's own declared values, so a type nobody has filed yet still appears. knot's ready and blocked queues, the unassigned, and what its integrity check reports, with a document an issue names linked and its path shown from the project root. A *by document* card counting the tickets that own each document type, when any do. Parents with a progress bar each. What changed recently and what closed recently. What `knot prime` says wants attention: tickets ready to close, and tickets gone stale. The footer counts the project's documents. |
-| **Tickets** `/tickets` | Every ticket, filtered by type, status, priority, mode, assignee, tag, component or documents, ordered by priority, leverage, level, update, creation, title or id, with the closed ones on request. A docs column shows the document types each ticket owns, and dashes a type the project requires that a live ticket lacks. The documents filter takes several types at once, keeping tickets that own all of them, or finds tickets owning none, or missing a required type. Search matches id, title and tags; tick *in text* and it reaches the body, showing the sentence that matched. Applied filters are chips you can remove one at a time. |
-| **Tree** `/tree` | What is filed under what, nested to any depth, each branch foldable and the fold remembered in your browser. Each row carries its document types, dashed where a required one is missing. Island chips name knot's connected components. Tickets filed under nothing, and under a parent that is not live, are listed on their own, because that is where work goes missing. |
-| **Queues** `/queue/ready`, `/queue/blocked` | knot's own queues, with the docs column and its dashes. The blocked queue is grouped by level into the rounds of closing before each ticket can start. |
-| **Ticket** `/ticket/<id>` | The ticket's documents first, by type in the order the project declares them, each with its last change; the sections as the ticket wrote them, rendered as markdown; the acceptance criteria with what is met; the parent as a breadcrumb and the siblings under it; both directions of the graph, with a required document the ticket lacks listed among what blocks it; the links; knot's dependency tree drawn all the way down, a missing dependency shown as such; and the notes as a timeline, newest first. |
-| **Document** `/document/<id>` | One document in full, rendered as markdown, with a breadcrumb to its ticket, an outline of its headings, and tabs across the ticket's other documents, an *all* menu listing them by type, and where this one falls among them. A document whose ticket knot cannot find still reads; the start of an id works as knot resolves it. |
-| **Live** | Each open page asks about once a second whether the backlog changed, and reloads itself when it has, documents included, wherever the project's `:docs-dir` puts them. Rows saved since you last looked are marked, and the bar counts them. |
+| **Overview** `/` | Counts of open, in progress, ready and blocked tickets, each a link to its list. Charts by priority and by type; the gear adds charts by status, closed status, documents and queues, and your choice is kept in this browser. The integrity check's report, when there is one. Each epic, or whatever type the parents are, with how many of its children are closed; with no parents, the tickets ready to start. Recently changed and recently closed, five each. Tickets ready to close, and tickets gone stale. |
+| **Tickets** `/tickets` | One row per ticket: status, title, tags, document types, a dashed type a required document is missing, id, type, assignee, when it changed, and priority. Every status, type, tag, assignee and priority is a link to the list filtered by it. Search, and the Status, Type, Priority, Tag and Sort menus apply as you choose them, each option showing how many tickets it leaves. More filters opens a dialog for mode, assignee, island, documents, searching the text and including closed tickets; it applies when you press Apply. Each active filter is a chip you can remove. |
+| **Tree** `/tree` | What is filed under what, to any depth. Each branch folds, and the fold is remembered in your browser. Island links name knot's connected components. Tickets filed under nothing, or under a parent that is not live, are listed on their own, because that is where work goes missing. |
+| **Queues** `/queue/ready`, `/queue/blocked` | knot's own queues, in the same rows as the tickets list. The blocked queue is grouped by level into the rounds of closing before each ticket can start. |
+| **Ticket** `/ticket/<id>` | The title and one summary line, then the ticket's documents as cards, then the description, folded after its first two paragraphs. Later sections and the notes fold. Children, blocked by and blocking, linked tickets, siblings, and knot's dependency tree sit behind tabs, and empty ones are not drawn. A sidebar holds the documents, priority, assignee, tags, progress, parent, mode and external links. Folds and the chosen tab survive the page reloading itself. Markdown tables render as tables. |
+| **Document** `/document/<id>` | One document in a readable column, with tabs across the ticket's other documents, an *all* menu listing them by type, and an outline of its headings. A document whose ticket knot cannot find still reads, and the start of an id works as knot resolves it. |
+| **Live** | Each open page asks about once a second whether the backlog changed, and reloads itself when it has, documents included. Rows in the lists saved since you last looked carry a mark at their left edge, and the header counts them. |
 
 ## Developing
 
@@ -146,12 +160,17 @@ gate, and how the recorded test fixtures are kept honest against a real knot.
 ## Design
 
 **It reads.** Nothing here writes a ticket. Every route is a GET, the only commands it runs are
-knot's read verbs, and only one module can start a process; tests assert all three. The backlog
+knot's read verbs and `git worktree list`, and only two modules can start a process; tests
+assert all three. The backlog
 stays driven by whatever drives it.
 
 **It reads through knot.** Through `knot ... --json`, never by parsing `.tickets/` directly. knot
 owns that schema; a second parser here would be a second schema, and it would drift on the first
 release that adds a field.
+
+**It looks like itself.** Colours, type and spacing come from
+[Primer Primitives](https://primer.style/primitives) (MIT), kept in the package rather than
+loaded from a CDN, with knotview's own teal accent.
 
 **It follows without being asked.** Each page polls a digest of the ticket and document files
 rather than markup, so what you see after a change is exactly what a fresh visit shows: one rendering

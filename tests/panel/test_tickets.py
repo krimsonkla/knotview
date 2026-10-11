@@ -43,9 +43,9 @@ def test_the_summary_counts_shown_of_held_and_the_clear_link_appears_only_when_f
     plain = client(DeclaredBacklog()).get("/tickets").text
     narrowed = client(DeclaredBacklog()).get("/tickets?type=bug").text
 
-    assert "3 of 3" in plain and 'class="clear"' not in plain
-    assert "1 of 3" in narrowed and '<a class="clear" href="/tickets">clear</a>' in narrowed
-    assert "type bug" in narrowed
+    assert "3 of 3" in plain and "Clear all" not in plain
+    assert "1 of 3" in narrowed and '<a href="/tickets">Clear all</a>' in narrowed
+    assert ">type bug<a" in narrowed
 
 
 def test_orders_priority_first_by_default_and_newest_first_by_update(client):
@@ -115,13 +115,16 @@ def test_leverage_orders_highest_first_and_level_lowest_first_with_unknowns_last
     assert by_level.index("High leverage") < by_level.index("No metrics")
 
 
-def test_the_metric_columns_show_the_number_or_a_dash(client):
+def test_leverage_and_level_show_when_ordered_by_them_and_no_metric_is_drawn_as_a_dash(client):
+    # Replaces the metric columns: a row names a metric when the list is ordered by it, and an
+    # absent value is left out rather than drawn as a dash.
     backlog = DeclaredBacklog(live_value=(ticket("pro-01m2zzzzzzzz", leverage=3, level=2), PARENT))
-    page = client(backlog).get("/tickets").text
+    by_leverage = client(backlog).get("/tickets?order=leverage").text
+    by_level = client(backlog).get("/tickets?order=level").text
 
-    assert 'href="/tickets?order=leverage">lev</a>' in page
-    assert 'href="/tickets?order=level">lvl</a>' in page
-    assert "—" in page and ">3<" in page.replace("\n", "").replace(" ", "")
+    assert "leverage 3" in by_leverage and "level 2" in by_level
+    assert '<option value="leverage" selected>Sort: leverage</option>' in by_leverage
+    assert "—" not in by_leverage
 
 
 def test_a_component_filter_keeps_one_island_and_shows_in_the_summary(client):
@@ -140,43 +143,39 @@ def test_rows_carry_their_updated_instant_and_the_bar_has_a_since_marker(client)
     assert 'id="since"' in page and 'src="/static/follow.js?v=' in page
 
 
-def test_an_assignee_column_with_one_value_is_dropped_and_said_once(client):
+def test_an_unassigned_row_names_no_assignee(client):
+    # Replaces the assignee column and its "all unassigned" line: a row names its assignee only
+    # when it has one, so a list of unassigned tickets shows no assignee at all.
     same = (ticket("pro-01m2zzzzzzzz"), ticket("pro-01m2yyyyyyyy"))
     page = client(DeclaredBacklog(live_value=same)).get("/tickets").text
 
-    assert "all unassigned" in page and "<th>assignee</th>" not in page and "nobody" not in page
+    assert 'href="/tickets?assignee=' not in page
 
 
-def test_the_assignee_column_stays_when_values_differ_or_the_filter_is_on(client):
+def test_an_assigned_row_links_its_assignee_with_or_without_the_filter(client):
     mixed = client(DeclaredBacklog()).get("/tickets").text
     filtered = client(DeclaredBacklog(live_value=(ORPHAN,))).get("/tickets?assignee=someone").text
 
-    assert "<th>assignee</th>" in mixed and "nobody" in mixed
-    assert "<th>assignee</th>" in filtered and "all assigned to" not in filtered
+    for page in (mixed, filtered):
+        assert 'href="/tickets?assignee=someone">someone</a>' in page
 
 
-def test_the_instant_column_shows_whichever_order_is_on_as_a_stamp(client):
+def test_a_row_shows_whichever_instant_the_order_is_on(client):
     by_updated = client(DeclaredBacklog(live_value=(CHILD,))).get("/tickets").text
     by_created = client(DeclaredBacklog(live_value=(CHILD,))).get("/tickets?order=created").text
 
-    assert (
-        '<td class="muted"><time class="stamp" datetime="2026-09-04T10:00:00.000000Z" '
-        'title="2026-09-04T10:00:00.000000Z">2026-09-04 10:00 UTC</time></td>' in by_updated
-    )
-    assert (
-        '<td class="muted"><time class="stamp" datetime="2026-09-01T10:00:00.000000Z" '
-        'title="2026-09-01T10:00:00.000000Z">2026-09-01 10:00 UTC</time></td>' in by_created
-    )
-    assert 'title="updated"' not in by_updated and 'title="created"' not in by_created
+    assert 'updated <time class="ago" datetime="2026-09-04T10:00:00.000000Z"' in by_updated
+    assert 'created <time class="ago" datetime="2026-09-01T10:00:00.000000Z"' in by_created
+    assert "created <time" not in by_updated and "updated <time" not in by_created
 
 
-def test_an_absent_instant_in_either_column_is_a_dash_and_no_time_element(client):
+def test_an_absent_instant_is_left_out_of_the_row(client):
     bare = ticket("pro-01m2eeeeeeee", created=None, updated=None)
     by_updated = client(DeclaredBacklog(live_value=(bare,))).get("/tickets").text
     by_created = client(DeclaredBacklog(live_value=(bare,))).get("/tickets?order=created").text
 
-    assert '<td class="muted">—</td>' in by_updated and "<time" not in by_updated
-    assert '<td class="muted">—</td>' in by_created and "<time" not in by_created
+    assert "<time" not in by_updated and "<time" not in by_created
+    assert "—" not in by_updated and "—" not in by_created
 
 
 def test_each_applied_filter_is_a_chip_whose_link_drops_only_it(client):

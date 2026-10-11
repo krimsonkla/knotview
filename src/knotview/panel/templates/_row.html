@@ -1,0 +1,31 @@
+{# One ticket in a list: its status, its title with its tags and documents, a muted line of what #}
+{# else is known, and its priority. Expects `one`, `project`, `selection` and `show_missing`. #}
+{# A value the ticket does not have is left out rather than drawn as a dash. #}
+{% from "_time.html" import ago %}
+{# The since-last-look mark rides on data-updated, so a page that wants rows unmarked sets #}
+{# `unmarked` and its rows carry no instant for follow.js to compare. #}
+<div class="kv-row"{% if not unmarked %} data-updated="{{ one.updated or '' }}"{% endif %}>
+  <a class="kv-dot s-{{ one.status }}" href="/tickets?status={{ one.status | urlencode }}">{{ one.status }}</a>
+  <div class="kv-row-main">
+    <div class="kv-row-title">
+      <a class="title" href="/ticket/{{ one.id | segment }}">{{ one.title }}</a>
+      {% for tag in one.tags %}<a class="kv-chip" href="/tickets?tag={{ tag | urlencode }}">{{ tag }}</a>{% endfor %}
+      {% for kind in project.types_of(one) %}<a class="kv-chip doc" href="/ticket/{{ one.id | segment }}#documents">{{ kind }}</a>{% endfor %}
+      {% if show_missing and project.is_live(one) %}{% for kind, statuses in project.missing_by_type(one) %}<span class="kv-chip doc missing" title="needed to enter {{ statuses | join(', ') }}">{{ kind }}</span>{% endfor %}{% endif %}
+    </div>
+    {% if selection.deep and selection.excerpt(one) %}<div class="kv-meta kv-excerpt">{{ selection.excerpt(one) }}</div>{% endif %}
+    <div class="kv-meta">
+      <span class="kv-mono">{{ one.id }}</span>
+      <span>·</span><a href="/tickets?type={{ one.type | urlencode }}">{{ one.type }}</a>
+      {% if one.assignee %}<span>·</span><a href="/tickets?assignee={{ one.assignee | urlencode }}">{{ one.assignee }}</a>{% endif %}
+      {% set when = "created" if selection.order == "created" else "updated" %}
+      {% if one[when] %}<span>·</span><span>{{ when }} {{ ago(one[when]) }}</span>{% endif %}
+      {% if one.criteria %}<span>·</span><span>acceptance {{ one.met }}/{{ one.criteria }}</span>{% endif %}
+      {% set blocking = one.open_blockers(project.terminal_statuses) %}
+      {% if blocking %}<span>·</span><span>blocked by {{ blocking | length }}</span>{% endif %}
+      {% if selection.order == "leverage" and one.leverage is not none %}<span>·</span><span>leverage {{ one.leverage }}</span>{% endif %}
+      {% if selection.order == "level" and one.level is not none %}<span>·</span><span>level {{ one.level }}</span>{% endif %}
+    </div>
+  </div>
+  <div class="kv-row-end"><a class="kv-badge p{{ one.priority }}" href="/tickets?priority={{ one.priority }}" title="every ticket at P{{ one.priority }}">P{{ one.priority }}</a></div>
+</div>

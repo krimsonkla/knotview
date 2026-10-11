@@ -21,6 +21,123 @@
   });
 })();
 
+// Pin a tag when the pinned-tags field changes, as its own form does without script.
+(function pinner() {
+  var field = document.querySelector(".kv-pinned input[name=add]");
+  if (!field || !field.form) return;
+  field.addEventListener("change", function () {
+    if (field.value.trim()) field.form.submit();
+  });
+})();
+
+// A filter applies the moment it changes. The whole form is serialised, so a typed but
+// unsubmitted search travels with a changed pill, and the location is replaced rather than
+// pushed, so Back leaves the list. The script builds no URL of its own: the server answers a
+// non-canonical query with a redirect to the one URL it builds itself.
+(function filters() {
+  var forms = document.querySelectorAll("form[data-auto]");
+  for (var i = 0; i < forms.length; i++) {
+    (function (form) {
+      var go = function () {
+        var query = new URLSearchParams(new FormData(form)).toString();
+        window.location.replace(form.getAttribute("action") + (query ? "?" + query : ""));
+      };
+      // A change inside the More filters dialog waits for its Apply button, so several boxes can
+      // be ticked before the list reloads.
+      form.addEventListener("change", function (event) {
+        if (event.target.closest("dialog")) return;
+        go();
+      });
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        go();
+      });
+      // The dialog opens from its button; Cancel and Escape put the form back to what the page
+      // applied, so nothing chosen and then cancelled rides along with a later change.
+      var buttons = form.querySelectorAll("[data-open], [data-close]");
+      for (var b = 0; b < buttons.length; b++) {
+        buttons[b].addEventListener("click", function (event) {
+          var name = event.currentTarget.getAttribute("data-open");
+          var dialogs = form.getElementsByTagName("dialog");
+          for (var d = 0; d < dialogs.length; d++) {
+            if (name && dialogs[d].id === name) dialogs[d].showModal();
+            if (!name && dialogs[d].open) {
+              form.reset();
+              dialogs[d].close();
+            }
+          }
+        });
+      }
+      var held = form.getElementsByTagName("dialog");
+      for (var h = 0; h < held.length; h++) {
+        held[h].addEventListener("cancel", function () {
+          form.reset();
+        });
+      }
+    })(forms[i]);
+  }
+})();
+
+// A search typed but not yet submitted survives the reload a backlog change causes: it is kept
+// for this path in this tab, put back once, and forgotten.
+var searchKey = "knotview:search:" + window.location.pathname;
+var keepSearch = function () {
+  var box = document.querySelector("form[data-auto] input[name=q]");
+  try {
+    if (box && box.value !== box.defaultValue) sessionStorage.setItem(searchKey, box.value);
+  } catch (e) {
+    /* storage unavailable: the typed text is lost on reload, as before */
+  }
+};
+(function restoreSearch() {
+  var box = document.querySelector("form[data-auto] input[name=q]");
+  try {
+    var kept = sessionStorage.getItem(searchKey);
+    if (kept !== null) {
+      sessionStorage.removeItem(searchKey);
+      if (box) box.value = kept;
+    }
+  } catch (e) {
+    /* same */
+  }
+})();
+
+// The theme switch cycles System, Light and Dark. A choice is kept in this browser and set as the
+// page's data-theme, which the stylesheets read; System removes both and follows the computer.
+(function themes() {
+  var ORDER = ["system", "light", "dark"];
+  var SAYS = {
+    system: "Theme: follows the system. Click for light.",
+    light: "Theme: light. Click for dark.",
+    dark: "Theme: dark. Click to follow the system.",
+  };
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll("[data-theme-toggle]");
+  var current = function () {
+    return root.dataset.theme === "light" || root.dataset.theme === "dark"
+      ? root.dataset.theme
+      : "system";
+  };
+  var label = function () {
+    for (var i = 0; i < buttons.length; i++) buttons[i].title = SAYS[current()];
+  };
+  for (var b = 0; b < buttons.length; b++) {
+    buttons[b].addEventListener("click", function () {
+      var next = ORDER[(ORDER.indexOf(current()) + 1) % ORDER.length];
+      if (next === "system") delete root.dataset.theme;
+      else root.dataset.theme = next;
+      try {
+        if (next === "system") localStorage.removeItem("knotview.theme");
+        else localStorage.setItem("knotview.theme", next);
+      } catch (e) {
+        /* storage unavailable: the choice lasts for this page only */
+      }
+      label();
+    });
+  }
+  label();
+})();
+
 (function follow() {
   var badge = document.getElementById("live");
   if (!badge || typeof fetch === "undefined") return;
@@ -38,7 +155,7 @@
 
   var mark = function (text, stale) {
     badge.textContent = text;
-    badge.className = stale ? "live stale" : "live following";
+    badge.classList.toggle("stale", Boolean(stale));
   };
 
   var ask = function () {
@@ -70,6 +187,7 @@
           // Keep the scroll position across the reload, since a reader watching a long list while
           // an agent edits it should not be thrown back to the top every time.
           sessionStorage.setItem("knotview:scroll", String(window.scrollY));
+          keepSearch();
           window.location.reload();
           return;
         } else {
@@ -139,7 +257,7 @@
     return found[1] + "." + ((found[2] || "") + "000000").slice(0, 6) + "Z";
   };
   var lastAt = padded(read());
-  var rows = document.querySelectorAll("tr[data-updated]");
+  var rows = document.querySelectorAll("[data-updated]");
   var count = 0;
   for (var i = 0; i < rows.length; i++) {
     var updatedAt = padded(rows[i].getAttribute("data-updated"));

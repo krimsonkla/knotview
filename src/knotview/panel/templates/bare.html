@@ -1,16 +1,32 @@
-{# A frame for a page that cannot assume a project was read, which the layout
-needs. #}
+{# A frame for a page that cannot assume a project was read, which the layout needs: the same
+header without the project's name or its pinned tags. #}
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>knotview</title>
-    <link rel="stylesheet" href="/static/panel.css" />
+    <script>
+      // The reader's theme, applied before anything draws so a page never flashes the other one.
+      try {
+        var theme = localStorage.getItem("knotview.theme");
+        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="/static/primer.css?v={{ assets }}" />
+    <link rel="stylesheet" href="/static/panel.css?v={{ assets }}" />
   </head>
   <body>
-    <header class="bar"><span class="brand">knotview</span>{% include "_worktrees.html" %}</header>
-    <main>{% block main %}{% endblock %}</main>
+    <header class="kv-header">
+      <div class="kv-brand">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" aria-hidden="true"><circle cx="9" cy="12" r="5"></circle><circle cx="15" cy="12" r="5"></circle></svg>
+        <strong>knotview</strong>
+        {% include "_worktrees.html" %}
+      </div>
+      <div class="kv-end">{% include "_theme.html" %}</div>
+    </header>
+    <main class="kv-main">{% block main %}{% endblock %}</main>
     <script src="/static/follow.js?v={{ assets }}"></script>
   </body>
 </html>

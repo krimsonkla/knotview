@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from knotview.panel.app import _ago
+from knotview.panel.overview import _named, _plural
 from knotview.reading.knot_command import _issue
 from knotview.values.attention import Attention
 from knotview.values.criterion import Criterion
@@ -16,25 +17,27 @@ from tests.reading.envelopes import envelope
 def test_every_declared_type_is_counted_even_at_zero_with_a_link_to_its_filter(client):
     page = client(DeclaredBacklog()).get("/").text
 
-    assert '<a href="/tickets?type=feature"' in page
+    assert '<a class="kv-bar" href="/tickets?type=feature"' in page
     assert "epic" in page and "chore" in page
 
 
 def test_statuses_priorities_and_queues_are_counted(client):
     page = client(DeclaredBacklog()).get("/").text
 
-    assert '<a href="/tickets?status=in_progress"' in page
-    assert '<a href="/tickets?priority=3"' in page
-    assert '<a href="/queue/ready">ready</a>' in page
-    assert '<a href="/tickets?assignee=nobody">unassigned</a>' in page
-    assert 'href="/tickets?status=closed&amp;closed=1"' in page and ">closed</a" in page
+    assert 'href="/tickets?status=in_progress" data-card="by status"' in page
+    assert 'href="/tickets?priority=3" data-card="by priority"' in page
+    assert 'href="/queue/ready" data-card="queues"><span>ready</span>' in page
+    assert 'href="/tickets?assignee=nobody" data-card="queues"><span>unassigned</span>' in page
+    closed = 'href="/tickets?status=closed&amp;closed=1" data-card="by status">'
+    assert closed + '<span class="kv-dot s-closed">closed<' in page
     assert "archive_count" not in page
 
 
 def test_the_live_total_is_the_sum_over_statuses(client):
     page = client(DeclaredBacklog()).get("/").text
 
-    assert re.search(r'<a href="/tickets">live</a\s*><span class="num">3</span>', page)
+    live = r'href="/tickets" data-card="queues"><span>live</span>'
+    assert re.search(live + r'.*?<span class="kv-num">3</span>', page)
 
 
 def test_parents_are_whatever_something_is_filed_under_and_closed_work_is_listed(client):
@@ -50,7 +53,7 @@ def test_recently_closed_is_capped(client):
     )
     page = client(DeclaredBacklog(closed_value=many)).get("/").text
 
-    assert "Closed 7" in page and "Closed 8" not in page
+    assert "Closed 4" in page and "Closed 5" not in page
 
 
 def test_a_clean_project_shows_no_integrity_section(client):
@@ -135,20 +138,19 @@ def test_recently_changed_lists_live_tickets_newest_first_with_a_relative_time(c
     assert "d ago</time>" in section
 
 
-def test_a_recently_changed_ticket_without_an_updated_instant_shows_a_dash(client):
+def test_a_recently_changed_ticket_without_an_updated_instant_shows_no_time(client):
     bare = ticket("pro-01m2eeeeeeee", title="Never saved", updated=None)
     page = client(DeclaredBacklog(live_value=(bare,))).get("/").text
 
     section = page[page.index("recently changed") : page.index("recently closed")]
-    assert "Never saved" in section and '<span class="muted">—</span>' in section
-    assert 'class="ago"' not in section
+    assert "Never saved" in section and 'class="ago"' not in section
 
 
-def test_the_recently_closed_cells_are_stamps(client):
+def test_the_recently_closed_rows_carry_their_instant(client):
     page = client(DeclaredBacklog()).get("/").text
 
     closed = page[page.index("recently closed") :]
-    assert '<time class="stamp" datetime="2026-09-02T10:00:00.000000Z" title=' in closed
+    assert '<time class="ago" datetime="2026-09-02T10:00:00.000000Z" title=' in closed
 
 
 def test_an_instant_reads_as_a_distance_from_now():
@@ -173,9 +175,10 @@ def test_progress_lists_parents_with_criteria_nearest_to_done_first(client):
     kid = ticket("pro-01m2kkkkkkkk", parent="pro-01m2ffffffff")
     page = client(DeclaredBacklog(live_value=(far, kid, PARENT, CHILD))).get("/").text
 
-    section = page[page.index("<h2>progress</h2>") : page.index("<h2>parents</h2>")]
+    end = page.index('<section class="kv-card kv-wide">')
+    section = page[page.index("<h2>progress</h2>") : end]
     assert section.index("The parent") < section.index("Far parent")
-    assert '<progress value="1" max="2">' in section and "1/2 criteria" in section
+    assert 'class="kv-fill done" style="width: 50%"' in section and "1/2 criteria" in section
     assert "1 live beneath" in section
 
 
@@ -206,8 +209,8 @@ def test_the_terminal_count_narrows_with_the_chosen_tags(client):
     after = browser.get("/").text
 
     def closed_count(page: str) -> str:
-        start = page.index(">closed</a")
-        return page[start : start + 80].split('<span class="num">')[1].split("<")[0]
+        start = page.index('closed=1" data-card="by status"><span class="kv-dot s-closed">closed')
+        return page[start : start + 300].split('<span class="kv-num">')[1].split("<")[0]
 
     assert closed_count(before) == "2" and closed_count(after) == "1"
 
@@ -252,3 +255,108 @@ def test_an_issue_with_no_ids_still_shows_the_file_it_is_about(client):
     card = text[text.index("<h2>integrity</h2>") : text.index("</section>")]
 
     assert ">.tickets/pro-x--broken.md</span>" in card and "/ticket/" not in card
+
+
+EPIC = ticket("pro-01m2e1111111", title="The epic", type="epic")
+KIDS = (
+    ticket("pro-01m2k1111111", title="Kid one", parent="pro-01m2e1111111"),
+    ticket("pro-01m2k2222222", title="Kid two", status="closed", parent="pro-01m2e1111111"),
+)
+
+
+def test_the_overview_shows_stat_cards_bars_and_epic_progress(client):
+    backlog = DeclaredBacklog(live_value=(EPIC, KIDS[0]), closed_value=(KIDS[1],))
+
+    page = client(backlog).get("/").text
+
+    for label in ("Open", "In progress", "Ready", "Blocked"):
+        assert f">{label}</span><strong>" in page
+    assert page.count('class="kv-bar"') >= 3
+    assert "1 of 2 done" in page
+
+
+def test_an_epic_with_no_closed_children_shows_none_done(client):
+    page = client(DeclaredBacklog(live_value=(EPIC, KIDS[0]), closed_value=())).get("/").text
+
+    assert "0 of 1 done" in page
+
+
+def test_priority_and_type_charts_show_and_the_rest_wait_behind_the_charts_menu(client):
+    page = client(DeclaredBacklog()).get("/").text
+
+    assert '<section class="kv-card" data-chart="by priority">' in page
+    assert '<section class="kv-card" data-chart="by type">' in page
+    for hidden in ("by status", "closed", "queues"):
+        assert f'<section class="kv-card" data-chart="{hidden}" hidden>' in page
+        assert f'data-chart-toggle="{hidden}" />' in page
+    assert 'data-chart-toggle="by type" checked' in page
+
+
+def test_the_parents_card_is_named_by_the_types_its_parents_have(client):
+    epics = client(DeclaredBacklog()).get("/").text
+    task = ticket("pro-01m2t1111111", title="Task parent")
+    under = ticket("pro-01m2t2222222", parent="pro-01m2t1111111")
+    mixed = client(DeclaredBacklog(live_value=(task, under, *DeclaredBacklog().live_value)))
+
+    assert "<h2>epics</h2>" in epics and "<h2>parents</h2>" not in epics
+    assert "<h2>tasks and epics</h2>" in mixed.get("/").text
+
+
+def test_type_names_are_made_plural_the_way_english_does():
+    assert [_plural(one) for one in ("bug", "story", "fix", "patch", "day")] == [
+        "bugs",
+        "stories",
+        "fixes",
+        "patches",
+        "days",
+    ]
+
+
+def test_parents_of_no_declared_type_fall_back_to_the_plain_word():
+    assert _named((ticket("x", type="nonsense"),), ("bug", "epic")) == "parents"
+
+
+def test_the_overview_marks_nothing_since_the_last_look(client):
+    stale = Attention(in_progress=(), ready_to_close=(), stale=(CHILD,))
+
+    page = client(DeclaredBacklog(attention_value=stale)).get("/").text
+
+    assert "data-updated=" not in page and "The child" in page
+
+
+def test_a_gear_in_the_overview_header_opens_the_charts_dialog(client):
+    overview = client(DeclaredBacklog()).get("/").text
+    tickets = client(DeclaredBacklog()).get("/tickets").text
+
+    header = overview.split("</header>")[0]
+    assert 'data-open-dialog="charts-dialog" aria-label="Overview settings"' in header
+    assert '<dialog class="kv-dialog" id="charts-dialog" aria-label="Charts">' in overview
+    assert '<form class="kv-dialog-foot" method="dialog">' in overview
+    assert "data-open-dialog" not in tickets.split("</header>")[0]
+    assert '<circle cx="8" cy="8" r="5" stroke-width="3" stroke-dasharray' in header
+
+
+def test_with_nothing_filed_under_anything_the_card_lists_what_is_ready(client):
+    flat = (
+        ticket("pro-01m2r1111111", title="Ready one", priority=1),
+        ticket("pro-01m2r2222222", title="Ready zero", priority=0),
+    )
+    backlog = DeclaredBacklog(live_value=flat, ready_value=flat, closed_value=())
+
+    page = client(backlog).get("/").text
+    card = page[page.index('<section class="kv-card kv-wide">') :]
+    card = card[: card.index("</section>")]
+
+    assert "<h2>ready</h2>" in card
+    assert card.index("Ready zero") < card.index("Ready one")
+    assert 'href="/queue/ready">See all 2 ready</a>' in card
+
+
+def test_with_nothing_ready_either_the_card_lists_the_open_tickets(client):
+    flat = (ticket("pro-01m2o1111111", title="Waiting", priority=2),)
+    backlog = DeclaredBacklog(live_value=flat, ready_value=(), closed_value=())
+
+    card = client(backlog).get("/").text.split('<section class="kv-card kv-wide">')[1]
+
+    assert "<h2>open tickets</h2>" in card and "Waiting" in card
+    assert 'href="/tickets">See all 1</a>' in card

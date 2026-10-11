@@ -21,6 +21,9 @@
   values, the worktree resolver and cookie, the templates and the static files
 - `src/knotview/values/` frozen dataclasses: Ticket, Project, Criterion, Reference, Worktree, and
   the two refusals
+- `scripts/` maintenance tools outside the package and the coverage gate: `vendor_primer.py`
+  rebuilds the Primer tokens, `capture_screenshots.py` (with `capture_check.py`) rebuilds every
+  README image from a demo backlog
 - `tests/` mirrors `src/`; `tests/reading/envelopes/` holds JSON recorded from knot 0.15.0
 - `.tickets/docs/` each ticket's attached knot documents, including its brainstorm, spec and plan
 - `.tickets/` this project's own knot backlog, which is also the fixture it is developed against
@@ -48,7 +51,12 @@ port the panel is written against; tests use a `DeclaredBacklog` over tuples so 
 asserted without a process.
 
 `panel(backlog)` assembles the FastAPI app from a `ROUTES` table over a `Pages` object, one
-method per page. Every route is a GET, `READS` is disjoint from knot's write verbs, and only
+method per page. The look is a vendored subset of Primer Primitives (`static/primer.css`) under
+knotview's own `kv-` components in `panel.css`, light or dark by the system unless the reader
+chose a theme (a `data-theme` attribute set from localStorage before the page draws). `Selection`
+is the only URL builder: `/tickets` redirects any other spelling of a query to
+`Selection.query_string`'s, and the filter form's script serialises the form without building a
+URL of its own. Every route is a GET, `READS` is disjoint from knot's write verbs, and only
 `reading/knot_command.py` and `reading/git_worktrees.py` may start a process; tests assert all
 three. git is only ever asked `worktree list --porcelain -z`. Each open page carries the digest it
 was rendered under and asks `/digest` about once a second (not while hidden) for a digest of the
@@ -75,7 +83,13 @@ page render's listing and never runs git.
 - `src/knotview/reading/knot_envelope.py`: `answered` and `verdict` (knot's `check` co-emits
   `ok: false` with data), `ticket_from`, `project_from`.
 - `src/knotview/panel/app.py`: `Pages`, `ROUTES`, `panel()`, `HOSTS`.
-- `src/knotview/panel/static/follow.js`: the digest poll, the since-last-looked marks, local time.
+- `src/knotview/panel/static/follow.js`: the digest poll, the since-last-looked marks, local time,
+  filters that apply on change, the More filters dialog, pinning a tag, and the theme switch.
+- `src/knotview/panel/static/fold.js`: remembered folds (`details[data-fold]`), ticket tabs, the
+  overview's chart choices and opening a dialog from a button.
+- `src/knotview/panel/static/primer.css`: generated Primer tokens; `panel.css`: the `kv-` components.
+- `src/knotview/panel/templates/_row.html`, `_rows.html`, `_filters.html`: one ticket row shared by
+  every list, and the tickets page's filters.
 - `src/knotview/panel/selection.py`: every filter the URL carries, and the query-string builder.
 - `src/knotview/panel/tags.py`: the sticky tag choice, its cookie, and `narrow`.
 - `src/knotview/reading/git_worktrees.py`: `GitWorktrees`, the pinned git argv, the porcelain
@@ -91,6 +105,10 @@ page render's listing and never runs git.
 - Value objects that mirror knot's records carry a per-class pylint disable with the reason in
   the docstring rather than a raised project limit.
 - Findings deferred from a story are filed as tickets, never left as comments.
+- A page is built at the density its approved mockup shows. Anything more is hidden by default
+  behind a per-reader choice kept in the browser, as the overview's charts are.
+- Labels come from the project's `.knot.edn` and its data, never from a word picked here: the
+  overview names its parents by the types they have, and says "parents" only as a fallback.
 - A story's brainstorm, spec and plan live only as knot documents on its ticket (`other`, `spec`,
   `plan`, titled "<topic> brainstorm|design spec|implementation plan"), added with
   `knot document add` and updated with `knot document replace`. The harness drafts them under
@@ -116,3 +134,12 @@ page render's listing and never runs git.
   starts from it. A refused digest read renders the page without one. The launch directory's
   digest is the bare backlog digest; other worktrees' are prefixed with a digest of their path.
 - Worktrees need git 2.36 or later (`-z`); an older or missing git silently means one worktree.
+- `primer.css` is generated: refresh it only with `scripts/vendor_primer.py`, which checks each
+  file's pinned sha256. Semgrep in the hooks rejects network calls in the repository, so the
+  script reads files you fetch with `curl` (the command is in its docstring).
+- Fold memory is per tab (sessionStorage) on the ticket page and the More filters dialog, and
+  across visits (localStorage) on the tree and the overview's charts.
+- The worktree and pinned-tag cookies ignore the port, so a second panel on the same machine
+  over the same directory shares them; a panel left on another worktree moves the others too.
+- README images are rebuilt with `uv run python -m scripts.capture_screenshots`; it needs
+  Chrome (`KNOTVIEW_CHROME` overrides the path) and Pillow from the dev group.
