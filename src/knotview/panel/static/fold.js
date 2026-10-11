@@ -73,6 +73,16 @@
     });
   }
 
+  // A button naming a dialog by id opens it as a modal; the dialog closes itself through its own
+  // form (method="dialog"), so no script is needed to close it.
+  var openers = document.querySelectorAll("button[data-open-dialog]");
+  for (var o = 0; o < openers.length; o++) {
+    openers[o].addEventListener("click", function (event) {
+      var wanted = document.getElementById(event.currentTarget.getAttribute("data-open-dialog"));
+      if (wanted && wanted.tagName === "DIALOG") wanted.showModal();
+    });
+  }
+
   // Tabs: a bar of links, each naming a panel by id. The hash picks one when it names a panel
   // this page drew; anything else picks the first. A choice replaces the history entry.
   var bar = document.querySelector("[data-tabs]");

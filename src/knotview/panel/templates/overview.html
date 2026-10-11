@@ -1,4 +1,8 @@
-{% extends "layout.html" %} {% block main %}
+{% extends "layout.html" %}
+{% block tools %}<button type="button" class="kv-icon" data-open-dialog="charts-dialog" aria-label="Overview settings" title="Choose which charts show"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="8" cy="8" r="5" stroke-width="3" stroke-dasharray="2.2 1.73"></circle><circle cx="8" cy="8" r="3.6" stroke-width="1.5"></circle><circle cx="8" cy="8" r="1.4" stroke-width="1.5"></circle></svg></button>{% endblock %}
+{% block main %}
+{# The overview's short lists are not marked since the last look; the full lists are. #}
+{% set unmarked = true %}
 {% from "_time.html" import ago %}
 {# Every count links to the list it counts, built by Selection from the count's own filter and
 nothing else, so a filter in this page's URL never rides into a link while the count ignores it.
@@ -53,14 +57,19 @@ Each counted link names its card in `data-card`, which the tests read to follow 
 show unless the reader hides them; the rest repeat the headline counts and show when asked. #}
 {% set charts = ["by priority", "by type", "by status"] + (["closed"] if overview.by_terminal else [])
   + (["by document"] if overview.by_document else []) + ["queues"] %}
-<details class="kv-charts">
-  <summary>Charts</summary>
-  <div class="kv-pillbar">
-    {% for chart in charts %}
-    <label class="kv-check"><input type="checkbox" data-chart-toggle="{{ chart }}"{% if chart in ("by priority", "by type") %} checked{% endif %} /> {{ chart }}</label>
-    {% endfor %}
+<dialog class="kv-dialog" id="charts-dialog" aria-label="Charts">
+  <h2>Charts</h2>
+  <div class="kv-dialog-body">
+    <p class="kv-muted">Choose the charts this overview shows. The choice is kept in this browser.</p>
+    <fieldset class="kv-fieldset">
+      <legend>Show</legend>
+      {% for chart in charts %}
+      <label class="kv-check"><input type="checkbox" data-chart-toggle="{{ chart }}"{% if chart in ("by priority", "by type") %} checked{% endif %} /> {{ chart }}</label>
+      {% endfor %}
+    </fieldset>
   </div>
-</details>
+  <form class="kv-dialog-foot" method="dialog"><button type="submit" class="kv-pill kv-primary-button">Done</button></form>
+</dialog>
 
 <div class="kv-grid">
   {{ bars("by priority", "by priority", overview.by_priority, by_value, shown=true, tone="p") }}
@@ -106,11 +115,15 @@ show unless the reader hides them; the rest repeat the headline counts and show 
 {% endif %}
 
 <div class="kv-split">
+  {# The widest card shows the parents and their progress; with nothing filed under anything it
+  shows what is ready to start instead, or the open tickets when nothing is ready, so it is never
+  an empty box while there is live work. #}
   <section class="kv-card kv-wide">
+    {% if overview.epics %}
     <h2>{{ overview.parents_label }}</h2>
     {% for epic in overview.epics %}
     <div class="kv-row">
-      <span class="kv-badge p{{ epic.ticket.priority }}">P{{ epic.ticket.priority }}</span>
+      <a class="kv-badge p{{ epic.ticket.priority }}" href="/tickets?priority={{ epic.ticket.priority }}" title="every ticket at P{{ epic.ticket.priority }}">P{{ epic.ticket.priority }}</a>
       <div class="kv-row-main">
         <a class="title" href="/ticket/{{ epic.ticket.id | segment }}">{{ epic.ticket.title }}</a>
         <div class="kv-meta"><span class="kv-mono">{{ epic.ticket.id }}</span>{% for tag in epic.ticket.tags %}<span>·</span><a href="/tickets?tag={{ tag | urlencode }}">{{ tag }}</a>{% endfor %}</div>
@@ -120,9 +133,15 @@ show unless the reader hides them; the rest repeat the headline counts and show 
         <span class="kv-muted">{{ epic.done }} of {{ epic.total }} done</span>
       </div>
     </div>
-    {% else %}
-    <p class="kv-row kv-muted">Nothing is filed under anything.</p>
     {% endfor %}
+    {% else %}
+    {% set listed, title, more, word = (overview.ready_first, "ready", "/queue/ready", " ready") if overview.ready_first else (overview.open_first, "open tickets", "/tickets", "") %}
+    <h2>{{ title }}</h2>
+    {% for one in listed[:8] %}{% include "_row.html" %}{% else %}
+    <p class="kv-row kv-muted">Nothing is open.</p>
+    {% endfor %}
+    {% if listed %}<p class="kv-row kv-more-link"><a href="{{ more }}">See all {{ listed | length }}{{ word }}</a></p>{% endif %}
+    {% endif %}
   </section>
 
   <div class="kv-narrow">
@@ -130,7 +149,7 @@ show unless the reader hides them; the rest repeat the headline counts and show 
     <section class="kv-card">
       <h2>{{ title }}</h2>
       {% for ticket in listed %}
-      <div class="kv-row" data-updated="{{ ticket.updated or '' }}">
+      <div class="kv-row">
         <div class="kv-row-main">
           <a class="title" href="/ticket/{{ ticket.id | segment }}">{{ ticket.title }}</a>
           <div class="kv-meta"><span class="kv-dot s-{{ ticket.status }}">{{ ticket.status }}</span><span>·</span><span class="kv-mono">{{ ticket.id }}</span>{% if ticket.updated %}<span>·</span><span>{{ ago(ticket.updated) }}</span>{% endif %}</div>

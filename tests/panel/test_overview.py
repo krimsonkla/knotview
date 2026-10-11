@@ -314,3 +314,49 @@ def test_type_names_are_made_plural_the_way_english_does():
 
 def test_parents_of_no_declared_type_fall_back_to_the_plain_word():
     assert _named((ticket("x", type="nonsense"),), ("bug", "epic")) == "parents"
+
+
+def test_the_overview_marks_nothing_since_the_last_look(client):
+    stale = Attention(in_progress=(), ready_to_close=(), stale=(CHILD,))
+
+    page = client(DeclaredBacklog(attention_value=stale)).get("/").text
+
+    assert "data-updated=" not in page and "The child" in page
+
+
+def test_a_gear_in_the_overview_header_opens_the_charts_dialog(client):
+    overview = client(DeclaredBacklog()).get("/").text
+    tickets = client(DeclaredBacklog()).get("/tickets").text
+
+    header = overview.split("</header>")[0]
+    assert 'data-open-dialog="charts-dialog" aria-label="Overview settings"' in header
+    assert '<dialog class="kv-dialog" id="charts-dialog" aria-label="Charts">' in overview
+    assert '<form class="kv-dialog-foot" method="dialog">' in overview
+    assert "data-open-dialog" not in tickets.split("</header>")[0]
+    assert '<circle cx="8" cy="8" r="5" stroke-width="3" stroke-dasharray' in header
+
+
+def test_with_nothing_filed_under_anything_the_card_lists_what_is_ready(client):
+    flat = (
+        ticket("pro-01m2r1111111", title="Ready one", priority=1),
+        ticket("pro-01m2r2222222", title="Ready zero", priority=0),
+    )
+    backlog = DeclaredBacklog(live_value=flat, ready_value=flat, closed_value=())
+
+    page = client(backlog).get("/").text
+    card = page[page.index('<section class="kv-card kv-wide">') :]
+    card = card[: card.index("</section>")]
+
+    assert "<h2>ready</h2>" in card
+    assert card.index("Ready zero") < card.index("Ready one")
+    assert 'href="/queue/ready">See all 2 ready</a>' in card
+
+
+def test_with_nothing_ready_either_the_card_lists_the_open_tickets(client):
+    flat = (ticket("pro-01m2o1111111", title="Waiting", priority=2),)
+    backlog = DeclaredBacklog(live_value=flat, ready_value=(), closed_value=())
+
+    card = client(backlog).get("/").text.split('<section class="kv-card kv-wide">')[1]
+
+    assert "<h2>open tickets</h2>" in card and "Waiting" in card
+    assert 'href="/tickets">See all 1</a>' in card

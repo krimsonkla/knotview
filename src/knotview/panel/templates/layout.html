@@ -6,6 +6,13 @@ pinned to narrow every page, and the live indicator. `current` names this page's
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}{{ project.name }}{% endblock %} · knotview</title>
+    <script>
+      // The reader's theme, applied before anything draws so a page never flashes the other one.
+      try {
+        var theme = localStorage.getItem("knotview.theme");
+        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
     <link rel="stylesheet" href="/static/primer.css?v={{ assets }}" />
     <link rel="stylesheet" href="/static/panel.css?v={{ assets }}" />
   </head>
@@ -26,6 +33,8 @@ pinned to narrow every page, and the live indicator. `current` names this page's
         {% endfor %}
       </nav>
       <div class="kv-end">
+        {% block tools %}{% endblock %}
+        {% include "_theme.html" %}
         {% include "_pinned.html" %}
         <span id="since" class="kv-chip active since" hidden title="rows marked: updated since you last looked; click to clear"></span>
         <span id="live" class="kv-live live" title="following the backlog"{% if carried %} data-digest="{{ carried }}"{% endif %}>live</span>

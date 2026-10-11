@@ -35,7 +35,7 @@
         {% if node.criteria %}<span>·</span><span>criteria {{ node.met }}/{{ node.criteria }}</span>{% endif %}
       </div>
     </div>
-    <div class="kv-row-end"><span class="kv-badge p{{ one.priority }}">P{{ one.priority }}</span></div>
+    <div class="kv-row-end"><a class="kv-badge p{{ one.priority }}" href="/tickets?priority={{ one.priority }}" title="every ticket at P{{ one.priority }}">P{{ one.priority }}</a></div>
   </summary>
   <ul class="kv-children">
     {% for child in node.children %}

@@ -17,11 +17,23 @@
     ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
+/* Dark when the system asks for it unless the reader chose light, and whenever they chose dark; */
+/* the reader's choice is the data-theme attribute the head script sets from their last pick. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --kv-accent: #3fc9bd;
     --kv-accent-muted: rgba(63, 201, 189, 0.14);
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --kv-accent: #3fc9bd;
+  --kv-accent-muted: rgba(63, 201, 189, 0.14);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 * {
@@ -297,6 +309,10 @@ a.kv-chip:hover {
   font-size: 12px;
   font-weight: 600;
 }
+a.kv-badge:hover {
+  text-decoration: none;
+  filter: brightness(1.25);
+}
 .kv-badge.p0 {
   color: var(--fgColor-danger);
   background: var(--bgColor-danger-muted);
@@ -517,11 +533,68 @@ select.kv-pill {
   gap: 6px;
   font-size: 13px;
 }
-.kv-more > summary {
-  cursor: pointer;
-  margin-bottom: var(--kv-space-2);
-  color: var(--fgColor-muted);
+/* More filters: a modal dialog inside the filter form. */
+.kv-dialog {
+  width: min(520px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--borderColor-default);
+  border-radius: 12px;
+  background: var(--bgColor-default);
+  color: var(--fgColor-default);
+  box-shadow: 0 16px 40px rgba(1, 4, 9, 0.45);
+}
+.kv-dialog::backdrop {
+  background: rgba(1, 4, 9, 0.55);
+}
+.kv-dialog > h2 {
+  margin: 0;
+  padding: var(--kv-space-4);
+  font-size: 15px;
+  border-bottom: 1px solid var(--borderColor-default);
+}
+.kv-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kv-space-4);
+  padding: var(--kv-space-4);
+}
+.kv-field {
+  display: grid;
+  grid-template-columns: 7em minmax(0, 1fr);
+  align-items: center;
+  gap: var(--kv-space-3);
   font-size: 13px;
+  color: var(--fgColor-muted);
+}
+.kv-fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kv-space-2) var(--kv-space-4);
+  margin: 0;
+  padding: var(--kv-space-3);
+  border: 1px solid var(--borderColor-muted);
+  border-radius: var(--kv-radius);
+}
+.kv-fieldset > legend {
+  padding: 0 var(--kv-space-1);
+  color: var(--fgColor-muted);
+  font-size: 12px;
+}
+.kv-dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--kv-space-2);
+  padding: var(--kv-space-3) var(--kv-space-4);
+  border-top: 1px solid var(--borderColor-default);
+}
+button.kv-pill {
+  cursor: pointer;
+}
+.kv-primary-button {
+  border-color: var(--kv-accent);
+  background-color: var(--kv-accent);
+  color: var(--bgColor-default);
+  font-weight: 600;
 }
 
 /* The overview: headline counts, bars, and lists side by side. */
@@ -536,8 +609,8 @@ select.kv-pill {
   color: var(--fgColor-severe);
   background: var(--bgColor-severe-muted);
 }
-/* Every overview row has the same gap and the same outer edges, so cards line up at both sides
-   whatever the number of stat cards or of charts the reader chose to show. */
+/* Every overview row has the same gap and the same outer edges, so cards line up at both sides */
+/* whatever the number of stat cards or of charts the reader chose to show. */
 .kv-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -566,12 +639,18 @@ select.kv-pill {
   font-weight: 600;
 }
 /* Charts in one row share one height, however many bars each holds. */
+/* Charts wrap at about 280px each and every row shares its whole width, so a last row of two */
+/* or three never leaves a gap after it; charts in one row stretch to one height. */
 .kv-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--kv-space-4);
   align-items: stretch;
   margin-bottom: var(--kv-space-4);
+}
+.kv-grid > .kv-card {
+  flex: 1 1 280px;
+  min-width: 0;
 }
 .kv-grid > .kv-card {
   margin: 0;
@@ -666,14 +745,34 @@ select.kv-pill {
 .kv-narrow .kv-row-main > a.title {
   font-size: 14px;
 }
-.kv-charts {
-  margin: 0 0 var(--kv-space-3);
-  font-size: 13px;
-}
-.kv-charts > summary {
-  cursor: pointer;
+.kv-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--kv-radius);
+  background: var(--bgColor-muted);
   color: var(--fgColor-muted);
-  margin-bottom: var(--kv-space-2);
+  cursor: pointer;
+}
+/* The theme switch shows the one icon for the theme in force. */
+.kv-theme svg {
+  display: none;
+}
+:root:not([data-theme]) .kv-theme .i-system,
+:root[data-theme="light"] .kv-theme .i-light,
+:root[data-theme="dark"] .kv-theme .i-dark {
+  display: block;
+}
+.kv-icon:hover {
+  color: var(--fgColor-default);
+  border-color: var(--borderColor-emphasis);
+}
+.kv-more-link {
+  font-size: 13px;
 }
 .kv-note {
   margin: var(--kv-space-2) var(--kv-space-4) 0;
@@ -686,12 +785,17 @@ select.kv-pill {
 .kv-progress .kv-track {
   flex: 1 1 auto;
 }
-/* Three parts to one, so with four charts showing the lists line up with the chart columns. */
+/* Four equal columns with the charts' gap, the parents spanning three: with four charts showing, */
+/* both inner edges fall on the chart columns' edges. A 3fr:1fr split would not, since its right */
+/* column takes three quarters of a gap more than a chart column does. */
 .kv-split {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--kv-space-4);
   align-items: start;
+}
+.kv-split > .kv-wide {
+  grid-column: span 3;
 }
 .kv-split > .kv-card {
   margin: 0;
@@ -1022,5 +1126,8 @@ details.kv-card.kv-fold > summary::first-letter {
   }
   .kv-split {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .kv-split > .kv-wide {
+    grid-column: auto;
   }
 }

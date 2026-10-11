@@ -42,11 +42,38 @@
         var query = new URLSearchParams(new FormData(form)).toString();
         window.location.replace(form.getAttribute("action") + (query ? "?" + query : ""));
       };
-      form.addEventListener("change", go);
+      // A change inside the More filters dialog waits for its Apply button, so several boxes can
+      // be ticked before the list reloads.
+      form.addEventListener("change", function (event) {
+        if (event.target.closest("dialog")) return;
+        go();
+      });
       form.addEventListener("submit", function (event) {
         event.preventDefault();
         go();
       });
+      // The dialog opens from its button; Cancel and Escape put the form back to what the page
+      // applied, so nothing chosen and then cancelled rides along with a later change.
+      var buttons = form.querySelectorAll("[data-open], [data-close]");
+      for (var b = 0; b < buttons.length; b++) {
+        buttons[b].addEventListener("click", function (event) {
+          var name = event.currentTarget.getAttribute("data-open");
+          var dialogs = form.getElementsByTagName("dialog");
+          for (var d = 0; d < dialogs.length; d++) {
+            if (name && dialogs[d].id === name) dialogs[d].showModal();
+            if (!name && dialogs[d].open) {
+              form.reset();
+              dialogs[d].close();
+            }
+          }
+        });
+      }
+      var held = form.getElementsByTagName("dialog");
+      for (var h = 0; h < held.length; h++) {
+        held[h].addEventListener("cancel", function () {
+          form.reset();
+        });
+      }
     })(forms[i]);
   }
 })();
@@ -73,6 +100,42 @@ var keepSearch = function () {
   } catch (e) {
     /* same */
   }
+})();
+
+// The theme switch cycles System, Light and Dark. A choice is kept in this browser and set as the
+// page's data-theme, which the stylesheets read; System removes both and follows the computer.
+(function themes() {
+  var ORDER = ["system", "light", "dark"];
+  var SAYS = {
+    system: "Theme: follows the system. Click for light.",
+    light: "Theme: light. Click for dark.",
+    dark: "Theme: dark. Click to follow the system.",
+  };
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll("[data-theme-toggle]");
+  var current = function () {
+    return root.dataset.theme === "light" || root.dataset.theme === "dark"
+      ? root.dataset.theme
+      : "system";
+  };
+  var label = function () {
+    for (var i = 0; i < buttons.length; i++) buttons[i].title = SAYS[current()];
+  };
+  for (var b = 0; b < buttons.length; b++) {
+    buttons[b].addEventListener("click", function () {
+      var next = ORDER[(ORDER.indexOf(current()) + 1) % ORDER.length];
+      if (next === "system") delete root.dataset.theme;
+      else root.dataset.theme = next;
+      try {
+        if (next === "system") localStorage.removeItem("knotview.theme");
+        else localStorage.setItem("knotview.theme", next);
+      } catch (e) {
+        /* storage unavailable: the choice lasts for this page only */
+      }
+      label();
+    });
+  }
+  label();
 })();
 
 (function follow() {

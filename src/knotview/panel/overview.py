@@ -84,6 +84,10 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     # What the parents are called, from the types the project declares, so a project whose
     # parents are all epics reads "epics" and one with none of that type never sees the word.
     parents_label: str
+    # What the parents card shows when nothing is filed under anything: the ready queue, or the
+    # open tickets when nothing is ready either, highest priority first.
+    ready_first: tuple[Ticket, ...]
+    open_first: tuple[Ticket, ...]
     progress: tuple[Progress, ...]
     ready_to_close: tuple[Ticket, ...]
     stale: tuple[Ticket, ...]
@@ -148,6 +152,8 @@ class Overview:  # pylint: disable=too-many-instance-attributes
             parents=_parents(live),
             epics=_epics(_parents(live), snapshot),
             parents_label=_named(_parents(live), project.types),
+            ready_first=tuple(sorted(snapshot.ready, key=lambda t: (t.priority, t.id))),
+            open_first=tuple(sorted(live, key=lambda t: (t.priority, t.id))),
             progress=_progress(live),
             ready_to_close=snapshot.attention.ready_to_close,
             stale=snapshot.attention.stale,

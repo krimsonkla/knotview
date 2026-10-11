@@ -40,7 +40,7 @@ def test_a_row_shows_status_title_tags_id_type_time_assignee_and_priority(client
     assert ">teams<" in row and "kno-r1" in row and 'href="/tickets?type=task">task<' in row
     assert re.search(r"updated <time class=\"ago\" datetime=\"2026-10-01T10:00:00.000000Z\"", row)
     assert 'href="/tickets?assignee=ada">ada<' in row
-    assert 'class="kv-badge p1">P1<' in row
+    assert 'class="kv-badge p1" href="/tickets?priority=1"' in row and ">P1</a>" in row
     assert "blocked by" not in row and "acceptance" not in row
 
 
@@ -91,16 +91,24 @@ def test_the_filter_form_applies_on_change_and_carries_a_visible_fallback_button
 
     assert '<form class="kv-filters" method="get" action="/tickets" data-auto>' in page
     assert '<noscript><button type="submit">Apply</button></noscript>' in page
-    assert 'data-fold="more-filters"' in page
+    assert '<dialog class="kv-dialog" id="more-filters" aria-label="More filters">' in page
     assert 'src="/static/fold.js?v=' in page
 
 
-def test_more_filters_opens_by_default_when_a_filter_inside_is_active(client):
-    page = client(DeclaredBacklog()).get("/tickets?mode=afk").text
+def test_more_filters_is_a_button_after_the_pills_counting_what_it_holds(client):
+    plain = client(DeclaredBacklog()).get("/tickets").text
+    filtered = client(DeclaredBacklog()).get("/tickets?mode=afk&closed=1").text
 
-    assert (
-        '<details class="kv-more" data-fold="more-filters" data-fold-store="session" open>' in page
-    )
+    assert plain.index('name="order"') < plain.index('data-open="more-filters"')
+    assert ">More filters</button>" in plain
+    assert 'class="kv-pill set" data-open="more-filters">More filters (2)</button>' in filtered
+
+
+def test_the_dialog_applies_with_its_own_button_and_cancels_back_to_what_was_applied():
+    script = _script("follow.js")
+
+    assert "showModal()" in script and 'closest("dialog")' in script
+    assert "form.reset()" in script
 
 
 def test_an_empty_list_says_so(client):

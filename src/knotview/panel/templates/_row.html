@@ -2,7 +2,9 @@
 {# else is known, and its priority. Expects `one`, `project`, `selection` and `show_missing`. #}
 {# A value the ticket does not have is left out rather than drawn as a dash. #}
 {% from "_time.html" import ago %}
-<div class="kv-row" data-updated="{{ one.updated or '' }}">
+{# The since-last-look mark rides on data-updated, so a page that wants rows unmarked sets #}
+{# `unmarked` and its rows carry no instant for follow.js to compare. #}
+<div class="kv-row"{% if not unmarked %} data-updated="{{ one.updated or '' }}"{% endif %}>
   <a class="kv-dot s-{{ one.status }}" href="/tickets?status={{ one.status | urlencode }}">{{ one.status }}</a>
   <div class="kv-row-main">
     <div class="kv-row-title">
@@ -25,5 +27,5 @@
       {% if selection.order == "level" and one.level is not none %}<span>·</span><span>level {{ one.level }}</span>{% endif %}
     </div>
   </div>
-  <div class="kv-row-end"><span class="kv-badge p{{ one.priority }}">P{{ one.priority }}</span></div>
+  <div class="kv-row-end"><a class="kv-badge p{{ one.priority }}" href="/tickets?priority={{ one.priority }}" title="every ticket at P{{ one.priority }}">P{{ one.priority }}</a></div>
 </div>

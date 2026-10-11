@@ -27,6 +27,26 @@ def _used_and_defined() -> tuple[set[str], set[str], set[str]]:
     return used, _defined(light) | panel_root, _defined(dark) | panel_root
 
 
+def test_a_chosen_theme_overrides_the_system_one_in_both_directions():
+    tokens = _text("primer.css")
+    chosen_dark = tokens.split(':root[data-theme="dark"]', 1)[1].split("}", 1)[0]
+    system_dark = tokens.split("@media (prefers-color-scheme: dark)", 1)[1].split("}", 1)[0]
+
+    assert ':root:not([data-theme="light"])' in tokens
+    assert _defined(chosen_dark) == _defined(system_dark)
+    assert ':root[data-theme="dark"]' in _text("panel.css")
+
+
+def test_every_frame_applies_the_saved_theme_before_it_draws_and_offers_the_switch(client):
+    for path in ("/tickets", "/ticket/nope"):
+        page = client(DeclaredBacklog()).get(path).text
+        head = page.split("</head>")[0]
+        assert 'localStorage.getItem("knotview.theme")' in head, path
+        assert 'data-theme-toggle aria-label="Theme"' in page, path
+    script = _text("follow.js")
+    assert '"knotview.theme"' in script and '["system", "light", "dark"]' in script
+
+
 def test_every_property_the_stylesheets_use_is_defined_for_light_and_for_dark():
     used, light, dark = _used_and_defined()
 

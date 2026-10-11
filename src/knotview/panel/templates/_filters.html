@@ -16,28 +16,49 @@
       {% for one in orders %}<option value="{{ one }}"{% if selection.order == one %} selected{% endif %}>Sort: {{ one }}</option>
       {% endfor %}
     </select>
+    {% set held = (1 if selection.mode != any else 0) + (1 if selection.assignee != any else 0)
+    + (1 if selection.component != any else 0) + selection.docs | length
+    + (1 if selection.undocumented else 0) + (1 if selection.lacking else 0)
+    + (1 if selection.deep else 0) + (1 if selection.closed else 0) %}
+    <button type="button" class="kv-pill{% if held %} set{% endif %}" data-open="more-filters">More filters{% if held %} ({{ held }}){% endif %}</button>
   </div>
-  {% set inside = selection.mode != any or selection.assignee != any or selection.component != any
-  or selection.docs or selection.undocumented or selection.lacking or selection.deep or
-  selection.closed %}
-  <details class="kv-more" data-fold="more-filters" data-fold-store="session"{% if inside %} open{% endif %}>
-    <summary>More filters</summary>
-    <div class="kv-pillbar">
-      <select class="kv-pill" name="mode" aria-label="Mode">
-        <option value="{{ any }}"{% if selection.mode == any %} selected{% endif %}>Mode: any</option>
-        {% for one in project.modes %}<option value="{{ one }}"{% if selection.mode == one %} selected{% endif %}>{{ one }}</option>
+  {# The rarer filters, in a dialog inside the same form. A change in here waits for Apply, so a
+  reader can tick several before the list reloads; Cancel puts back what the page applied. #}
+  <dialog class="kv-dialog" id="more-filters" aria-label="More filters">
+    <h2>More filters</h2>
+    <div class="kv-dialog-body">
+      <label class="kv-field">Mode
+        <select class="kv-pill" name="mode">
+          <option value="{{ any }}"{% if selection.mode == any %} selected{% endif %}>any</option>
+          {% for one in project.modes %}<option value="{{ one }}"{% if selection.mode == one %} selected{% endif %}>{{ one }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="kv-field">Assignee
+        <input class="kv-pill" type="text" name="assignee" value="{{ '' if selection.assignee == any else selection.assignee }}" placeholder="a name, or nobody" />
+      </label>
+      <label class="kv-field">Island
+        <input class="kv-pill" type="text" name="component" value="{{ '' if selection.component == any else selection.component }}" placeholder="a number" size="6" />
+      </label>
+      <fieldset class="kv-fieldset">
+        <legend>Documents</legend>
+        {% for kind in project.doc_types %}<label class="kv-check"><input type="checkbox" name="doc" value="{{ kind }}"{% if kind in selection.docs %} checked{% endif %} /> has {{ kind }}</label>
         {% endfor %}
-      </select>
-      <input class="kv-pill" type="text" name="assignee" value="{{ '' if selection.assignee == any else selection.assignee }}" placeholder="assignee, or nobody" aria-label="Assignee" />
-      <input class="kv-pill" type="text" name="component" value="{{ '' if selection.component == any else selection.component }}" placeholder="island" aria-label="Island" size="6" />
-      {% for kind in project.doc_types %}<label class="kv-check"><input type="checkbox" name="doc" value="{{ kind }}"{% if kind in selection.docs %} checked{% endif %} /> has {{ kind }}</label>
-      {% endfor %}
-      <label class="kv-check"><input type="checkbox" name="nodocs" value="1"{% if selection.undocumented %} checked{% endif %} /> no documents</label>
-      {% if project.required_docs %}<label class="kv-check"><input type="checkbox" name="lacking" value="1"{% if selection.lacking %} checked{% endif %} /> missing a required document</label>{% endif %}
-      <label class="kv-check" title="also match the ticket's text; reads every ticket in full"><input type="checkbox" name="deep" value="1"{% if selection.deep %} checked{% endif %} /> search in text</label>
-      <label class="kv-check"><input type="checkbox" name="closed" value="1"{% if selection.closed %} checked{% endif %} /> include closed</label>
+        <label class="kv-check"><input type="checkbox" name="nodocs" value="1"{% if selection.undocumented %} checked{% endif %} /> no documents</label>
+        {% if project.required_docs %}<label class="kv-check"><input type="checkbox" name="lacking" value="1"{% if selection.lacking %} checked{% endif %} /> missing a required document</label>{% endif %}
+      </fieldset>
+      <fieldset class="kv-fieldset">
+        <legend>Search and scope</legend>
+        <label class="kv-check" title="also match the ticket's text; reads every ticket in full"><input type="checkbox" name="deep" value="1"{% if selection.deep %} checked{% endif %} /> search in text</label>
+        <label class="kv-check"><input type="checkbox" name="closed" value="1"{% if selection.closed %} checked{% endif %} /> include closed</label>
+      </fieldset>
     </div>
-  </details>
+    <div class="kv-dialog-foot">
+      <button type="button" class="kv-pill" data-close="more-filters">Cancel</button>
+      <button type="submit" class="kv-pill kv-primary-button">Apply</button>
+    </div>
+  </dialog>
+  <noscript><style>.kv-dialog { display: block; position: static; } [data-open], [data-close] { display: none; }</style></noscript>
   <noscript><button type="submit">Apply</button></noscript>
   {% if selection.filtering %}
   <div class="kv-chips">
