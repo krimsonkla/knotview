@@ -536,11 +536,13 @@ select.kv-pill {
   color: var(--fgColor-severe);
   background: var(--bgColor-severe-muted);
 }
+/* Every overview row has the same gap and the same outer edges, so cards line up at both sides
+   whatever the number of stat cards or of charts the reader chose to show. */
 .kv-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--kv-space-4);
-  margin-bottom: var(--kv-space-6);
+  margin-bottom: var(--kv-space-4);
 }
 .kv-stat {
   display: block;
@@ -563,11 +565,16 @@ select.kv-pill {
   line-height: 1.25;
   font-weight: 600;
 }
+/* Charts in one row share one height, however many bars each holds. */
 .kv-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 0 var(--kv-space-4);
-  align-items: start;
+  gap: var(--kv-space-4);
+  align-items: stretch;
+  margin-bottom: var(--kv-space-4);
+}
+.kv-grid > .kv-card {
+  margin: 0;
 }
 .kv-bars {
   padding: var(--kv-space-2) 0;
@@ -611,6 +618,54 @@ select.kv-pill {
 .kv-fill.done {
   background: var(--fgColor-done);
 }
+/* Bars and dots coloured as the mockup draws them: by status, by queue and by priority. */
+.kv-fill.s-open,
+.kv-dot.q-ready::before {
+  background: var(--fgColor-success);
+}
+.kv-fill.s-in_progress {
+  background: var(--fgColor-attention);
+}
+.kv-fill.s-closed {
+  background: var(--fgColor-done);
+}
+.kv-dot.q-ready::before {
+  background: var(--kv-accent);
+}
+.kv-dot.q-blocked::before {
+  background: var(--fgColor-danger);
+}
+.kv-fill.p-0,
+.kv-dot.p-0::before {
+  background: var(--fgColor-danger);
+}
+.kv-fill.p-1,
+.kv-dot.p-1::before {
+  background: var(--fgColor-severe);
+}
+.kv-fill.p-2,
+.kv-dot.p-2::before {
+  background: var(--fgColor-attention);
+}
+.kv-fill.p-3,
+.kv-dot.p-3::before,
+.kv-fill.p-4,
+.kv-dot.p-4::before {
+  background: var(--fgColor-muted);
+}
+.kv-stat .kv-dot {
+  font-size: 13px;
+  color: var(--fgColor-muted);
+}
+.kv-narrow > .kv-card + .kv-card {
+  margin-top: var(--kv-space-4);
+}
+.kv-narrow > .kv-card {
+  margin-bottom: 0;
+}
+.kv-narrow .kv-row-main > a.title {
+  font-size: 14px;
+}
 .kv-charts {
   margin: 0 0 var(--kv-space-3);
   font-size: 13px;
@@ -631,18 +686,18 @@ select.kv-pill {
 .kv-progress .kv-track {
   flex: 1 1 auto;
 }
+/* Three parts to one, so with four charts showing the lists line up with the chart columns. */
 .kv-split {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--kv-space-4);
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: var(--kv-space-4);
+  align-items: start;
 }
-.kv-wide {
-  flex: 999 1 520px;
-  min-width: 0;
+.kv-split > .kv-card {
+  margin: 0;
 }
+.kv-wide,
 .kv-narrow {
-  flex: 1 1 300px;
   min-width: 0;
 }
 
@@ -964,5 +1019,8 @@ details.kv-card.kv-fold > summary::first-letter {
   }
   .kv-progress {
     width: 100%;
+  }
+  .kv-split {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

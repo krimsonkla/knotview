@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from knotview.panel.app import _ago
+from knotview.panel.overview import _named, _plural
 from knotview.reading.knot_command import _issue
 from knotview.values.attention import Attention
 from knotview.values.criterion import Criterion
@@ -27,7 +28,8 @@ def test_statuses_priorities_and_queues_are_counted(client):
     assert 'href="/tickets?priority=3" data-card="by priority"' in page
     assert 'href="/queue/ready" data-card="queues"><span>ready</span>' in page
     assert 'href="/tickets?assignee=nobody" data-card="queues"><span>unassigned</span>' in page
-    assert 'href="/tickets?status=closed&amp;closed=1" data-card="by status"><span>closed<' in page
+    closed = 'href="/tickets?status=closed&amp;closed=1" data-card="by status">'
+    assert closed + '<span class="kv-dot s-closed">closed<' in page
     assert "archive_count" not in page
 
 
@@ -51,7 +53,7 @@ def test_recently_closed_is_capped(client):
     )
     page = client(DeclaredBacklog(closed_value=many)).get("/").text
 
-    assert "Closed 7" in page and "Closed 8" not in page
+    assert "Closed 4" in page and "Closed 5" not in page
 
 
 def test_a_clean_project_shows_no_integrity_section(client):
@@ -173,7 +175,8 @@ def test_progress_lists_parents_with_criteria_nearest_to_done_first(client):
     kid = ticket("pro-01m2kkkkkkkk", parent="pro-01m2ffffffff")
     page = client(DeclaredBacklog(live_value=(far, kid, PARENT, CHILD))).get("/").text
 
-    section = page[page.index("<h2>progress</h2>") : page.index("<h2>parents</h2>")]
+    end = page.index('<section class="kv-card kv-wide">')
+    section = page[page.index("<h2>progress</h2>") : end]
     assert section.index("The parent") < section.index("Far parent")
     assert 'class="kv-fill done" style="width: 50%"' in section and "1/2 criteria" in section
     assert "1 live beneath" in section
@@ -206,7 +209,7 @@ def test_the_terminal_count_narrows_with_the_chosen_tags(client):
     after = browser.get("/").text
 
     def closed_count(page: str) -> str:
-        start = page.index('closed=1" data-card="by status"><span>closed</span>')
+        start = page.index('closed=1" data-card="by status"><span class="kv-dot s-closed">closed')
         return page[start : start + 300].split('<span class="kv-num">')[1].split("<")[0]
 
     assert closed_count(before) == "2" and closed_count(after) == "1"
@@ -267,7 +270,7 @@ def test_the_overview_shows_stat_cards_bars_and_epic_progress(client):
     page = client(backlog).get("/").text
 
     for label in ("Open", "In progress", "Ready", "Blocked"):
-        assert f"<span>{label}</span>" in page
+        assert f">{label}</span><strong>" in page
     assert page.count('class="kv-bar"') >= 3
     assert "1 of 2 done" in page
 
@@ -287,3 +290,27 @@ def test_priority_and_type_charts_show_and_the_rest_wait_behind_the_charts_menu(
         assert f'<section class="kv-card" data-chart="{hidden}" hidden>' in page
         assert f'data-chart-toggle="{hidden}" />' in page
     assert 'data-chart-toggle="by type" checked' in page
+
+
+def test_the_parents_card_is_named_by_the_types_its_parents_have(client):
+    epics = client(DeclaredBacklog()).get("/").text
+    task = ticket("pro-01m2t1111111", title="Task parent")
+    under = ticket("pro-01m2t2222222", parent="pro-01m2t1111111")
+    mixed = client(DeclaredBacklog(live_value=(task, under, *DeclaredBacklog().live_value)))
+
+    assert "<h2>epics</h2>" in epics and "<h2>parents</h2>" not in epics
+    assert "<h2>tasks and epics</h2>" in mixed.get("/").text
+
+
+def test_type_names_are_made_plural_the_way_english_does():
+    assert [_plural(one) for one in ("bug", "story", "fix", "patch", "day")] == [
+        "bugs",
+        "stories",
+        "fixes",
+        "patches",
+        "days",
+    ]
+
+
+def test_parents_of_no_declared_type_fall_back_to_the_plain_word():
+    assert _named((ticket("x", type="nonsense"),), ("bug", "epic")) == "parents"

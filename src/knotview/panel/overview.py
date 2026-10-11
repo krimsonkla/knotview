@@ -81,6 +81,9 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     by_terminal: tuple[Tally, ...]
     parents: tuple[Ticket, ...]
     epics: tuple[Epic, ...]
+    # What the parents are called, from the types the project declares, so a project whose
+    # parents are all epics reads "epics" and one with none of that type never sees the word.
+    parents_label: str
     progress: tuple[Progress, ...]
     ready_to_close: tuple[Ticket, ...]
     stale: tuple[Ticket, ...]
@@ -89,7 +92,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     integrity: tuple[Issue, ...]
 
     @classmethod
-    def over(cls, snapshot: Snapshot, *, showing: int = 8) -> "Overview":
+    def over(cls, snapshot: Snapshot, *, showing: int = 5) -> "Overview":
         """The overview of one snapshot, counted over its live tickets."""
         project, live = snapshot.project, snapshot.live
         return cls(
@@ -144,6 +147,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
             ),
             parents=_parents(live),
             epics=_epics(_parents(live), snapshot),
+            parents_label=_named(_parents(live), project.types),
             progress=_progress(live),
             ready_to_close=snapshot.attention.ready_to_close,
             stale=snapshot.attention.stale,
@@ -182,6 +186,28 @@ def _progress(live: tuple[Ticket, ...]) -> tuple[Progress, ...]:
         if r.criteria
     ]
     return tuple(sorted(stated, key=lambda p: (p.remaining, p.ticket.priority, p.ticket.id)))
+
+
+def _named(parents: tuple[Ticket, ...], types: tuple[str, ...]) -> str:
+    """The parents named by their declared types, in the project's order, as plurals.
+
+    knot declares no type for a parent: a parent is whatever something else names, so the label
+    comes from the types the parents actually have rather than from a word chosen here.
+    """
+    held = {one.type for one in parents}
+    kinds = [_plural(kind) for kind in types if kind in held]
+    if not kinds:
+        return "parents"
+    return kinds[0] if len(kinds) == 1 else ", ".join(kinds[:-1]) + " and " + kinds[-1]
+
+
+def _plural(word: str) -> str:
+    """An English plural good enough for a ticket type's name."""
+    if word.endswith(("s", "x", "z", "ch", "sh")):
+        return word + "es"
+    if word.endswith("y") and word[-2:-1] not in "aeiou":
+        return word[:-1] + "ies"
+    return word + "s"
 
 
 def _epics(parents: tuple[Ticket, ...], snapshot: Snapshot) -> tuple[Epic, ...]:

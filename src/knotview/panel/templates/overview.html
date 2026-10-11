@@ -3,13 +3,14 @@
 {# Every count links to the list it counts, built by Selection from the count's own filter and
 nothing else, so a filter in this page's URL never rides into a link while the count ignores it.
 Each counted link names its card in `data-card`, which the tests read to follow it. #}
-{% macro bars(card, title, tallies, link, shown=false) %}
+{% macro bars(card, title, tallies, link, shown=false, tone="") %}
 {% set most = (tallies | map(attribute="count") | max) or 1 %}
 <section class="kv-card" data-chart="{{ title }}"{% if not shown %} hidden{% endif %}>
   <h2>{{ title }}</h2>
   <div class="kv-bars">
     {% for tally in tallies %}
-    <a class="kv-bar" href="{{ link(tally) }}" data-card="{{ card }}"><span>{{ tally.label }}</span><span class="kv-track"><span class="kv-fill" style="width: {{ (tally.count * 100 / most) | round | int }}%"></span></span><span class="kv-num">{{ tally.count }}</span></a>
+    {% set hue = (tone ~ "-" ~ tally.value) if tone else "" %}
+    <a class="kv-bar" href="{{ link(tally) }}" data-card="{{ card }}"><span{% if hue %} class="kv-dot {{ hue }}"{% endif %}>{{ tally.label }}</span><span class="kv-track"><span class="kv-fill {{ hue }}" style="width: {{ (tally.count * 100 / most) | round | int }}%"></span></span><span class="kv-num">{{ tally.count }}</span></a>
     {% endfor %}
     {{ caller() if caller is defined else "" }}
   </div>
@@ -41,10 +42,10 @@ Each counted link names its card in `data-card`, which the tests read to follow 
 
 <div class="kv-stats">
   {% for tally in overview.by_status %}
-  <a class="kv-stat" href="{{ by_value(tally) }}" data-card="headline"><span>{{ tally.label | replace("_", " ") | capitalize }}</span><strong>{{ tally.count }}</strong></a>
+  <a class="kv-stat" href="{{ by_value(tally) }}" data-card="headline"><span class="kv-dot s-{{ tally.value }}">{{ tally.label | replace("_", " ") | capitalize }}</span><strong>{{ tally.count }}</strong></a>
   {% endfor %}
   {% for tally in overview.by_queue if tally.filter == "queue" %}
-  <a class="kv-stat" href="/queue/{{ tally.value }}" data-card="headline"><span>{{ tally.label | capitalize }}</span><strong>{{ tally.count }}</strong></a>
+  <a class="kv-stat" href="/queue/{{ tally.value }}" data-card="headline"><span class="kv-dot q-{{ tally.value }}">{{ tally.label | capitalize }}</span><strong>{{ tally.count }}</strong></a>
   {% endfor %}
 </div>
 
@@ -62,10 +63,10 @@ show unless the reader hides them; the rest repeat the headline counts and show 
 </details>
 
 <div class="kv-grid">
-  {{ bars("by priority", "by priority", overview.by_priority, by_value, shown=true) }}
+  {{ bars("by priority", "by priority", overview.by_priority, by_value, shown=true, tone="p") }}
   {{ bars("by type", "by type", overview.by_type, by_value, shown=true) }}
-  {{ bars("by status", "by status", overview.by_status, by_value) }}
-  {% if overview.by_terminal %}{{ bars("by status", "closed", overview.by_terminal, by_terminal) }}{% endif %}
+  {{ bars("by status", "by status", overview.by_status, by_value, tone="s") }}
+  {% if overview.by_terminal %}{{ bars("by status", "closed", overview.by_terminal, by_terminal, tone="s") }}{% endif %}
   {% if overview.by_document %}{% call bars("by document", "by document", overview.by_document, by_document) %}
   <p class="kv-muted kv-note">tickets owning each type; a ticket may own several</p>
   {% endcall %}{% endif %}
@@ -106,7 +107,7 @@ show unless the reader hides them; the rest repeat the headline counts and show 
 
 <div class="kv-split">
   <section class="kv-card kv-wide">
-    <h2>parents</h2>
+    <h2>{{ overview.parents_label }}</h2>
     {% for epic in overview.epics %}
     <div class="kv-row">
       <span class="kv-badge p{{ epic.ticket.priority }}">P{{ epic.ticket.priority }}</span>
@@ -124,20 +125,22 @@ show unless the reader hides them; the rest repeat the headline counts and show 
     {% endfor %}
   </section>
 
-  <section class="kv-card kv-narrow">
-    <h2>recently changed</h2>
-    {% for ticket in overview.recently_changed %}
-    <div class="kv-row">
-      <a class="kv-dot s-{{ ticket.status }}" href="/ticket/{{ ticket.id | segment }}">{{ ticket.status }}</a>
-      <div class="kv-row-main">
-        <a href="/ticket/{{ ticket.id | segment }}">{{ ticket.title }}</a>
-        <div class="kv-meta"><span class="kv-mono">{{ ticket.id }}</span>{% if ticket.updated %}<span>·</span><span>{{ ago(ticket.updated) }}</span>{% endif %}</div>
+  <div class="kv-narrow">
+    {% for title, listed in (("recently changed", overview.recently_changed), ("recently closed", overview.recently_closed)) %}
+    <section class="kv-card">
+      <h2>{{ title }}</h2>
+      {% for ticket in listed %}
+      <div class="kv-row" data-updated="{{ ticket.updated or '' }}">
+        <div class="kv-row-main">
+          <a class="title" href="/ticket/{{ ticket.id | segment }}">{{ ticket.title }}</a>
+          <div class="kv-meta"><span class="kv-dot s-{{ ticket.status }}">{{ ticket.status }}</span><span>·</span><span class="kv-mono">{{ ticket.id }}</span>{% if ticket.updated %}<span>·</span><span>{{ ago(ticket.updated) }}</span>{% endif %}</div>
+        </div>
       </div>
-    </div>
+      {% else %}
+      <p class="kv-row kv-muted">Nothing yet.</p>
+      {% endfor %}
+    </section>
     {% endfor %}
-  </section>
+  </div>
 </div>
-
-<h2 class="kv-wave">recently closed</h2>
-{% set tickets = overview.recently_closed %} {% include "_rows.html" %}
 {% endblock %}
