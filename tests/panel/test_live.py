@@ -52,3 +52,10 @@ def test_a_hidden_tab_still_learns_what_it_was_rendered_from():
 
 def test_a_panel_that_stops_answering_is_asked_less_often():
     assert "wait = Math.min(wait * 2, LONGEST)" in FOLLOW and "setTimeout(ask, wait)" in FOLLOW
+
+
+def test_the_poll_starts_from_the_digest_the_page_was_rendered_under():
+    """Taking the first answer as the baseline let a tab rendered over one worktree adopt
+    another's digest when a switch landed before its first poll, and never reload."""
+    assert 'var known = badge.getAttribute("data-digest");' in FOLLOW
+    assert "var known = null;" not in FOLLOW

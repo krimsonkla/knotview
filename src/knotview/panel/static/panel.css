@@ -512,6 +512,18 @@ th a.on {
   font-size: 0.85em;
   padding: 0.1em 0.4em;
 }
+.bar .worktrees {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-right: 0.8em;
+  font-size: 0.85em;
+}
+.bar .worktrees a[aria-current="true"] {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
 
 /* A card's footnote, under its rows so they line up with the cards beside it. */
 .muted.note {

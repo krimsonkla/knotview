@@ -21,6 +21,7 @@ the live indicator. #}
         <a href="/queue/ready">ready</a>
         <a href="/queue/blocked">blocked</a>
       </nav>
+      {% include "_worktrees.html" %}
       <span class="tags">
         {% for tag in tags.chosen %}
         <span class="chip filter"
@@ -57,7 +58,7 @@ the live indicator. #}
         >{% endif %}
       </span>
       <span id="since" class="since" hidden title="rows marked: updated since you last looked; click to clear"></span>
-      <span id="live" class="live" title="following the backlog">live</span>
+      <span id="live" class="live" title="following the backlog"{% if carried %} data-digest="{{ carried }}"{% endif %}>live</span>
     </header>
 
     <main>{% block main %}{% endblock %}</main>

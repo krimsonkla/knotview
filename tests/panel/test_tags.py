@@ -88,8 +88,10 @@ def test_the_way_back_must_be_a_path_on_this_panel(client):
     off = browser.get("/tags?add=p0&back=https://evil.example/", follow_redirects=False)
     doubled = browser.get("/tags?add=p0&back=//evil.example", follow_redirects=False)
     none = browser.get("/tags?add=p0", follow_redirects=False)
+    slanted = browser.get("/tags?add=p0&back=/%5Celsewhere.example", follow_redirects=False)
 
     assert off.headers["location"] == doubled.headers["location"] == none.headers["location"] == "/"
+    assert slanted.headers["location"] == "/"
 
 
 def test_a_tag_nobody_carries_narrows_every_view_to_nothing(client):

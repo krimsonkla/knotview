@@ -1,8 +1,10 @@
 """The panel: every route a GET, every answer a page, a redirect, or a digest."""
 
 import hashlib
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from urllib.parse import quote
 
@@ -23,6 +25,8 @@ from knotview.panel.prose import rendered as prose
 from knotview.panel.selection import ANY, ORDERS, Selection
 from knotview.panel.tags import COOKIE, Tags
 from knotview.panel.tree import Tree
+from knotview.panel.worktree_choice import encoded, named
+from knotview.panel.worktrees import Alone, Backlogs, WorktreeSource
 from knotview.reading.backlog import Backlog
 from knotview.reading.snapshot import Snapshot
 from knotview.values.document import Document
@@ -40,9 +44,9 @@ HOSTS = ("127.0.0.1", "localhost", "[::1]")
 
 
 class Pages:
-    """Every page the panel serves, over one backlog.
+    """Every page the panel serves, each over the backlog its request reads.
 
-    A class rather than a set of closures so that which backlog a page reads is a named
+    A class rather than a set of closures so that which backlogs the pages read from is a named
     attribute, and so that assembling the app (mounting the static files, registering the
     exception handler, writing out the route table) is separate from rendering a page.
 
@@ -56,16 +60,49 @@ class Pages:
     is read from several threads at once.
     """
 
-    def __init__(self, backlog: Backlog, *, templates: Jinja2Templates) -> None:
-        self.backlog = backlog
+    def __init__(self, backlogs: Backlogs, *, templates: Jinja2Templates) -> None:
+        self.backlogs = backlogs
         self.templates = templates
+
+    def _backlog(self, request: Request) -> Backlog:
+        """The backlog this request reads, settled once per request with what the frame needs.
+
+        The listing, the choice and the digest the page will carry are fixed on first use, so a
+        page lists worktrees once however many reads it makes. The digest is read before any data:
+        a write landing between the two then leaves a page newer than its digest, which costs one
+        reload, rather than a page older than its digest, which would never reload.
+        """
+        held = getattr(request.state, "backlog", None)
+        if held is not None:
+            return held
+        listed = self.backlogs.refreshed()
+        cookie = request.cookies.get(self.backlogs.cookie)
+        path, backlog = self.backlogs.reading(cookie, listed)
+        request.state.worktrees = listed if len(listed) > 1 else ()
+        request.state.reading = self.backlogs.marked(cookie, listed)
+        request.state.carried = self._carried(path, backlog)
+        request.state.backlog = backlog
+        return backlog
+
+    def _carried(self, path: Path, backlog: Backlog) -> str | None:
+        """The digest a page carries for its poll to start from, or nothing if it cannot be read.
+
+        Nothing rather than a refusal: the poll then takes its first answer as the baseline, as it
+        did before pages carried one, and a page whose data can be read is still worth showing.
+        """
+        try:
+            return self.backlogs.stamped(path, backlog.digest())
+        except UnreadableBacklog:
+            return None
 
     def _rendered(
         self, request: Request, template: str, *, status: int = 200, **context: object
     ) -> HTMLResponse:
-        """One page, with what every page needs already in it: the project and the reader's tags."""
-        project = self.backlog.project()
-        known = sorted({tag for one in self.backlog.live() for tag in one.tags})
+        """One page, with what every page needs already in it: the project, the reader's tags,
+        the worktrees to choose from and the digest the page was rendered under."""
+        backlog = self._backlog(request)
+        project = backlog.project()
+        known = sorted({tag for one in backlog.live() for tag in one.tags})
         return self.templates.TemplateResponse(
             request=request,
             name=template,
@@ -75,7 +112,10 @@ class Pages:
                 "any": ANY,
                 "tags": _tags(request),
                 "known_tags": known,
-                "here": request.url.path + (f"?{request.url.query}" if request.url.query else ""),
+                "here": _here(request),
+                "worktrees": request.state.worktrees,
+                "reading": request.state.reading,
+                "carried": request.state.carried,
                 **context,
             },
             status_code=status,
@@ -99,14 +139,28 @@ class Pages:
             chosen = chosen.dropping(drop)
         if add:
             chosen = chosen.adding(add)
-        back = request.query_params.get("back") or "/"
-        if not back.startswith("/") or back.startswith("//"):
-            back = "/"
-        answer = RedirectResponse(back, status_code=303)
+        answer = RedirectResponse(_way_back(request), status_code=303)
         if chosen.chosen:
             answer.set_cookie(COOKIE, chosen.cookie(), samesite="strict", httponly=True)
         else:
             answer.delete_cookie(COOKIE)
+        return answer
+
+    def worktree(self, request: Request, path: str = "") -> Response:
+        """Choose the worktree every page reads, and go back to the page the reader was on.
+
+        A GET like /tags, since it changes nothing but a cookie in the reader's browser. Only a
+        worktree git lists right now can be chosen; anything else clears the choice, so the panel
+        reads the directory it was started in.
+        """
+        picked = named(path, self.backlogs.refreshed())
+        answer = RedirectResponse(_way_back(request), status_code=303)
+        if picked:
+            answer.set_cookie(
+                self.backlogs.cookie, encoded(picked.path), samesite="strict", httponly=True
+            )
+        else:
+            answer.delete_cookie(self.backlogs.cookie)
         return answer
 
     def missing(self, request: Request, refusal: MissingTicket) -> HTMLResponse:
@@ -138,7 +192,12 @@ class Pages:
         return self.templates.TemplateResponse(
             request=request,
             name="unreadable.html",
-            context={"refusal": refusal},
+            context={
+                "refusal": refusal,
+                "worktrees": getattr(request.state, "worktrees", ()),
+                "reading": getattr(request.state, "reading", None),
+                "here": _here(request),
+            },
             status_code=503,
         )
 
@@ -151,7 +210,7 @@ class Pages:
         assumption is a clean check: a ticket in a terminal status that knot has not archived is
         listed under its status but not counted among the closed, and the integrity card says so.
         """
-        seen = Snapshot.read(self.backlog)
+        seen = Snapshot.read(self._backlog(request))
         chosen = _tags(request)
         if chosen.chosen:
             live = chosen.narrow(seen.live)
@@ -181,16 +240,17 @@ class Pages:
 
     def tickets(self, request: Request) -> HTMLResponse:
         """Every ticket the filters admit, in the order asked for."""
-        project = self.backlog.project()
+        backlog = self._backlog(request)
+        project = backlog.project()
         selection = Selection.asked(
             project, dict(request.query_params), request.query_params.getlist("doc")
         )
-        held = self.backlog.live() + (self.backlog.closed() if selection.closed else ())
+        held = backlog.live() + (backlog.closed() if selection.closed else ())
         held = self._narrowed(request, held)
         if selection.deep and selection.query:
             # A deep search needs each ticket's text, which a listing does not carry, so every
             # held ticket is read in full: one knot process per ticket, only when asked for.
-            held = tuple(self.backlog.ticket(one.id) for one in held)
+            held = tuple(backlog.ticket(one.id) for one in held)
         return self._rendered(
             request,
             "tickets.html",
@@ -206,13 +266,14 @@ class Pages:
         return self._rendered(
             request,
             "tree.html",
-            tree=Tree.over(self._narrowed(request, self.backlog.live())),
+            tree=Tree.over(self._narrowed(request, self._backlog(request).live())),
             selection=Selection(),
         )
 
     def queue(self, request: Request, which: str) -> HTMLResponse:
         """One of knot's own queues: what is ready to start, or what is waiting on something."""
-        queues = {"ready": self.backlog.ready, "blocked": self.backlog.blocked}
+        backlog = self._backlog(request)
+        queues = {"ready": backlog.ready, "blocked": backlog.blocked}
         if which not in queues:
             return self._rendered(
                 request,
@@ -232,9 +293,10 @@ class Pages:
 
     def ticket(self, request: Request, identifier: str) -> HTMLResponse:
         """One ticket in full: its sections, its criteria, its graph and its notes."""
-        ticket = self.backlog.ticket(identifier)
-        project = self.backlog.project()
-        parent = self._parent_of(ticket)
+        backlog = self._backlog(request)
+        ticket = backlog.ticket(identifier)
+        project = backlog.project()
+        parent = self._parent_of(backlog, ticket)
         # The one parameter this page owns. Only "live" hides anything, so a stale or mistyped
         # value shows every child rather than hiding some for a reason the reader cannot see; and
         # no other link on the page carries it.
@@ -257,14 +319,14 @@ class Pages:
             children_closed=len(closed),
             hiding_closed=hiding,
             siblings=siblings,
-            dependencies=self.backlog.dependencies(ticket.id),
-            documents=project.ordered(self._documents_of(ticket)),
+            dependencies=backlog.dependencies(ticket.id),
+            documents=project.ordered(self._documents_of(backlog, ticket)),
             # knot checks required documents only on a move, and a closed ticket makes none.
             missing_types=project.missing_by_type(ticket) if project.is_live(ticket) else (),
             selection=Selection(),
         )
 
-    def _documents_of(self, ticket: Ticket) -> tuple[Document, ...]:
+    def _documents_of(self, backlog: Backlog, ticket: Ticket) -> tuple[Document, ...]:
         """A ticket's documents with their times, or as `show` stated them if knot will not list.
 
         Wider than `_parent_of`, which catches only a missing ticket: `show` has already read this
@@ -272,7 +334,7 @@ class Pages:
         worth a page that no longer renders.
         """
         try:
-            return self.backlog.documents(ticket.id)
+            return backlog.documents(ticket.id)
         except UnreadableBacklog:
             return ticket.documents
 
@@ -283,9 +345,10 @@ class Pages:
         read after, and a ticket knot cannot find leaves the page with the bare id and the one
         document rather than a 404 about a ticket for a document knot has just shown in full.
         """
-        document = self.backlog.document(identifier)
-        project = self.backlog.project()
-        owner, siblings = self._owner_of(document)
+        backlog = self._backlog(request)
+        document = backlog.document(identifier)
+        project = backlog.project()
+        owner, siblings = self._owner_of(backlog, document)
         body, outline = outlined(document.body) if document.body else ("", ())
         # Compared by the id knot answered with, never the one asked for: knot resolves a start
         # of an id, and the page must mark the document it resolved to.
@@ -304,14 +367,16 @@ class Pages:
             selection=Selection(),
         )
 
-    def _owner_of(self, document: Document) -> tuple[Ticket | None, tuple[Document, ...]]:
+    def _owner_of(
+        self, backlog: Backlog, document: Document
+    ) -> tuple[Ticket | None, tuple[Document, ...]]:
         """The ticket a document belongs to and every document it owns, or nothing of either."""
         try:
-            return self.backlog.ticket(document.ticket), self.backlog.documents(document.ticket)
+            return backlog.ticket(document.ticket), backlog.documents(document.ticket)
         except MissingTicket:
             return None, ()
 
-    def _parent_of(self, ticket: Ticket) -> Ticket | None:
+    def _parent_of(self, backlog: Backlog, ticket: Ticket) -> Ticket | None:
         """The ticket this one is filed under, read in full, or nothing if it names none.
 
         Read in full because the parent's children are what the page shows as siblings, and only
@@ -321,13 +386,20 @@ class Pages:
         if not ticket.parent:
             return None
         try:
-            return self.backlog.ticket(ticket.parent)
+            return backlog.ticket(ticket.parent)
         except MissingTicket:
             return None
 
-    def digest(self) -> str:
-        """What the backlog looks like right now, as one short value the page can compare."""
-        return self.backlog.digest()
+    def digest(self, request: Request) -> str:
+        """What the chosen worktree's backlog looks like right now, as one short value to compare.
+
+        Checked against the listing the last page render saw, never a fresh one: every open tab
+        asks this about once a second, and git is not asked at that rate.
+        """
+        path, backlog = self.backlogs.reading(
+            request.cookies.get(self.backlogs.cookie), self.backlogs.known()
+        )
+        return self.backlogs.stamped(path, backlog.digest())
 
 
 # The route table, written out as data so the surface can be read in one place and asserted by
@@ -343,15 +415,23 @@ ROUTES: tuple[tuple[str, str, type[Response] | None], ...] = (
     ("/document/{identifier}", "document", HTMLResponse),
     ("/digest", "digest", PlainTextResponse),
     ("/tags", "tags", None),
+    ("/worktree", "worktree", None),
 )
 
 
-def panel(backlog: Backlog) -> FastAPI:
-    """The panel over one backlog.
+def panel(
+    backlog: Backlog,
+    *,
+    worktrees: WorktreeSource | None = None,
+    opened: Callable[[Path], Backlog] | None = None,
+) -> FastAPI:
+    """The panel over one backlog, or over each worktree of the repository it belongs to.
 
-    Built around an injected backlog rather than reaching for knot itself, which is what lets
-    every page be tested against a backlog declared in a test while the real one drives a real
-    project. This assembles; Pages renders.
+    Built around an injected backlog rather than reaching for knot itself, which is what lets every
+    page be tested against a backlog declared in a test while the real one drives a real project.
+    The worktree source and the factory are optional: without them there is one worktree, this
+    backlog, and the panel is exactly what it was before it knew about worktrees. This assembles;
+    Pages renders.
     """
     app = FastAPI(title="knotview", docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(HOSTS))
@@ -363,7 +443,12 @@ def panel(backlog: Backlog) -> FastAPI:
     templates.env.tests["instant"] = _is_instant
     templates.env.globals["assets"] = _asset_stamp(HERE / "static")
     app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
-    pages = Pages(backlog, templates=templates)
+    backlogs = Backlogs(
+        launch=backlog,
+        source=worktrees or Alone(Path.cwd()),
+        opened=opened or partial(_given, backlog),
+    )
+    pages = Pages(backlogs, templates=templates)
     app.add_exception_handler(UnreadableBacklog, pages.unreadable)
     app.add_exception_handler(MissingTicket, pages.missing)
     app.add_exception_handler(MissingDocument, pages.missing_document)
@@ -391,6 +476,30 @@ def _grouped(ordered: tuple[Document, ...]) -> tuple[tuple[str, tuple[Document, 
 def _among(tickets: tuple[Ticket, ...], kept: set[str]) -> tuple[Ticket, ...]:
     """Those tickets whose id is among the kept ones, in the order given."""
     return tuple(one for one in tickets if one.id in kept)
+
+
+def _given(backlog: Backlog, _path: Path) -> Backlog:
+    """The one backlog whatever path is asked for: the factory for a panel given no other."""
+    return backlog
+
+
+def _here(request: Request) -> str:
+    """The path and query of this request, which every choice returns to."""
+    return request.url.path + (f"?{request.url.query}" if request.url.query else "")
+
+
+def _way_back(request: Request) -> str:
+    """Where a choice returns to: a path on this panel, never an address elsewhere.
+
+    A link from another site can carry any back value, and following it blindly would let this
+    panel send a reader anywhere.
+    """
+    back = request.query_params.get("back") or "/"
+    if not back.startswith("/") or back.startswith("//") or "\\" in back:
+        # A browser reads a backslash after the first slash as a second slash, which makes
+        # /\elsewhere an address on another host.
+        return "/"
+    return back
 
 
 def _tags(request: Request) -> Tags:

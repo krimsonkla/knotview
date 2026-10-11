@@ -1,0 +1,15 @@
+{# The worktrees this panel can read, shown only when there is more than one to choose from.
+Each is a link, a GET like every other: choosing changes a cookie in this browser and nothing
+else. The full path is the title, since two entries can share a name or a directory. #}
+{% if worktrees %}
+<nav class="worktrees" aria-label="worktrees">
+  {% for one in worktrees %}
+  <a
+    href="/worktree?path={{ one.path | string | urlencode }}&back={{ here | urlencode }}"
+    title="{{ one.path }}"
+    {% if one.path == reading %}aria-current="true"{% endif %}
+    >{{ one.label }}</a
+  >
+  {% endfor %}
+</nav>
+{% endif %}

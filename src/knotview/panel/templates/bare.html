@@ -9,7 +9,7 @@ needs. #}
     <link rel="stylesheet" href="/static/panel.css" />
   </head>
   <body>
-    <header class="bar"><span class="brand">knotview</span></header>
+    <header class="bar"><span class="brand">knotview</span>{% include "_worktrees.html" %}</header>
     <main>{% block main %}{% endblock %}</main>
   </body>
 </html>

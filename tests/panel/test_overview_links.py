@@ -88,8 +88,9 @@ def test_no_filter_in_the_overviews_url_reaches_a_card_link(browser):
 
 
 def test_a_filter_in_the_overviews_url_changes_nothing(browser):
-    """Apart from the tag bar's way back, which returns the reader to the URL they were on."""
-    back = re.compile(r'name="back" value="[^"]*"')
+    """Apart from the tag bar's way back, which returns the reader to the URL they were on, and the
+    digest a page carries, which is the backlog's and not the URL's."""
+    back = re.compile(r'name="back" value="[^"]*"| data-digest="[^"]*"')
 
     assert back.sub("", browser.get(FILTERED).text) == back.sub("", browser.get("/").text)
 
