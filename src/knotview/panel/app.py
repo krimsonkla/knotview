@@ -32,6 +32,7 @@ from knotview.reading.snapshot import Snapshot
 from knotview.values.document import Document
 from knotview.values.missing_document import MissingDocument
 from knotview.values.missing_ticket import MissingTicket
+from knotview.values.project import Project
 from knotview.values.ticket import Ticket
 from knotview.values.unreadable_backlog import UnreadableBacklog
 
@@ -239,13 +240,22 @@ class Pages:
             selection=Selection(),
         )
 
-    def tickets(self, request: Request) -> HTMLResponse:
-        """Every ticket the filters admit, in the order asked for."""
+    def tickets(self, request: Request) -> Response:
+        """Every ticket the filters admit, in the order asked for.
+
+        A query in any other spelling than the canonical one is redirected to it, so the browser's
+        form submission and every link the panel builds land on one URL per state, and Selection
+        stays the only place a URL is built. The canonical form is a fixed point, so this cannot
+        loop.
+        """
         backlog = self._backlog(request)
         project = backlog.project()
         selection = Selection.asked(
             project, dict(request.query_params), request.query_params.getlist("doc")
         )
+        canonical = selection.query_string()
+        if request.url.query != canonical:
+            return RedirectResponse(f"/tickets?{canonical}" if canonical else "/tickets", 303)
         held = backlog.live() + (backlog.closed() if selection.closed else ())
         held = self._narrowed(request, held)
         if selection.deep and selection.query:
@@ -260,6 +270,7 @@ class Pages:
                 tuple(one for one in held if selection.matches(one, project))
             ),
             counted=len(held),
+            options=_options(selection, held, project),
         )
 
     def tree(self, request: Request) -> HTMLResponse:
@@ -477,6 +488,35 @@ def _grouped(ordered: tuple[Document, ...]) -> tuple[tuple[str, tuple[Document, 
 def _among(tickets: tuple[Ticket, ...], kept: set[str]) -> tuple[Ticket, ...]:
     """Those tickets whose id is among the kept ones, in the order given."""
     return tuple(one for one in tickets if one.id in kept)
+
+
+def _options(
+    selection: Selection, held: tuple[Ticket, ...], project: Project
+) -> dict[str, tuple[tuple[str, int], ...]]:
+    """Each pill's choices with how many of the held tickets each would leave.
+
+    Terminal statuses are offered only with closed tickets included, except the one the URL
+    already applies, so a pill can always show what it is set to. Tags are those the held
+    tickets carry, plus the applied one.
+    """
+    statuses = tuple(
+        one
+        for one in project.statuses
+        if selection.closed or one not in project.terminal_statuses or one == selection.status
+    )
+    carried = {tag for one in held for tag in one.tags}
+    applied = {selection.tag} if selection.tag != ANY else set()
+    fields = {
+        "status": statuses,
+        "type": project.types,
+        "priority": tuple(str(one) for one in project.priorities),
+        "tag": tuple(sorted(carried | applied)),
+    }
+    options = {}
+    for field, values in fields.items():
+        counts = selection.counted(held, project, field)
+        options[field] = tuple((value, counts.get(value, 0)) for value in values)
+    return options
 
 
 def _given(backlog: Backlog, _path: Path) -> Backlog:

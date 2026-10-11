@@ -125,7 +125,12 @@ class Selection:  # pylint: disable=too-many-instance-attributes
         if label.startswith("has "):
             left = tuple(one for one in self.docs if one != label.removeprefix("has "))
             return replace(self, docs=left).query_string()
-        dropped = {"none attached": "nodocs", "missing a required type": "lacking"}
+        dropped = {
+            "none attached": "nodocs",
+            "missing a required type": "lacking",
+            "include closed": "closed",
+            "in text": "deep",
+        }
         parameter = dropped.get(label) or next(
             (param for shown, param, _ in self._named() if shown == label), label
         )
@@ -135,9 +140,13 @@ class Selection:  # pylint: disable=too-many-instance-attributes
         """Each applied filter as (label the reader sees, value), documents last."""
         plain = tuple((label, value) for label, _, value in self._named())
         documents = tuple((f"has {one}", "") for one in self.docs)
-        options = (("none attached", ""),) * self.undocumented + (
-            ("missing a required type", ""),
-        ) * self.lacking
+        # Searching the text means nothing without a query, so it is a chip only beside one.
+        options = (
+            (("none attached", ""),) * self.undocumented
+            + (("missing a required type", ""),) * self.lacking
+            + (("include closed", ""),) * self.closed
+            + (("in text", ""),) * (self.deep and bool(self.query))
+        )
         return plain + documents + options
 
     def _named(self) -> tuple[tuple[str, str, str], ...]:
@@ -193,6 +202,22 @@ class Selection:  # pylint: disable=too-many-instance-attributes
             if value and value != ANY and not (field == "order" and value == "priority")
         ]
         return "&".join(kept)
+
+    def counted(self, tickets: tuple[Ticket, ...], project: Project, field: str) -> dict[str, int]:
+        """How many of those tickets each value of that field would leave, every other filter kept.
+
+        Counted over tickets the page already read, so an option's number costs no knot read. A
+        ticket counts once under each of its tags, since choosing any one of them keeps it.
+        """
+        loosened = replace(self, **{field: ANY})
+        counts: dict[str, int] = {}
+        for one in tickets:
+            if not loosened.matches(one, project):
+                continue
+            values = one.tags if field == "tag" else (str(getattr(one, field)),)
+            for value in values:
+                counts[value] = counts.get(value, 0) + 1
+        return counts
 
     def matches(self, ticket: Ticket, project: Project) -> bool:
         """Whether that ticket is one of the ones asked for, by the project's own declarations."""
