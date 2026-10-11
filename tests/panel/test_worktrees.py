@@ -12,7 +12,7 @@ from tests.panel.declared import PARENT, DeclaredBacklog, RefusingBacklog, ticke
 MAIN = Worktree(path=Path("/repo/knotview"), head="a" * 40, branch="refs/heads/main")
 FEATURE = Worktree(path=Path("/repo/knotview-feature"), head="b" * 40, branch="refs/heads/feature")
 REVIEW = Worktree(path=Path("/repo/knotview-review"), head="c1d2e3f4" + "0" * 32)
-AWKWARD = Worktree(path=Path('/repo/my wt, x; "é"'), branch="refs/heads/odd")
+AWKWARD = Worktree(path=Path('/repo/my wt, x; "é" 100%+1'), branch="refs/heads/odd")
 FEATURE_ONLY = ticket("pro-01m2ffffffff", title="Only on the feature branch")
 COOKIE = cookie_name(MAIN.path)
 

@@ -87,3 +87,15 @@ def test_a_path_caught_in_a_symlink_loop_is_left_out(tmp_path):
     output = f"worktree {loop}\0HEAD aaaa\0detached\0\0worktree /repo/knotview\0HEAD bbbb\0\0"
 
     assert [one.path for one in parsed(output)] == [Path("/repo/knotview")]
+
+
+def test_a_git_that_fails_after_answering_keeps_offering_its_last_listing(fake_git):
+    """A wedged or briefly failing git would otherwise drop every tab to the launch directory for
+    one render and back again on the next."""
+    reader = fake_git()
+    answered = reader.listed()
+
+    fake_git(mode="outside")
+
+    assert len(answered) == 3
+    assert reader.listed() == answered

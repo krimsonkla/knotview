@@ -20,7 +20,7 @@ from tests.panel.declared import DeclaredBacklog
 
 MAIN = Worktree(path=Path("/repo/knotview"), branch="refs/heads/main")
 NESTED = Worktree(path=Path("/repo/knotview/nested"), branch="refs/heads/nested")
-AWKWARD = Worktree(path=Path('/repo/my wt, x; "é"'), branch="refs/heads/odd")
+AWKWARD = Worktree(path=Path('/repo/my wt, x; "é" 100%+1'), branch="refs/heads/odd")
 LISTED = (MAIN, NESTED, AWKWARD)
 
 

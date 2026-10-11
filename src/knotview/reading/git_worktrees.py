@@ -31,12 +31,18 @@ class GitWorktrees:
     directory, so git missing, too old, pointed at something that is not a repository, wedged, or
     answering in a shape this does not know all mean one thing: there is one worktree, the one the
     panel was started in, and the panel looks as it did before it knew about worktrees.
+
+    Once git has answered, a later failure offers that last answer instead. A git that is briefly
+    wedged would otherwise drop every open tab to the launch directory for one render and back
+    again on the next. The answer is one tuple replaced whole, so threads reading it never see
+    half of one.
     """
 
     def __init__(self, *, repository: Path, git: str = GIT, patience: int = PATIENCE) -> None:
         self._launch = repository.resolve()
         self._git = git
         self._patience = patience
+        self._answered: tuple[Worktree, ...] = ()
 
     @property
     def launch(self) -> Path:
@@ -44,7 +50,8 @@ class GitWorktrees:
         return self._launch
 
     def listed(self) -> tuple[Worktree, ...]:
-        """Every worktree git offers a backlog in, in git's order, or the launch directory alone."""
+        """Every worktree git offers a backlog in, in git's order, else git's last answer, else the
+        launch directory alone."""
         try:
             answer = subprocess.run(
                 self._spoken(),
@@ -55,10 +62,11 @@ class GitWorktrees:
                 timeout=self._patience,
             )
         except (OSError, subprocess.TimeoutExpired):
-            return self._alone()
-        if answer.returncode != 0:
-            return self._alone()
-        return parsed(answer.stdout) or self._alone()
+            return self._answered or self._alone()
+        found = parsed(answer.stdout) if answer.returncode == 0 else ()
+        if found:
+            self._answered = found
+        return self._answered or self._alone()
 
     def _spoken(self) -> list[str]:
         """The argument list git is handed: the repository by -C, then the one listing."""

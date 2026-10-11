@@ -317,3 +317,12 @@ def test_any_other_refusal_of_a_document_read_is_the_general_refusal(fake):
     with pytest.raises(UnreadableBacklog) as junk:
         fake(mode="junk").documents("pro-01m2aaaaaaaa")
     assert not isinstance(junk.value, MissingTicket)
+
+
+def test_a_directory_that_is_gone_is_named_rather_than_knot_being_blamed(fake, tmp_path: Path):
+    """A worktree removed or unmounted while the panel runs is not a missing knot."""
+    fake()
+    gone = KnotCommand(repository=tmp_path / "removed", knot=str(tmp_path / "knot"))
+
+    with pytest.raises(UnreadableBacklog, match="removed is not a directory"):
+        gone.project()
