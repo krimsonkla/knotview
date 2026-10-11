@@ -40,15 +40,16 @@ FILTERED = "/?closed=1&type=bug&doc=spec&assignee=someone&q=z&lacking=1"
 
 
 def rows(page: str) -> list[tuple[str, str, int]]:
-    """Each card row on the overview as (card, href, count), read from the rendered tallies."""
+    """Each counted link on the overview as (card, href, count), read from the rendered bars and
+    stat cards, each of which names its card in `data-card`."""
     found = []
-    for card in re.finditer(
-        r"<h2>([^<]+)</h2>\s*(?:<p[^>]*>[^<]*</p>\s*)?<ul class=\"tally\">(.*?)</ul>", page, re.S
+    for href, card, count in re.findall(
+        r'<a class="kv-(?:bar|stat)" href="([^"]+)" data-card="([^"]+)">.*?'
+        r'<(?:strong|span class="kv-num")>(\d+)<',
+        page,
+        re.S,
     ):
-        for href, count in re.findall(
-            r'<a href="([^"]+)"\s*>[^<]+</a\s*>\s*<span class="num">(\d+)</span>', card.group(2)
-        ):
-            found.append((card.group(1), html.unescape(href), int(count)))
+        found.append((card, html.unescape(href), int(count)))
     return found
 
 

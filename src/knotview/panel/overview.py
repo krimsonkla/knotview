@@ -35,6 +35,19 @@ class Progress:
 
 
 @dataclass(frozen=True, kw_only=True)
+class Epic:
+    """A parent and how many of the children filed under it are closed.
+
+    Counted from the live and closed lists the overview already holds, so a parent's progress
+    costs no further knot read.
+    """
+
+    ticket: Ticket
+    done: int
+    total: int
+
+
+@dataclass(frozen=True, kw_only=True)
 class Overview:  # pylint: disable=too-many-instance-attributes
     """The backlog counted by type, by status and by priority, plus the queues and the parents.
 
@@ -67,6 +80,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     # each links to its own list the way the open statuses do.
     by_terminal: tuple[Tally, ...]
     parents: tuple[Ticket, ...]
+    epics: tuple[Epic, ...]
     progress: tuple[Progress, ...]
     ready_to_close: tuple[Ticket, ...]
     stale: tuple[Ticket, ...]
@@ -129,6 +143,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
                 for status in project.terminal_statuses
             ),
             parents=_parents(live),
+            epics=_epics(_parents(live), snapshot),
             progress=_progress(live),
             ready_to_close=snapshot.attention.ready_to_close,
             stale=snapshot.attention.stale,
@@ -167,6 +182,18 @@ def _progress(live: tuple[Ticket, ...]) -> tuple[Progress, ...]:
         if r.criteria
     ]
     return tuple(sorted(stated, key=lambda p: (p.remaining, p.ticket.priority, p.ticket.id)))
+
+
+def _epics(parents: tuple[Ticket, ...], snapshot: Snapshot) -> tuple[Epic, ...]:
+    """Each parent with the share of its children that are closed."""
+    return tuple(
+        Epic(
+            ticket=parent,
+            done=sum(1 for one in snapshot.closed if one.parent == parent.id),
+            total=sum(1 for one in snapshot.live + snapshot.closed if one.parent == parent.id),
+        )
+        for parent in parents
+    )
 
 
 def _parents(live: tuple[Ticket, ...]) -> tuple[Ticket, ...]:

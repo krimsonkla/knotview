@@ -16,25 +16,26 @@ from tests.reading.envelopes import envelope
 def test_every_declared_type_is_counted_even_at_zero_with_a_link_to_its_filter(client):
     page = client(DeclaredBacklog()).get("/").text
 
-    assert '<a href="/tickets?type=feature"' in page
+    assert '<a class="kv-bar" href="/tickets?type=feature"' in page
     assert "epic" in page and "chore" in page
 
 
 def test_statuses_priorities_and_queues_are_counted(client):
     page = client(DeclaredBacklog()).get("/").text
 
-    assert '<a href="/tickets?status=in_progress"' in page
-    assert '<a href="/tickets?priority=3"' in page
-    assert '<a href="/queue/ready">ready</a>' in page
-    assert '<a href="/tickets?assignee=nobody">unassigned</a>' in page
-    assert 'href="/tickets?status=closed&amp;closed=1"' in page and ">closed</a" in page
+    assert 'href="/tickets?status=in_progress" data-card="by status"' in page
+    assert 'href="/tickets?priority=3" data-card="by priority"' in page
+    assert 'href="/queue/ready" data-card="queues"><span>ready</span>' in page
+    assert 'href="/tickets?assignee=nobody" data-card="queues"><span>unassigned</span>' in page
+    assert 'href="/tickets?status=closed&amp;closed=1" data-card="by status"><span>closed<' in page
     assert "archive_count" not in page
 
 
 def test_the_live_total_is_the_sum_over_statuses(client):
     page = client(DeclaredBacklog()).get("/").text
 
-    assert re.search(r'<a href="/tickets">live</a\s*><span class="num">3</span>', page)
+    live = r'href="/tickets" data-card="queues"><span>live</span>'
+    assert re.search(live + r'.*?<span class="kv-num">3</span>', page)
 
 
 def test_parents_are_whatever_something_is_filed_under_and_closed_work_is_listed(client):
@@ -135,13 +136,12 @@ def test_recently_changed_lists_live_tickets_newest_first_with_a_relative_time(c
     assert "d ago</time>" in section
 
 
-def test_a_recently_changed_ticket_without_an_updated_instant_shows_a_dash(client):
+def test_a_recently_changed_ticket_without_an_updated_instant_shows_no_time(client):
     bare = ticket("pro-01m2eeeeeeee", title="Never saved", updated=None)
     page = client(DeclaredBacklog(live_value=(bare,))).get("/").text
 
     section = page[page.index("recently changed") : page.index("recently closed")]
-    assert "Never saved" in section and '<span class="muted">—</span>' in section
-    assert 'class="ago"' not in section
+    assert "Never saved" in section and 'class="ago"' not in section
 
 
 def test_the_recently_closed_rows_carry_their_instant(client):
@@ -175,7 +175,7 @@ def test_progress_lists_parents_with_criteria_nearest_to_done_first(client):
 
     section = page[page.index("<h2>progress</h2>") : page.index("<h2>parents</h2>")]
     assert section.index("The parent") < section.index("Far parent")
-    assert '<progress value="1" max="2">' in section and "1/2 criteria" in section
+    assert 'class="kv-fill done" style="width: 50%"' in section and "1/2 criteria" in section
     assert "1 live beneath" in section
 
 
@@ -206,8 +206,8 @@ def test_the_terminal_count_narrows_with_the_chosen_tags(client):
     after = browser.get("/").text
 
     def closed_count(page: str) -> str:
-        start = page.index(">closed</a")
-        return page[start : start + 80].split('<span class="num">')[1].split("<")[0]
+        start = page.index('closed=1" data-card="by status"><span>closed</span>')
+        return page[start : start + 300].split('<span class="kv-num">')[1].split("<")[0]
 
     assert closed_count(before) == "2" and closed_count(after) == "1"
 
@@ -252,3 +252,38 @@ def test_an_issue_with_no_ids_still_shows_the_file_it_is_about(client):
     card = text[text.index("<h2>integrity</h2>") : text.index("</section>")]
 
     assert ">.tickets/pro-x--broken.md</span>" in card and "/ticket/" not in card
+
+
+EPIC = ticket("pro-01m2e1111111", title="The epic", type="epic")
+KIDS = (
+    ticket("pro-01m2k1111111", title="Kid one", parent="pro-01m2e1111111"),
+    ticket("pro-01m2k2222222", title="Kid two", status="closed", parent="pro-01m2e1111111"),
+)
+
+
+def test_the_overview_shows_stat_cards_bars_and_epic_progress(client):
+    backlog = DeclaredBacklog(live_value=(EPIC, KIDS[0]), closed_value=(KIDS[1],))
+
+    page = client(backlog).get("/").text
+
+    for label in ("Open", "In progress", "Ready", "Blocked"):
+        assert f"<span>{label}</span>" in page
+    assert page.count('class="kv-bar"') >= 3
+    assert "1 of 2 done" in page
+
+
+def test_an_epic_with_no_closed_children_shows_none_done(client):
+    page = client(DeclaredBacklog(live_value=(EPIC, KIDS[0]), closed_value=())).get("/").text
+
+    assert "0 of 1 done" in page
+
+
+def test_priority_and_type_charts_show_and_the_rest_wait_behind_the_charts_menu(client):
+    page = client(DeclaredBacklog()).get("/").text
+
+    assert '<section class="kv-card" data-chart="by priority">' in page
+    assert '<section class="kv-card" data-chart="by type">' in page
+    for hidden in ("by status", "closed", "queues"):
+        assert f'<section class="kv-card" data-chart="{hidden}" hidden>' in page
+        assert f'data-chart-toggle="{hidden}" />' in page
+    assert 'data-chart-toggle="by type" checked' in page

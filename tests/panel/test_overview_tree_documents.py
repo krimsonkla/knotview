@@ -68,11 +68,12 @@ def test_the_overview_counts_live_tickets_by_the_types_they_own_linking_to_each_
 
     text = page(client, "/", live_value=(PARENT, second, ORPHAN))
 
-    card = section(text, "<h2>by document</h2>", "</div>")
+    card = section(text, "<h2>by document</h2>", "</section>")
     assert "tickets owning each type" in card
     for kind, count in (("spec", 2), ("plan", 1), ("other", 0)):
-        link = f'<a href="/tickets?doc={kind}">{kind}</a>'
-        assert link in card and card.index(link) < card.index(f'<span class="num">{count}</span>')
+        link = f'href="/tickets?doc={kind}" data-card="by document"><span>{kind}</span>'
+        at = card.index(link)
+        assert card.index(f'<span class="kv-num">{count}</span>', at) > at
 
 
 def test_no_documents_card_when_the_chosen_tag_leaves_no_ticket_owning_one(client):
@@ -89,8 +90,8 @@ def test_a_type_row_links_to_that_type_alone_whatever_was_chosen(client):
     text = page(client, "/?doc=plan&nodocs=1&type=task")
 
     # The overview ignores its URL (kno-01m3qneqctfh), so the row carries its type and nothing else.
-    card = section(text, "<h2>by document</h2>", "</ul>")
-    assert '<a href="/tickets?doc=spec">spec</a>' in card
+    card = section(text, "<h2>by document</h2>", "</section>")
+    assert 'href="/tickets?doc=spec" data-card="by document"><span>spec</span>' in card
 
 
 def test_the_footer_counts_the_projects_documents_zero_included(client):

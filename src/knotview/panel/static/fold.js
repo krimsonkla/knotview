@@ -40,6 +40,39 @@
     });
   }
 
+  // Charts: each checkbox shows or hides the chart it names, remembered in localStorage. A name
+  // is only ever compared with the charts this page drew.
+  var charts = document.querySelectorAll("section[data-chart]");
+  var toggles = document.querySelectorAll("input[data-chart-toggle]");
+  var chartKey = function (name) {
+    return "knotview.chart." + name;
+  };
+  var showChart = function (name, on) {
+    for (var c = 0; c < charts.length; c++) {
+      if (charts[c].getAttribute("data-chart") === name) charts[c].hidden = !on;
+    }
+  };
+  for (var t = 0; t < toggles.length; t++) {
+    var box = toggles[t];
+    var name = box.getAttribute("data-chart-toggle");
+    try {
+      var saved = window.localStorage.getItem(chartKey(name));
+      if (saved !== null) box.checked = saved === "on";
+    } catch (e) {
+      /* storage unavailable: the page's defaults stand */
+    }
+    showChart(name, box.checked);
+    box.addEventListener("change", function (event) {
+      var which = event.target.getAttribute("data-chart-toggle");
+      showChart(which, event.target.checked);
+      try {
+        window.localStorage.setItem(chartKey(which), event.target.checked ? "on" : "off");
+      } catch (e) {
+        /* same */
+      }
+    });
+  }
+
   // Tabs: a bar of links, each naming a panel by id. The hash picks one when it names a panel
   // this page drew; anything else picks the first. A choice replaces the history entry.
   var bar = document.querySelector("[data-tabs]");

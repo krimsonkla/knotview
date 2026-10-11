@@ -91,25 +91,6 @@ a:hover {
   font-size: 18px;
 }
 
-.counts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-.tally {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.tally li {
-  display: flex;
-  justify-content: space-between;
-  padding: 3px 0;
-  border-bottom: 1px solid var(--line);
-}
-.tally li:last-child {
-  border-bottom: 0;
-}
 .num {
   font-variant-numeric: tabular-nums;
   color: var(--faint);
@@ -301,31 +282,10 @@ ul.branch > li {
   border-style: dashed;
 }
 
-ul.progress {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-ul.progress li {
-  display: grid;
-  grid-template-columns: 1fr 12em auto auto;
-  gap: 0.6em;
-  align-items: center;
-  padding: 0.25em 0;
-}
-ul.progress progress {
-  width: 100%;
-}
-
 /* Rows saved since the reader last looked, and the count in the bar that clears on click. */
 tr.since-last-look td.title-cell,
 /* The reader's chosen tags, in the bar on every page. */
 /* A card's footnote, under its rows so they line up with the cards beside it. */
-.muted.note {
-  margin: 8px 0 0;
-  font-size: 12px;
-}
-
 /* The document page: a header card holding the tabs, then the body beside a narrow side panel. */
 .document {
   display: grid;
@@ -776,6 +736,14 @@ a.kv-chip:hover {
 .kv-row-main {
   flex: 1 1 auto;
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+.kv-row-main > a.title {
+  color: var(--fgColor-default);
+  font-weight: 600;
+}
+.kv-narrow .kv-row > .kv-dot {
+  min-width: 0;
 }
 .kv-row-title {
   display: flex;
@@ -847,9 +815,24 @@ a.kv-chip:hover {
   font: inherit;
   font-size: 13px;
 }
+/* A select draws its own arrow inside the padding it reserves, so the text never runs under it. */
+select.kv-pill {
+  appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  text-overflow: ellipsis;
+}
+.kv-worktrees select.kv-pill {
+  max-width: 18em;
+  height: 28px;
+  font-size: 12px;
+}
 .kv-pill.set {
   border-color: var(--kv-accent);
-  background: var(--kv-accent-muted);
+  background-color: var(--kv-accent-muted);
 }
 .kv-search {
   flex: 1 1 240px;
@@ -884,6 +867,128 @@ a.kv-chip:hover {
   font-size: 13px;
 }
 
+/* The overview: headline counts, bars, and lists side by side. */
+.kv-card > h2::first-letter,
+.kv-wave::first-letter {
+  text-transform: uppercase;
+}
+.kv-warn {
+  border-color: var(--fgColor-severe);
+}
+.kv-warn > h2 {
+  color: var(--fgColor-severe);
+  background: var(--bgColor-severe-muted);
+}
+.kv-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--kv-space-4);
+  margin-bottom: var(--kv-space-6);
+}
+.kv-stat {
+  display: block;
+  padding: var(--kv-space-4);
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--kv-radius);
+  background: var(--bgColor-muted);
+  color: var(--fgColor-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.kv-stat:hover {
+  border-color: var(--borderColor-emphasis);
+  text-decoration: none;
+}
+.kv-stat strong {
+  display: block;
+  color: var(--fgColor-default);
+  font-size: 32px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+.kv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0 var(--kv-space-4);
+  align-items: start;
+}
+.kv-bars {
+  padding: var(--kv-space-2) 0;
+}
+.kv-bar {
+  display: grid;
+  grid-template-columns: 7em minmax(0, 1fr) 3em;
+  align-items: center;
+  gap: var(--kv-space-3);
+  padding: 6px var(--kv-space-4);
+  color: var(--fgColor-default);
+  font-size: 13px;
+}
+.kv-bar:hover {
+  background: var(--bgColor-muted);
+  text-decoration: none;
+}
+.kv-bar > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kv-num {
+  text-align: right;
+  color: var(--fgColor-muted);
+  font-variant-numeric: tabular-nums;
+}
+.kv-track {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bgColor-neutral-muted);
+  overflow: hidden;
+}
+.kv-fill {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--kv-accent);
+}
+.kv-fill.done {
+  background: var(--fgColor-done);
+}
+.kv-charts {
+  margin: 0 0 var(--kv-space-3);
+  font-size: 13px;
+}
+.kv-charts > summary {
+  cursor: pointer;
+  color: var(--fgColor-muted);
+  margin-bottom: var(--kv-space-2);
+}
+.kv-note {
+  margin: var(--kv-space-2) var(--kv-space-4) 0;
+  font-size: 12px;
+}
+.kv-progress {
+  width: 15em;
+  font-size: 12px;
+}
+.kv-progress .kv-track {
+  flex: 1 1 auto;
+}
+.kv-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--kv-space-4);
+  align-items: flex-start;
+}
+.kv-wide {
+  flex: 999 1 520px;
+  min-width: 0;
+}
+.kv-narrow {
+  flex: 1 1 300px;
+  min-width: 0;
+}
+
 @media (max-width: 760px) {
   .kv-header {
     position: static;
@@ -897,5 +1002,8 @@ a.kv-chip:hover {
   }
   .kv-row > .kv-dot {
     min-width: 0;
+  }
+  .kv-progress {
+    width: 100%;
   }
 }
