@@ -32,23 +32,21 @@ def page(client, query: str = "", epic=EPIC) -> str:
 
 
 def card(text: str) -> str:
-    """The children card alone, whitespace folded."""
-    graph = text[text.index('<section class="graph">') :]
-    at = graph.index(">children<") if ">children<" in graph else graph.index("children")
-    start = graph.rindex('<div class="card">', 0, at)
-    return re.sub(r"\s+", " ", graph[start : graph.index("</div>", at)])
+    """The children tab's panel alone, whitespace folded."""
+    at = text.index('id="tab-children"')
+    return re.sub(r"\s+", " ", text[at : text.index("</section>", at)])
 
 
 def order(text: str) -> list[str]:
-    """The children's ids in the order the card lists them."""
-    return re.findall(r'<span class="id">(pro-01m2c\w+)</span>', card(text))
+    """The children's ids in the order the panel lists them."""
+    return re.findall(r'<span class="kv-mono kv-muted">(pro-01m2c\w+)</span>', card(text))
 
 
 def heading(text: str) -> str:
-    """What the card's heading says, tags dropped."""
-    h2 = card(text)
-    h2 = h2[h2.index("<h2") : h2.index("</h2>")]
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", h2)).strip()
+    """What the panel's heading says, tags dropped."""
+    h3 = card(text)
+    h3 = h3[h3.index("<h3") : h3.index("</h3>")]
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", h3)).strip()
 
 
 def test_children_list_in_declared_status_order_with_knots_order_kept_within_each(client):
@@ -131,7 +129,7 @@ def test_siblings_list_by_status_and_count_what_they_draw(client):
     text = browser.get(f"/ticket/{me.id}").text
     siblings = text[text.index("also under") : text.index("</section>", text.index("also under"))]
 
-    ids = re.findall(r'<span class="id">(pro-01m2c\w+)</span>', siblings)
+    ids = re.findall(r'<span class="kv-mono kv-muted">(pro-01m2c\w+)</span>', siblings)
     assert ids == [
         "pro-01m2copen1",
         "pro-01m2cclosed1",
@@ -139,4 +137,4 @@ def test_siblings_list_by_status_and_count_what_they_draw(client):
         "pro-01m2cclosed3",
         "pro-01m2cweird",
     ]
-    assert f'<span class="num">{len(ids)}</span>' in siblings
+    assert f'<span class="kv-count">{len(ids)}</span>' in siblings

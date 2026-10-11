@@ -79,7 +79,7 @@ def test_the_ticket_page_is_not_narrowed_but_shows_the_tags(client):
 
     page = browser.get("/ticket/pro-01m2bbbbbbbb").text
 
-    assert "<h1>The child</h1>" in page and 'href="/tags?drop=auth' in page
+    assert '<h1 class="kv-title">The child' in page and 'href="/tags?drop=auth' in page
 
 
 def test_the_way_back_must_be_a_path_on_this_panel(client):

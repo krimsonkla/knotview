@@ -22,6 +22,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from knotview.panel.overview import Overview
 from knotview.panel.prose import outlined
 from knotview.panel.prose import rendered as prose
+from knotview.panel.prose import split as prose_split
 from knotview.panel.selection import ANY, ORDERS, Selection
 from knotview.panel.tags import COOKIE, Tags
 from knotview.panel.tree import Tree
@@ -450,6 +451,7 @@ def panel(
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.filters["humanise"] = _humanise
     templates.env.filters["prose"] = prose
+    templates.env.filters["prose_split"] = prose_split
     templates.env.filters["ago"] = _ago
     templates.env.filters["segment"] = _segment
     templates.env.tests["instant"] = _is_instant

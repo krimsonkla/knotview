@@ -1,5 +1,6 @@
 """A ticket's documents on its page, and a missing required document among what blocks it."""
 
+import re
 from dataclasses import replace
 
 from tests.panel.declared import CHILD, CLOSED, ORPHAN, PARENT, PARENT_DOCUMENTS, PROJECT
@@ -32,11 +33,12 @@ def test_documents_come_first_in_declared_type_order_with_their_last_change(clie
     assert text.index('id="documents"') < text.index("acceptance <span")
     assert documents.index("Design spec") < documents.index("Rollout plan")
     for one in (SPEC, PLAN):
-        assert f'href="/document/{one.id}">{one.title}</a>' in documents
-        assert f'<span class="id">{one.id}</span>' in documents
-    assert '<span class="doctype">spec</span>' in documents
+        assert f'href="/document/{one.id}">' in documents
+        assert f"<strong>{one.title}</strong>" in documents
+        assert f'<span class="kv-muted kv-mono">{one.id}</span>' in documents
+    assert '<span class="kv-chip doc">spec</span>' in documents
     assert documents.count("updated <time") == 2
-    assert '<a class="chip" href="#documents">2 documents</a>' in text
+    assert " · 2 documents" in text
 
 
 def test_a_refused_document_list_falls_back_to_the_documents_show_stated(client):
@@ -54,10 +56,10 @@ def test_a_ticket_with_no_documents_shows_no_card_and_no_chip(client):
 
 
 def blocked(text: str) -> str:
-    """The blocked-by card alone."""
-    graph = text[text.index('<section class="graph">') :]
-    at = graph.index("blocked by")
-    return graph[at : graph.index("</div>", at)]
+    """The blocked-by part of the relations tab alone."""
+    panel = text[text.index('id="tab-relations"') :]
+    at = panel.index("blocked by")
+    return panel[at : panel.index("</section>", at)]
 
 
 def test_missing_types_are_quiet_rows_among_the_blockers_and_are_counted(client):
@@ -66,7 +68,7 @@ def test_missing_types_are_quiet_rows_among_the_blockers_and_are_counted(client)
     rows = blocked(text)
     assert 'title="the tickets blocking this, and the required documents it lacks"' in rows
     assert ">4</span" in rows
-    assert '<span class="doctype missing">spec</span>' in rows
+    assert '<span class="kv-chip doc missing">spec</span>' in rows
     assert "no spec attached" in rows and "no plan attached" in rows
     assert rows.index("no spec attached") < rows.index("no plan attached")
 
@@ -89,8 +91,7 @@ def test_a_closed_ticket_lacks_nothing(client):
 def test_a_ticket_with_no_blockers_and_nothing_missing_has_no_blocked_by_card(client):
     text = page(client, ORPHAN.id)
 
-    graph = text[text.index('<section class="graph">') :]
-    assert "blocked by" not in graph and "required documents it lacks" not in graph
+    assert 'id="tab-relations"' not in text and "required documents it lacks" not in text
 
 
 def test_a_missing_document_row_never_says_missing(client):
@@ -104,4 +105,4 @@ def test_a_missing_document_row_never_says_missing(client):
 def test_one_document_is_counted_in_the_singular(client):
     text = page(client, PARENT.id, documents_value={PARENT.id: (SPEC,)})
 
-    assert '<a class="chip" href="#documents">1 document</a>' in text
+    assert re.search(r" · 1 document(?!s)", text)

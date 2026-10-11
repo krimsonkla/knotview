@@ -770,6 +770,10 @@ a.kv-chip:hover {
 .kv-excerpt {
   font-style: italic;
 }
+.kv-row > .kv-mono {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 .kv-row-end {
   flex: 0 0 auto;
   display: flex;
@@ -987,6 +991,189 @@ select.kv-pill {
 .kv-narrow {
   flex: 1 1 300px;
   min-width: 0;
+}
+
+/* A ticket: summary, documents, text, folds, tabs and a sidebar. */
+.kv-crumb {
+  margin: 0 0 var(--kv-space-2);
+  font-size: 13px;
+}
+.kv-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--kv-space-2) var(--kv-space-3);
+  margin: 0 0 var(--kv-space-6);
+  padding-bottom: var(--kv-space-4);
+  border-bottom: 1px solid var(--borderColor-default);
+}
+.kv-summary .kv-dot {
+  height: 28px;
+  padding: 0 var(--kv-space-3);
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--kv-radius);
+  font-size: 13px;
+}
+.kv-summary a {
+  color: inherit;
+}
+.kv-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kv-space-6) 32px;
+  align-items: flex-start;
+}
+.kv-primary {
+  flex: 999 1 560px;
+  min-width: 0;
+}
+.kv-side {
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 320px;
+  font-size: 13px;
+}
+.kv-side > div {
+  padding: var(--kv-space-3) 0;
+  border-top: 1px solid var(--borderColor-default);
+}
+.kv-side > div:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.kv-side h2 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fgColor-muted);
+}
+.kv-side .kv-track {
+  margin: 4px 0 6px;
+}
+.kv-sidedoc {
+  display: block;
+  padding: 2px 0;
+}
+.kv-docs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--kv-space-3);
+  margin-bottom: var(--kv-space-6);
+}
+.kv-doccard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: var(--kv-space-4);
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--kv-radius);
+  background: var(--bgColor-muted);
+  color: var(--fgColor-default);
+}
+.kv-doccard:hover {
+  border-color: var(--kv-accent);
+  text-decoration: none;
+}
+.kv-doccard .kv-muted {
+  font-size: 12px;
+}
+.kv-prose {
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 72ch;
+  overflow-wrap: anywhere;
+}
+.kv-prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 4px 0 16px;
+  font-size: 14px;
+}
+.kv-prose th,
+.kv-prose td {
+  border: 1px solid var(--borderColor-default);
+  padding: 6px 12px;
+  text-align: left;
+}
+.kv-prose th {
+  background: var(--bgColor-muted);
+}
+.kv-prose code {
+  font-family: var(--kv-mono);
+  font-size: 85%;
+  padding: 2px 6px;
+  border-radius: var(--kv-radius);
+  background: var(--bgColor-neutral-muted);
+}
+.kv-prose pre {
+  overflow-x: auto;
+  padding: var(--kv-space-3);
+  border-radius: var(--kv-radius);
+  background: var(--bgColor-muted);
+}
+.kv-prose pre code {
+  padding: 0;
+  background: none;
+}
+.kv-section {
+  margin-bottom: var(--kv-space-6);
+}
+.kv-section > h2 {
+  font-size: 16px;
+  margin: 0 0 var(--kv-space-2);
+}
+.kv-section > h2::first-letter {
+  text-transform: uppercase;
+}
+details.kv-fold > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+details.kv-card.kv-fold > summary {
+  padding: var(--kv-space-3) var(--kv-space-4);
+}
+details.kv-card.kv-fold > summary::first-letter {
+  text-transform: uppercase;
+}
+.kv-more-text > summary {
+  margin: var(--kv-space-2) 0;
+  color: var(--kv-accent);
+  font-weight: 500;
+}
+.kv-tabbar {
+  display: flex;
+  gap: var(--kv-space-6);
+  overflow-x: auto;
+  margin: 32px 0 var(--kv-space-4);
+  border-bottom: 1px solid var(--borderColor-default);
+}
+.kv-tabbar a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kv-space-2);
+  height: 40px;
+  padding: 0 4px;
+  color: var(--fgColor-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+}
+.kv-tabbar a:hover {
+  color: var(--fgColor-default);
+  text-decoration: none;
+}
+.kv-tabbar a[aria-selected="true"],
+.kv-tabbar a[aria-current="page"] {
+  color: var(--fgColor-default);
+  font-weight: 600;
+  border-bottom-color: var(--kv-accent);
+}
+.kv-toggle {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 @media (max-width: 760px) {

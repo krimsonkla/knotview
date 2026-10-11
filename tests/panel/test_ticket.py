@@ -7,24 +7,19 @@ from tests.panel.declared import DeclaredBacklog, ticket
 def test_the_header_carries_the_chips_the_instants_and_the_parent(client):
     page = client(DeclaredBacklog()).get("/ticket/pro-01m2bbbbbbbb").text
 
-    assert "<h1>The child</h1>" in page
+    assert '<h1 class="kv-title">The child' in page
     assert 'href="/tickets?mode=afk"' in page
-    assert "nobody" in page
-    assert (
-        '<span class="when">created <time class="stamp" datetime="2026-09-01T10:00:00.000000Z" '
-        'title="2026-09-01T10:00:00.000000Z">2026-09-01 10:00 UTC</time></span>' in page
-    )
-    assert (
-        '<span class="when">updated <time class="stamp" datetime="2026-09-04T10:00:00.000000Z" '
-        'title="2026-09-04T10:00:00.000000Z">2026-09-04 10:00 UTC</time></span>' in page
-    )
-    assert '<a href="/ticket/pro-01m2aaaaaaaa">pro-01m2aaaaaaaa</a>' in page
+    # An unassigned ticket draws no assignee rather than the word "nobody".
+    assert ">Assignee<" not in page
+    assert 'created <time class="ago" datetime="2026-09-01T10:00:00.000000Z"' in page
+    assert 'updated <time class="ago" datetime="2026-09-04T10:00:00.000000Z"' in page
+    assert '<a href="/ticket/pro-01m2aaaaaaaa">The parent</a>' in page
 
 
 def test_criteria_sections_tags_and_notes_are_rendered_in_the_tickets_own_order(client):
     page = client(DeclaredBacklog()).get("/ticket/pro-01m2aaaaaaaa").text
 
-    assert 'acceptance <span class="num">1/2</span>' in page
+    assert 'acceptance <span class="kv-count">1/2</span>' in page
     assert "✓" in page and "○" in page
     assert page.index("Text before any heading.") < page.index("What for.") < page.index("A note.")
     assert 'href="/tickets?tag=auth"' in page
@@ -45,10 +40,7 @@ def test_a_closed_ticket_shows_when_it_closed_and_an_assignee_is_a_link(client):
     closed = client(DeclaredBacklog()).get("/ticket/pro-01m2cccccccc").text
     orphan = client(DeclaredBacklog()).get("/ticket/pro-01m2dddddddd").text
 
-    assert (
-        '<span class="when">closed <time class="stamp" datetime="2026-08-02T10:00:00.000000Z" '
-        'title="2026-08-02T10:00:00.000000Z">2026-08-02 10:00 UTC</time></span>' in closed
-    )
+    assert 'closed <time class="ago" datetime="2026-08-02T10:00:00.000000Z"' in closed
     assert 'href="/tickets?assignee=someone"' in orphan
 
 
@@ -58,10 +50,10 @@ def test_an_absent_instant_leaves_its_clause_out_and_emits_no_time_element(clien
     page = client(DeclaredBacklog(live_value=(bare,))).get("/ticket/pro-01m2eeeeeeee").text
     mixed = client(DeclaredBacklog(live_value=(later,))).get("/ticket/pro-01m2gggggggg").text
 
-    header = page.split("<h1>")[1].split("</header>")[0]
-    assert "created" not in header and "<time" not in page
-    heading = mixed.split("<h1>")[1].split("</header>")[0]
-    assert '<span class="when">updated <time' in heading and "·" not in heading
+    summary = page.split('<p class="kv-summary">')[1].split("</p>")[0]
+    assert "created" not in summary and "<time" not in page
+    line = mixed.split('<p class="kv-summary">')[1].split("</p>")[0]
+    assert "updated <time" in line and "created" not in line
 
 
 def test_a_dated_note_heading_is_a_stamp_and_an_undated_one_is_not(client):
@@ -142,7 +134,7 @@ def test_notes_are_shown_as_a_timeline_newest_first(client):
 def test_a_child_shows_its_parent_as_a_breadcrumb_and_its_siblings(client):
     page = client(DeclaredBacklog()).get("/ticket/pro-01m2bbbbbbbb").text
 
-    assert 'under <a href="/ticket/pro-01m2aaaaaaaa">The parent</a>' in page
+    assert 'Tickets</a> /\n  <a href="/ticket/pro-01m2aaaaaaaa">The parent</a>' in page
     assert "also under The parent" in page
     assert "The closed one" in page
     assert page.count("also under") == 1
