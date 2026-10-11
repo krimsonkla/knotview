@@ -252,10 +252,11 @@ def test_the_reads_are_the_only_verbs_and_none_of_them_writes():
     assert set(READS).isdisjoint(WRITE_VERBS)
 
 
-def test_only_the_command_module_reaches_outside_the_process():
-    """The read-only guarantee is structural: knot is invoked in exactly one module, every verb it
-    is handed comes from READS, and READS holds no write verb. So the guard is on who may run a
-    process at all, not on which words appear in the package: "status" is also a field name."""
+def test_only_the_command_modules_reach_outside_the_process():
+    """The read-only guarantee is structural: knot is invoked in one module, git in one other,
+    every knot verb comes from READS, and git is only ever asked to list worktrees. So the guard
+    is on who may run a process at all, not on which words appear in the package: "status" is
+    also a field name."""
     source = Path(__import__("knotview").__file__).resolve().parent
     spawning = ("subprocess", "os.system", "os.popen", "os.exec", "os.spawn", "pty.")
     running = {
@@ -263,7 +264,7 @@ def test_only_the_command_module_reaches_outside_the_process():
         for path in source.rglob("*.py")
         if any(token in path.read_text(encoding="utf-8") for token in spawning)
     }
-    assert running == {"reading/knot_command.py"}
+    assert running == {"reading/knot_command.py", "reading/git_worktrees.py"}
 
 
 def test_the_command_only_speaks_the_verb_it_was_given(fake):
