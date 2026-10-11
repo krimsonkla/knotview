@@ -11,6 +11,16 @@
 // A hidden tab stops asking, and asks at once when it is shown again. Only a GET is ever sent; a
 // panel that could write would be a second author of a backlog that has one.
 
+// Switch worktrees as soon as the dropdown changes, rather than waiting for a button. The form is
+// an ordinary GET, so the page works the same without script, through its noscript button.
+(function switcher() {
+  var choice = document.getElementById("worktree-choice");
+  if (!choice || !choice.form) return;
+  choice.addEventListener("change", function () {
+    choice.form.submit();
+  });
+})();
+
 (function follow() {
   var badge = document.getElementById("live");
   if (!badge || typeof fetch === "undefined") return;
@@ -18,7 +28,11 @@
   var EVERY = 1000;
   var LONGEST = 30000;
   var wait = EVERY;
-  var known = null;
+  // The digest the page was rendered under, when the server could read one. Starting from it
+  // rather than from the first answer means a change that lands before the first answer, such as
+  // a worktree switched in another tab, still reloads this page. Without it, the first answer is
+  // the baseline, as before.
+  var known = badge.getAttribute("data-digest");
   var timer = null;
   var asking = false;
 
@@ -29,8 +43,8 @@
 
   var ask = function () {
     timer = null;
-    // The first ask runs even in a hidden tab: it records what the page was rendered from, so a
-    // tab opened in the background still reloads when it is shown after a change.
+    // A page that carries no digest asks once even while hidden: the first answer records what it
+    // was rendered from, so a tab opened in the background still reloads when shown after a change.
     if ((document.hidden && known !== null) || asking) return;
     asking = true;
     fetch("/digest", { cache: "no-store" })

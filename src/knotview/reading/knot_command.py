@@ -242,6 +242,14 @@ class KnotCommand:
                 timeout=self._patience,
             )
         except FileNotFoundError as missing:
+            # The same error means the directory is gone, which happens to a worktree removed or
+            # unmounted while the panel runs; blaming knot then would send the reader the wrong way.
+            if not self._repository.is_dir():
+                raise UnreadableBacklog(
+                    f"{self._repository} is not a directory",
+                    advice="the worktree may have been removed or moved; choose another one, or "
+                    "point the panel at a project that exists",
+                ) from missing
             raise UnreadableBacklog(
                 f"{self._knot} is not on the path",
                 advice="install knot (github.com/UniSoma/knot) and put it on PATH, or pass "

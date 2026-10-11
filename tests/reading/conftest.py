@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from knotview.reading.git_worktrees import GitWorktrees
 from knotview.reading.knot_command import KnotCommand
 from tests.reading.envelopes import HERE as ENVELOPES
 
@@ -142,5 +143,50 @@ def fake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[..., KnotC
         monkeypatch.setenv("KNOTVIEW_FAKE_MODE", mode)
         monkeypatch.setenv("KNOTVIEW_FAKE_CHECK", check)
         return KnotCommand(repository=tmp_path, knot=str(script), patience=patience)
+
+    return build
+
+
+GIT_SCRIPT = f"""#!{sys.executable}
+import os, sys, time
+from pathlib import Path
+
+Path(os.environ["KNOTVIEW_FAKE_ARGV"]).write_text("\\0".join(sys.argv[1:]), encoding="utf-8")
+mode = os.environ.get("KNOTVIEW_FAKE_GIT", "")
+if mode == "hang":
+    time.sleep(5)
+if mode == "refuse":
+    sys.stderr.write("error: unknown switch `z'\\n")
+    sys.exit(129)
+if mode == "outside":
+    sys.stderr.write("fatal: not a git repository\\n")
+    sys.exit(128)
+if mode == "junk":
+    sys.stdout.write("nonsense")
+    sys.exit(0)
+sys.stdout.buffer.write(Path(os.environ["KNOTVIEW_FAKE_LISTING"]).read_bytes())
+"""
+
+GIT_LISTING = (
+    "worktree /repo/knotview\0HEAD aaaa\0branch refs/heads/main\0\0"
+    "worktree /repo/knotview-feature\0HEAD bbbb\0branch refs/heads/feature\0locked\0\0"
+    "worktree /repo/knotview-review\0HEAD c1d2e3f4\0detached\0\0"
+)
+
+
+@pytest.fixture
+def fake_git(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[..., GitWorktrees]:
+    """A GitWorktrees over a fake git that prints a chosen listing or fails a chosen way."""
+    script = tmp_path / "git"
+    script.write_text(GIT_SCRIPT, encoding="utf-8")
+    script.chmod(script.stat().st_mode | stat.S_IXUSR)
+    listing = tmp_path / "listing"
+    monkeypatch.setenv("KNOTVIEW_FAKE_ARGV", str(tmp_path / "argv"))
+
+    def build(*, mode: str = "", output: str | bytes = GIT_LISTING) -> GitWorktrees:
+        listing.write_bytes(output.encode("utf-8") if isinstance(output, str) else output)
+        monkeypatch.setenv("KNOTVIEW_FAKE_GIT", mode)
+        monkeypatch.setenv("KNOTVIEW_FAKE_LISTING", str(listing))
+        return GitWorktrees(repository=tmp_path, git=str(script), patience=1)
 
     return build

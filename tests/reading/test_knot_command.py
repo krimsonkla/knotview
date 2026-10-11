@@ -252,10 +252,11 @@ def test_the_reads_are_the_only_verbs_and_none_of_them_writes():
     assert set(READS).isdisjoint(WRITE_VERBS)
 
 
-def test_only_the_command_module_reaches_outside_the_process():
-    """The read-only guarantee is structural: knot is invoked in exactly one module, every verb it
-    is handed comes from READS, and READS holds no write verb. So the guard is on who may run a
-    process at all, not on which words appear in the package: "status" is also a field name."""
+def test_only_the_command_modules_reach_outside_the_process():
+    """The read-only guarantee is structural: knot is invoked in one module, git in one other,
+    every knot verb comes from READS, and git is only ever asked to list worktrees. So the guard
+    is on who may run a process at all, not on which words appear in the package: "status" is
+    also a field name."""
     source = Path(__import__("knotview").__file__).resolve().parent
     spawning = ("subprocess", "os.system", "os.popen", "os.exec", "os.spawn", "pty.")
     running = {
@@ -263,7 +264,7 @@ def test_only_the_command_module_reaches_outside_the_process():
         for path in source.rglob("*.py")
         if any(token in path.read_text(encoding="utf-8") for token in spawning)
     }
-    assert running == {"reading/knot_command.py"}
+    assert running == {"reading/knot_command.py", "reading/git_worktrees.py"}
 
 
 def test_the_command_only_speaks_the_verb_it_was_given(fake):
@@ -316,3 +317,12 @@ def test_any_other_refusal_of_a_document_read_is_the_general_refusal(fake):
     with pytest.raises(UnreadableBacklog) as junk:
         fake(mode="junk").documents("pro-01m2aaaaaaaa")
     assert not isinstance(junk.value, MissingTicket)
+
+
+def test_a_directory_that_is_gone_is_named_rather_than_knot_being_blamed(fake, tmp_path: Path):
+    """A worktree removed or unmounted while the panel runs is not a missing knot."""
+    fake()
+    gone = KnotCommand(repository=tmp_path / "removed", knot=str(tmp_path / "knot"))
+
+    with pytest.raises(UnreadableBacklog, match="removed is not a directory"):
+        gone.project()

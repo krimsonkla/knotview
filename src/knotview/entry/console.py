@@ -9,6 +9,7 @@ import uvicorn
 
 from knotview.panel.app import panel
 from knotview.entry.saved_projects import SavedProjects, default_registry_path
+from knotview.reading.git_worktrees import GitWorktrees
 from knotview.reading.knot_command import KnotCommand
 from knotview.values.saved_project import SavedProject
 from knotview.values.unknown_project import UnknownProject
@@ -104,5 +105,12 @@ def main(given: Sequence[str] | None = None) -> int:
         print(f"knotview: {refusal.advice}.", file=sys.stderr)
         return 1
     print(f"knotview — http://{ADDRESS}:{port}/  reading {project.name} at {repository}")
-    uvicorn.run(panel(backlog), host=ADDRESS, port=port, log_level="warning")
+    # Every worktree of the repository, each read by its own knot command. The check above read
+    # only the launch directory, which is the one a refusal there would be about.
+    served = panel(
+        backlog,
+        worktrees=GitWorktrees(repository=repository),
+        opened=lambda path: KnotCommand(repository=path, knot=asked.knot),
+    )
+    uvicorn.run(served, host=ADDRESS, port=port, log_level="warning")
     return 0

@@ -107,6 +107,12 @@ The bar on every page holds the tags you have chosen to see the backlog through.
 and every view narrows to tickets carrying all of them, on every page, until you clear it. The
 choice lives in a cookie in your browser; the panel still writes nothing.
 
+When the repository has more than one git worktree, the bar also lists them, each by its branch
+and directory. Choose one and every page reads that worktree's backlog, since each worktree holds
+its own copy of `.tickets/`. The choice lives in a cookie in your browser, like the tags, and a
+worktree git no longer lists falls back to the directory the panel was started in. Worktrees need
+git 2.36 or later; without it the panel reads the one directory, as before.
+
 Every instant is shown in your browser's timezone, labelled with it, and the exact UTC instant is
 on hover. Without script the page shows UTC, labelled as such.
 
