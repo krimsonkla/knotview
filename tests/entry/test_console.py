@@ -115,7 +115,7 @@ def test_main_serves_the_saved_project_on_its_saved_port(tmp_path: Path, monkeyp
     served: list = []
     monkeypatch.setattr(console, "default_registry_path", lambda: tmp_path / "projects.toml")
     monkeypatch.setattr(console, "KnotCommand", _Backlog)
-    monkeypatch.setattr(console, "panel", lambda backlog: backlog)
+    monkeypatch.setattr(console, "panel", lambda backlog, **_: backlog)
     monkeypatch.setattr(console.uvicorn, "run", lambda app, **bound: served.append(bound))
     monkeypatch.chdir(tmp_path)
 
@@ -124,6 +124,22 @@ def test_main_serves_the_saved_project_on_its_saved_port(tmp_path: Path, monkeyp
     assert served[0]["port"] == 7790 and served[0]["host"] == "127.0.0.1"
     assert _Backlog.built[-1] == (tmp_path / "outcry", "knot")
     assert "7790" in capsys.readouterr().out
+
+
+def test_main_serves_every_worktree_of_the_repository_it_was_pointed_at(
+    tmp_path: Path, monkeypatch
+):
+    built: list = []
+    monkeypatch.setattr(console, "default_registry_path", lambda: tmp_path / "projects.toml")
+    monkeypatch.setattr(console, "KnotCommand", _Backlog)
+    monkeypatch.setattr(console, "panel", lambda backlog, **options: built.append(options))
+    monkeypatch.setattr(console.uvicorn, "run", lambda app, **bound: None)
+
+    assert console.main(["--repository", str(tmp_path), "--knot", "/opt/knot"]) == 0
+
+    assert built[0]["worktrees"].launch == tmp_path.resolve()
+    built[0]["opened"](tmp_path / "feature")
+    assert _Backlog.built[-1] == (tmp_path / "feature", "/opt/knot")
 
 
 class _Refusing:
