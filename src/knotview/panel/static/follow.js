@@ -21,6 +21,15 @@
   });
 })();
 
+// Pin a tag when the pinned-tags field changes, as its own form does without script.
+(function pinner() {
+  var field = document.querySelector(".kv-pinned input[name=add]");
+  if (!field || !field.form) return;
+  field.addEventListener("change", function () {
+    if (field.value.trim()) field.form.submit();
+  });
+})();
+
 (function follow() {
   var badge = document.getElementById("live");
   if (!badge || typeof fetch === "undefined") return;
@@ -38,7 +47,7 @@
 
   var mark = function (text, stale) {
     badge.textContent = text;
-    badge.className = stale ? "live stale" : "live following";
+    badge.classList.toggle("stale", Boolean(stale));
   };
 
   var ask = function () {

@@ -57,7 +57,7 @@ def test_every_view_narrows_to_the_chosen_tags_until_cleared(client):
     assert "The child" in browser.get("/tickets").text and browser.cookies.get(COOKIE) is None
 
 
-def test_the_bar_shows_the_chosen_tags_with_a_drop_link_and_the_known_tags(client):
+def test_the_header_shows_the_pinned_tags_with_an_unpin_link_and_the_known_tags(client):
     browser = client(DeclaredBacklog())
     browser.get("/tags?add=p0&back=/")
 
@@ -65,8 +65,8 @@ def test_the_bar_shows_the_chosen_tags_with_a_drop_link_and_the_known_tags(clien
 
     assert 'href="/tags?drop=p0&back=/tree"' in page
     assert '<option value="auth"></option>' in page
-    assert 'form class="addtag" method="get" action="/tags"' in page
-    assert '<button type="submit" title="see every view through this tag">see</button>' in page
+    assert '<form class="kv-pinned" method="get" action="/tags"' in page
+    assert '<noscript><button type="submit">pin</button></noscript>' in page
     assert 'href="/tags?clear=1&back=/tree"' in page
 
     browser.get("/tags?drop=p0&back=/")

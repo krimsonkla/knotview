@@ -1,0 +1,24 @@
+{# Tags pinned to narrow every page, kept in this browser's cookie by /tags. Distinct from a list's
+Tag filter, which narrows that one list through its URL; the pin and the title say which this is. #}
+<form class="kv-pinned" method="get" action="/tags" title="Pinned tags narrow every page until unpinned">
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+    aria-hidden="true"><path d="M6 2h4l-.5 4 2.5 2.5H4L6.5 6z"></path><path d="M8 8.5V14"></path></svg>
+  {% for tag in tags.chosen %}
+  <span class="kv-chip active">{{ tag }}<a
+      class="drop"
+      href="/tags?drop={{ tag | urlencode }}&back={{ here | urlencode }}"
+      aria-label="unpin {{ tag }}"
+      title="unpin this tag"
+      >×</a
+    ></span>
+  {% endfor %}
+  <input type="text" name="add" list="known-tags" placeholder="pin a tag" aria-label="pin a tag" />
+  <datalist id="known-tags">
+    {% for tag in known_tags %}
+    <option value="{{ tag }}"></option>
+    {% endfor %}
+  </datalist>
+  <input type="hidden" name="back" value="{{ here }}" />
+  {% if tags.chosen %}<a class="kv-muted" href="/tags?clear=1&back={{ here | urlencode }}">unpin all</a>{% endif %}
+  <noscript><button type="submit">pin</button></noscript>
+</form>

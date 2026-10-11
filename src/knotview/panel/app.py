@@ -113,6 +113,7 @@ class Pages:
                 "tags": _tags(request),
                 "known_tags": known,
                 "here": _here(request),
+                "current": _current(request),
                 "worktrees": request.state.worktrees,
                 "reading": request.state.reading,
                 "carried": request.state.carried,
@@ -481,6 +482,24 @@ def _among(tickets: tuple[Ticket, ...], kept: set[str]) -> tuple[Ticket, ...]:
 def _given(backlog: Backlog, _path: Path) -> Backlog:
     """The one backlog whatever path is asked for: the factory for a panel given no other."""
     return backlog
+
+
+# Each header tab and the paths it covers; a ticket or a document sits under the tickets tab.
+_TABS = {
+    "/": "overview",
+    "/tickets": "tickets",
+    "/tree": "tree",
+    "/queue/ready": "ready",
+    "/queue/blocked": "blocked",
+}
+
+
+def _current(request: Request) -> str:
+    """Which header tab this page is, by its path; empty for a page under none of them."""
+    path = request.url.path
+    if path.startswith(("/ticket/", "/document/")):
+        return "tickets"
+    return _TABS.get(path, "")
 
 
 def _here(request: Request) -> str:
