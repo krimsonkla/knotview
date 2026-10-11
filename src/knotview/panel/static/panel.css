@@ -1,19 +1,8 @@
-/* One stylesheet, no build step, no framework. The panel is a handful of pages of dense text, */
-/* and the job here is making a table of tickets scannable rather than making anything look */
-/* designed. */
+/* One stylesheet, no build step, no framework. The colours, type and spacing come from the */
+/* Primer Primitives tokens in primer.css; everything here is knotview's own components on them. */
 
-/* The old names, kept while pages move, now read the Primer tokens in primer.css. */
 :root {
   color-scheme: light dark;
-  --ink: var(--fgColor-default);
-  --faint: var(--fgColor-muted);
-  --line: var(--borderColor-default);
-  --card: var(--bgColor-default);
-  --ground: var(--bgColor-inset);
-  --accent: var(--kv-accent);
-  --warn: var(--fgColor-severe);
-  --warn-ground: var(--bgColor-severe-muted);
-  --done: var(--fgColor-success);
   /* knotview's own accent: teal, not Primer's blue. */
   /* #0a6b63 on white is above 4.5:1, so it is safe for 12-14px link and chip text. */
   --kv-accent: #0a6b63;
@@ -39,395 +28,59 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  background: var(--ground);
-  color: var(--ink);
-  font:
-    14px/1.5 ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
-}
-
 a {
-  color: var(--accent);
+  color: var(--kv-accent);
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: underline;
 }
 
-.muted {
-  color: var(--faint);
-}
-/* Clauses of the ticket header, separated by a dot only between two that are present. */
-.when + .when::before {
-  content: " · ";
-}
-
-.card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px 14px;
-  overflow-x: auto;
-}
-.card.warn {
-  background: var(--warn-ground);
-  border-color: var(--warn);
-}
-.card h1,
-.card h2 {
-  margin: 0 0 8px;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.card h1 {
-  font-size: 18px;
-}
-
-.num {
-  font-variant-numeric: tabular-nums;
-  color: var(--faint);
-}
-
-td.num,
-.title {
-  font-weight: 600;
-}
-.id {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  color: var(--faint);
-  margin-left: 6px;
-}
-
-.chip,
-.tag {
-  display: inline-block;
-  font-size: 11px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  color: var(--faint);
-}
-.tag {
-  margin-left: 4px;
-}
-/* A document type a ticket owns, and, dashed and faint, one its status requires it lacks. */
-.doctype {
-  display: inline-block;
-  font:
-    11px/18px ui-monospace,
-    "SF Mono",
-    Menlo,
-    Consolas,
-    monospace;
-  padding: 0 6px;
-  margin: 0 4px 2px 0;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  color: var(--ink);
-}
-.doctype.missing {
-  border-style: dashed;
-  color: var(--faint);
-}
-/* The documents filter: checkboxes in a disclosure, so it works without script. */
-/* A dropdown over the page rather than a panel inside the bar, so opening it moves nothing. */
-.status-in_progress {
-  color: var(--accent);
-  border-color: currentColor;
-}
-.status-closed {
-  color: var(--done);
-  border-color: currentColor;
-}
-
-.pri {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-.p0 {
-  color: var(--warn);
-}
-.p1 {
-  color: #c2410c;
-}
-
-.filters select,
+/* A ticket's acceptance criteria, and its notes as a timeline, newest first. */
 .criteria {
-  margin: 0;
+  margin: var(--kv-space-3) 0 0;
   padding-left: 18px;
 }
+
 .criteria li.met {
-  color: var(--done);
+  color: var(--fgColor-success);
 }
+
 .criteria li.unmet .box {
-  color: var(--faint);
+  color: var(--fgColor-muted);
 }
+
 .box {
-  font-family: ui-monospace, monospace;
+  font-family: var(--kv-mono);
 }
 
-/* Ticket text is rendered markdown: soft line breaks join into paragraphs, so the hard wraps */
-/* the ticket files carry at a hundred columns do not become the page's line length. */
-.prose {
-  font-size: 13px;
-}
-.graph {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
-}
-.refs {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.refs li {
-  padding: 3px 0;
-  border-bottom: 1px solid var(--line);
-}
-.refs li:last-child {
-  border-bottom: 0;
-}
-
-.branch.complete h2 a:first-child {
-  color: var(--done);
-}
-.ticket header h1 {
-  margin: 0 0 6px;
-  font-size: 20px;
-}
-.meta {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin: 0 0 4px;
-}
-/* Ticket text is rendered markdown; keep it readable without letting it shout. */
-.prose p,
-.prose ul,
-.prose ol,
-.prose pre {
-  margin: 0 0 0.6em;
-}
-.prose ul,
-.prose ol {
-  padding-left: 1.4em;
-}
-.prose code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.92em;
-}
-.prose pre {
-  overflow-x: auto;
-  padding: 0.5em 0.7em;
-}
-.prose h3,
-.prose h4 {
-  margin: 0.8em 0 0.3em;
-  font-size: 1em;
-}
-
-/* Notes are a history, newest first, each under its instant. */
 .timeline {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 var(--kv-space-4) var(--kv-space-3);
 }
+
 .timeline li {
-  padding: 0.5em 0;
-  border-top: 1px solid rgba(128, 128, 128, 0.25);
+  padding: var(--kv-space-2) 0;
+  border-top: 1px solid var(--borderColor-muted);
 }
+
 .timeline h3 {
-  margin: 0 0 0.3em;
-  font-size: 0.85em;
+  margin: 0 0 4px;
+  font-size: 12px;
   font-weight: normal;
 }
 
-/* The tree: one details element per parent, children indented beneath, leaves as plain rows. */
-.branch-root > details > summary {
-  font-weight: 600;
-}
-details[data-fold] > summary {
-  cursor: pointer;
-  padding: 0.25em 0;
-}
-details[data-fold] > summary > * {
-  margin-right: 0.4em;
-}
-ul.branch {
+ul.deps {
   list-style: none;
-  margin: 0.2em 0 0.4em 1.4em;
-  padding: 0;
-  border-left: 1px solid rgba(128, 128, 128, 0.3);
-}
-ul.branch > li {
-  padding: 0.15em 0 0.15em 0.8em;
-}
-.leaf > * {
-  margin-right: 0.4em;
+  margin: 0;
+  padding-left: var(--kv-space-4);
+  border-left: 1px solid var(--borderColor-muted);
 }
 
-/* An island chip names knot's connected component; the same number is the same island. */
-.chip.island {
-  border-style: dashed;
-}
-
-/* Rows saved since the reader last looked, and the count in the bar that clears on click. */
-tr.since-last-look td.title-cell,
-/* The reader's chosen tags, in the bar on every page. */
-/* A card's footnote, under its rows so they line up with the cards beside it. */
-/* The document page: a header card holding the tabs, then the body beside a narrow side panel. */
-.document {
-  display: grid;
-  gap: 16px;
-}
-.docheader {
-  padding-bottom: 0;
-}
-.docheader h1 {
-  margin: 0;
-}
-/* The tabs keep to one line and scroll sideways, fading at the edge so a cut-off tab reads as more
-  to come; the "all" menu beside them lists every document whatever fits. */
-.tabstrip {
-  display: flex;
-  align-items: stretch;
-  border-top: 1px solid var(--line);
-  margin: 12px -16px 0;
-}
-.tabs {
-  display: flex;
-  gap: 4px;
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-x: auto;
-  /* Room past the last tab and a scroll margin, so the faded edge never covers the current one. */
-  padding: 0 48px 0 16px;
-  scroll-padding-inline: 16px 48px;
-  scrollbar-width: thin;
-  -webkit-mask-image: linear-gradient(
-    to right,
-    #000 calc(100% - 40px),
-    transparent
-  );
-  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
-}
-.tabs a {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  padding: 8px 12px;
-  white-space: nowrap;
-  color: var(--faint);
-  border-bottom: 2px solid transparent;
-}
-.tabs a[aria-current="page"] {
-  color: var(--ink);
-  font-weight: 600;
-  border-bottom-color: var(--accent);
-}
-.tabstrip .all {
-  flex: 0 0 auto;
-  position: relative;
-  border-left: 1px solid var(--line);
-}
-.tabstrip .all > summary {
-  cursor: pointer;
-  padding: 8px 14px;
-  color: var(--accent);
-  white-space: nowrap;
-}
-.tabstrip .all .menu {
-  position: absolute;
-  right: 8px;
-  top: calc(100% + 4px);
-  z-index: 3;
-  display: grid;
-  gap: 2px;
-  width: min(320px, 80vw);
-  padding: 8px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
-}
-.tabstrip .all .group {
-  margin: 6px 6px 2px;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.tabstrip .all .menu a {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 6px;
-  border-radius: 4px;
-  color: var(--ink);
-}
-.tabstrip .all .menu a[aria-current="page"] {
-  font-weight: 600;
-  background: var(--ground);
-}
-.docpage {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
-  gap: 16px;
-  align-items: start;
-}
-@media (max-width: 760px) {
-  .docpage {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.side dl {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 10px;
-  margin: 0 0 12px;
-}
-.side dt {
-  color: var(--faint);
-}
-.side dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.side .label {
-  margin: 0 0 4px;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.outline {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.outline li.sub {
-  padding-left: 12px;
-}
-
-/* A card's own control, such as hiding an epic's closed children: quiet, at the heading's end. */
-.card h2 .toggle {
-  margin-left: auto;
-  font-size: 12px;
-  font-weight: 400;
+ul.deps li {
+  padding: 4px 0;
 }
 
 /* ---- knotview components (kv-) ------------------------------------------------------------ */
@@ -1174,6 +827,125 @@ details.kv-card.kv-fold > summary::first-letter {
   margin-left: auto;
   font-size: 12px;
   font-weight: 500;
+}
+
+/* The tree: branches fold, children sit under a guide line. */
+.kv-root {
+  overflow: hidden;
+}
+.kv-branch > summary {
+  list-style: none;
+  cursor: pointer;
+  border-top: 0;
+}
+.kv-branch > summary::-webkit-details-marker {
+  display: none;
+}
+.kv-branch > summary::before {
+  content: "▸";
+  flex: 0 0 auto;
+  width: 1em;
+  color: var(--fgColor-muted);
+}
+.kv-branch[open] > summary::before {
+  content: "▾";
+}
+.kv-children {
+  list-style: none;
+  margin: 0 0 0 var(--kv-space-6);
+  padding: 0;
+  border-left: 1px solid var(--borderColor-muted);
+}
+.kv-children > li > .kv-row,
+.kv-children > li > .kv-branch > summary {
+  border-top: 1px solid var(--borderColor-muted);
+}
+.kv-leafnote {
+  display: block;
+  padding: 0 var(--kv-space-4) var(--kv-space-2) calc(7.5em + 28px);
+  font-size: 12px;
+}
+
+/* A document: its tabs, its "all" menu, the body and its outline. */
+.kv-doctabs {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--kv-space-4);
+}
+.kv-doctabs .kv-tabbar {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: var(--kv-space-2);
+}
+.kv-doctabs details.all {
+  position: relative;
+  margin-bottom: var(--kv-space-4);
+  font-size: 13px;
+}
+.kv-doctabs details.all > summary {
+  cursor: pointer;
+  color: var(--fgColor-muted);
+}
+.kv-doctabs details.all .menu {
+  position: absolute;
+  right: 0;
+  z-index: 5;
+  min-width: 260px;
+  max-height: 60vh;
+  overflow: auto;
+  padding: var(--kv-space-2);
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--kv-radius);
+  background: var(--bgColor-default);
+  box-shadow: 0 8px 24px rgba(1, 4, 9, 0.3);
+}
+.kv-doctabs details.all .menu a {
+  display: block;
+  padding: 4px var(--kv-space-2);
+  border-radius: var(--kv-radius);
+}
+.kv-doctabs details.all .menu a[aria-current="page"] {
+  background: var(--kv-accent-muted);
+}
+.kv-doctabs details.all .group {
+  margin: var(--kv-space-2) var(--kv-space-2) 2px;
+  color: var(--fgColor-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.kv-tabbar .kv-chip.doc {
+  margin-right: 6px;
+}
+.kv-docmeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--kv-space-2) var(--kv-space-3);
+  margin: 0 0 var(--kv-space-6);
+  font-size: 13px;
+}
+.kv-docbody {
+  font-size: 16px;
+  line-height: 1.65;
+}
+.kv-outline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.kv-outline li a {
+  display: block;
+  padding: 3px var(--kv-space-3);
+  border-left: 2px solid var(--borderColor-default);
+  color: var(--fgColor-muted);
+}
+.kv-outline li a:hover {
+  color: var(--fgColor-default);
+  border-left-color: var(--kv-accent);
+  text-decoration: none;
+}
+.kv-outline li.sub a {
+  padding-left: var(--kv-space-6);
 }
 
 @media (max-width: 760px) {

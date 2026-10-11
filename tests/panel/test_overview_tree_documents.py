@@ -45,7 +45,7 @@ def test_a_live_leaf_shows_what_it_lacks_dashed(client):
     text = page(client, "/tree")
 
     leaf = section(text, "The child", "</div>")
-    assert 'class="doctype missing" title="needed to enter in_progress">spec<' in leaf
+    assert 'class="kv-chip doc missing" title="needed to enter in_progress">spec<' in leaf
 
 
 def test_a_closed_leaf_draws_no_dashed_type(client):
@@ -53,7 +53,7 @@ def test_a_closed_leaf_draws_no_dashed_type(client):
 
     text = page(client, "/tree", live_value=(PARENT, shut))
 
-    assert 'class="doctype missing"' not in section(text, "The child", "</div>")
+    assert 'class="kv-chip doc missing"' not in section(text, "The child", "</div>")
 
 
 def test_an_orphan_row_on_the_tree_shows_its_dashed_types(client):

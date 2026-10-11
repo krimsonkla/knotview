@@ -3,6 +3,6 @@
 // Run once the page has laid out, since the row's width is not final before then.
 window.addEventListener("load", () => {
   document
-    .querySelector(".tabs [aria-current]")
+    .querySelector(".kv-tabbar [aria-current]")
     ?.scrollIntoView({ block: "nearest", inline: "nearest" });
 });

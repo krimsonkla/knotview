@@ -1,7 +1,9 @@
 {% extends "bare.html" %} {% block main %}
-<section class="card warn">
-  <h1>the backlog could not be read</h1>
-  <p>{{ refusal.message }}.</p>
-  <p class="muted">{{ refusal.advice }}.</p>
+<section class="kv-card kv-warn">
+  <h2>the backlog could not be read</h2>
+  <div class="kv-body">
+    <p>{{ refusal.message }}.</p>
+    <p class="kv-muted">{{ refusal.advice }}.</p>
+  </div>
 </section>
 {% endblock %}
