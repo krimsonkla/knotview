@@ -21,52 +21,11 @@ vocabulary. If you have not met knot, start there: its README explains the desig
 
 ## A look at it
 
-![A tour of knotview: the overview, the tickets list, the tree, a ticket and one of its documents](docs/screenshots/tour.webp)
+![A tour of knotview: the overview, the tickets list, the tree, the ready and blocked queues, a ticket and one of its documents](docs/screenshots/tour.webp)
 
-These screenshots show a small demo backlog in the dark theme. The panel follows your system
-theme, and the switch in the header picks light or dark instead. To make them again, run
-`uv run python -m scripts.capture_screenshots`.
-
-### Overview
-
-Counts you can click, a chart by priority and one by type, and each epic's progress. Choose more
-charts behind the gear.
-
-![The overview: open, in progress, ready and blocked counts, charts by priority and by type, epics with their progress, and what changed and closed recently](docs/screenshots/overview.jpg)
-
-### Tickets
-
-Filters apply as you choose them. Each active filter is a chip you can remove.
-
-![The tickets list: a search box and filter menus above one row per ticket, each with its status, tags, documents and priority](docs/screenshots/tickets.jpg)
-
-### Tree
-
-What is filed under what, to any depth. Each branch folds, and the page remembers the fold.
-
-![The tree: two epics with their children under a guide line, then the tickets filed under nothing](docs/screenshots/tree.jpg)
-
-### Ready and blocked
-
-knot's own queues. The blocked queue is grouped by how many rounds of closing stand before each
-ticket.
-
-![The ready queue: every ticket with nothing in its way](docs/screenshots/ready.jpg)
-
-![The blocked queue, grouped into rounds](docs/screenshots/blocked.jpg)
-
-### Ticket
-
-Documents first, then the description. Later sections fold, and related tickets sit behind tabs.
-
-![A ticket: its spec and plan as cards, the description, its children in a tab, and a sidebar of priority, tags and progress](docs/screenshots/ticket.jpg)
-
-### Document
-
-One document in a readable column, the ticket's other documents as tabs, and an outline of its
-headings.
-
-![A spec: tabs for the ticket's documents, the text with a table in it, and an outline beside it](docs/screenshots/document.jpg)
+The tour shows a small demo backlog in the dark theme. The panel follows your system theme, and
+the switch in the header picks light or dark instead. [What it shows](#what-it-shows) describes
+each page. To make the tour again, run `uv run python -m scripts.capture_screenshots`.
 
 ## Quick start
 
@@ -116,8 +75,9 @@ machine.
 
 Every page is a GET and every filter is a query parameter, so any view is a link you can keep.
 
-The header holds the page tabs, the worktree you are reading, the theme switch, and any tags you
-pinned:
+The header holds the page tabs, the worktree you are reading, the theme switch, any tags you
+pinned, and a live mark that shows the page is following the backlog. On the overview it also
+holds a gear that chooses which charts to show:
 
 - **Pinned tags** narrow every page to tickets carrying all of them, until you unpin them. The
   choice lives in a cookie in your browser. The panel still writes nothing.
@@ -138,7 +98,7 @@ script the page shows UTC, labelled as such.
 | **Queues** `/queue/ready`, `/queue/blocked` | knot's own queues, in the same rows as the tickets list. The blocked queue is grouped by level into the rounds of closing before each ticket can start. |
 | **Ticket** `/ticket/<id>` | The title and one summary line, then the ticket's documents as cards, then the description, folded after its first two paragraphs. Later sections and the notes fold. Children, blocked by and blocking, linked tickets, siblings, and knot's dependency tree sit behind tabs, and empty ones are not drawn. A sidebar holds the documents, priority, assignee, tags, progress, parent, mode and external links. Folds and the chosen tab survive the page reloading itself. Markdown tables render as tables. |
 | **Document** `/document/<id>` | One document in a readable column, with tabs across the ticket's other documents, an *all* menu listing them by type, and an outline of its headings. A document whose ticket knot cannot find still reads, and the start of an id works as knot resolves it. |
-| **Live** | Each open page asks about once a second whether the backlog changed, and reloads itself when it has, documents included. Rows in the lists saved since you last looked carry a mark at their left edge, and the header counts them. |
+| **Live** | Each open page asks about once a second whether the backlog changed, and reloads itself when it has, documents included. Rows in the lists saved since you last looked carry a mark at their left edge, and the header counts them; click the count to clear the marks. The overview's short lists carry no marks. |
 
 ## Developing
 

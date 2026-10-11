@@ -18,7 +18,7 @@ A redesign of every page, and worktree switching. Tag `v1.0.0` at the commit tha
 - The overview's charts are chosen behind a gear and kept in your browser.
 - With no parents, the overview lists what is ready to start, or the open tickets.
 - Markdown tables render as tables.
-- The README shows every view inline, with an animated tour, all made by
+- The README opens with an animated tour of every view, made by
   `scripts/capture_screenshots.py` from a demo backlog.
 
 ### Changed

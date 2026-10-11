@@ -1,15 +1,14 @@
-"""Regenerate the README's screenshots and its slideshow from a demo backlog built for the purpose.
+"""Regenerate the README's slideshow from a demo backlog built for the purpose.
 
 The live `.tickets/` changes with every commit and is mostly closed, so it makes a poor picture.
 This builds a small backlog with knot in a temporary directory instead: epics with children, a
 blocked chain, ready work, something in progress, and documents with a table in them. It moves
 every ticket's times back over the last month so relative times read naturally, serves it with
 the real `knotview` on loopback, checks each view shows what it is for, takes each screenshot
-with headless Chrome in a fresh profile and the dark theme, and builds the inline images and an
-animated WebP slideshow from the same captures. Nothing under the repository's `.tickets/` is
-read or written.
+with headless Chrome in a fresh profile and the dark theme, and builds one animated WebP
+slideshow from the captures. Nothing under the repository's `.tickets/` is read or written.
 
-    uv run python scripts/capture_screenshots.py
+    uv run python -m scripts.capture_screenshots
 
 Set KNOTVIEW_CHROME to the Chrome binary when it is not at the macOS default.
 """
@@ -37,7 +36,6 @@ CHROME = os.environ.get(
     "KNOTVIEW_CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 )
 WIDTH, HEIGHT = 1440, 1000
-INLINE_LIMIT = 250_000
 TOUR_LIMIT = 1_500_000
 
 SPEC = """## Problem
@@ -299,8 +297,7 @@ def serve(demo: Path) -> subprocess.Popen:
 
 
 def captured(views: dict[str, str], work: Path) -> list[Image.Image]:
-    """Each view checked, captured and written as an inline image; the frames for the tour."""
-    OUT.mkdir(parents=True, exist_ok=True)
+    """Each view checked and captured in turn: the tour's frames, in the order shown."""
     frames = []
     for view, path in views.items():
         missing(view, fetched(path))
@@ -310,29 +307,24 @@ def captured(views: dict[str, str], work: Path) -> list[Image.Image]:
             sys.exit(f"{view}: the screenshot is not in the dark theme")
         with Image.open(raw) as image:
             frame = image.convert("RGB")
-        target = OUT / f"{view}.jpg"
-        frame.save(target, "JPEG", quality=82, optimize=True)
-        if target.stat().st_size > INLINE_LIMIT:
-            frame.save(target, "JPEG", quality=70, optimize=True)
         frames.append(frame.resize((1280, int(frame.height * 1280 / frame.width))))
     return frames
 
 
 def toured(frames: list[Image.Image]) -> None:
-    """The animated tour, and a check that every image keeps to its budget."""
+    """The animated tour, kept within its budget."""
+    OUT.mkdir(parents=True, exist_ok=True)
     tour = OUT / "tour.webp"
     frames[0].save(
         tour, "WEBP", save_all=True, append_images=frames[1:], duration=2500, loop=0, quality=70
     )
-    for image in (*OUT.glob("*.jpg"), tour):
-        limit = TOUR_LIMIT if image == tour else INLINE_LIMIT
-        if image.stat().st_size > limit:
-            sys.exit(f"{image.name} is {image.stat().st_size} bytes, over {limit}")
-    print("\n".join(f"{image.name} {image.stat().st_size}" for image in sorted(OUT.iterdir())))
+    if tour.stat().st_size > TOUR_LIMIT:
+        sys.exit(f"{tour.name} is {tour.stat().st_size} bytes, over {TOUR_LIMIT}")
+    print(f"{tour.name} {tour.stat().st_size}")
 
 
 def main() -> None:
-    """Build, serve, check, capture and write every README image."""
+    """Build, serve, check, capture and write the README's tour."""
     work = Path(tempfile.mkdtemp(prefix="knotview-demo-"))
     demo = work / "acme-shop"
     demo.mkdir()
