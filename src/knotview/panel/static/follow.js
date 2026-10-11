@@ -11,6 +11,16 @@
 // A hidden tab stops asking, and asks at once when it is shown again. Only a GET is ever sent; a
 // panel that could write would be a second author of a backlog that has one.
 
+// Switch worktrees as soon as the dropdown changes, rather than waiting for a button. The form is
+// an ordinary GET, so the page works the same without script, through its noscript button.
+(function switcher() {
+  var choice = document.getElementById("worktree-choice");
+  if (!choice || !choice.form) return;
+  choice.addEventListener("change", function () {
+    choice.form.submit();
+  });
+})();
+
 (function follow() {
   var badge = document.getElementById("live");
   if (!badge || typeof fetch === "undefined") return;

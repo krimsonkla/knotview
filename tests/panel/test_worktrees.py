@@ -64,12 +64,12 @@ def _panel(client, *, main=None, feature=None, source=None):
 
 
 def _marked(page: str) -> list[str]:
-    """The labels of every picker entry marked as the one being read."""
-    return re.findall(r'<a[^>]*aria-current="true"[^>]*>([^<]*)<', page)
+    """The labels of every worktree option selected as the one being read."""
+    return re.findall(r'<option\s+value="/[^"]*"[^>]*\bselected\b[^>]*>([^<]*)<', page)
 
 
 def _choose(browser, worktree: Worktree, back: str = "/tree"):
-    """Choose a worktree through the route, as the picker's link does."""
+    """Choose a worktree through the route, as the dropdown's form does."""
     return browser.get(
         "/worktree", params={"path": str(worktree.path), "back": back}, follow_redirects=False
     )
@@ -159,7 +159,8 @@ def test_a_chosen_worktree_that_cannot_be_read_still_offers_the_picker(client):
     page = browser.get("/")
 
     assert page.status_code == 503 and "no knot project here" in page.text
-    assert "main · knotview" in page.text and 'back=/"' in page.text
+    assert "main · knotview" in page.text
+    assert '<input type="hidden" name="back" value="/" />' in page.text
 
 
 def test_an_unreadable_launch_directory_still_offers_its_sibling_worktrees(client):
@@ -187,6 +188,19 @@ def test_a_launch_directory_inside_a_worktree_marks_that_worktree(client):
 
     assert _marked(inside.get("/tree").text) == ["main · knotview"]
     assert _marked(outside.get("/tree").text) == []
+    assert '<option value="" selected disabled>choose one</option>' in outside.get("/tree").text
+
+
+def test_the_dropdown_switches_on_change_and_offers_a_button_without_script(client):
+    browser, _, _ = _panel(client)
+
+    page = browser.get("/tickets").text
+    script = browser.get("/static/follow.js").text
+
+    assert '<form class="worktrees" method="get" action="/worktree">' in page
+    assert '<input type="hidden" name="back" value="/tickets" />' in page
+    assert "<noscript><button" in page
+    assert 'getElementById("worktree-choice")' in script and "form.submit()" in script
 
 
 def test_a_path_with_spaces_commas_semicolons_quotes_and_accents_can_be_chosen(client):

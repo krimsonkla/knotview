@@ -1,15 +1,25 @@
 {# The worktrees this panel can read, shown only when there is more than one to choose from.
-Each is a link, a GET like every other: choosing changes a cookie in this browser and nothing
-else. The full path is the title, since two entries can share a name or a directory. #}
+A dropdown in a GET form, like every other request here: choosing changes a cookie in this
+browser and nothing else. follow.js submits it as soon as the choice changes; without script,
+the button does. Each option's full path is its title, since two can share a name or a
+directory. #}
 {% if worktrees %}
-<nav class="worktrees" aria-label="worktrees">
-  {% for one in worktrees %}
-  <a
-    href="/worktree?path={{ one.path | string | urlencode }}&back={{ here | urlencode }}"
-    title="{{ one.path }}"
-    {% if one.path == reading %}aria-current="true"{% endif %}
-    >{{ one.label }}</a
-  >
-  {% endfor %}
-</nav>
+<form class="worktrees" method="get" action="/worktree">
+  <label for="worktree-choice">worktree</label>
+  <select id="worktree-choice" name="path">
+    {% if reading not in worktrees | map(attribute="path") %}
+    <option value="" selected disabled>choose one</option>
+    {% endif %}
+    {% for one in worktrees %}
+    <option
+      value="{{ one.path }}"
+      title="{{ one.path }}"
+      {% if one.path == reading %}selected{% endif %}
+      >{{ one.label }}</option
+    >
+    {% endfor %}
+  </select>
+  <input type="hidden" name="back" value="{{ here }}" />
+  <noscript><button type="submit" title="read this worktree">switch</button></noscript>
+</form>
 {% endif %}
