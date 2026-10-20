@@ -10,7 +10,7 @@ from knotview.reading.knot_command import _issue
 from knotview.values.attention import Attention
 from knotview.values.criterion import Criterion
 from knotview.values.issue import Issue
-from tests.panel.declared import CHILD, PARENT, DeclaredBacklog, ticket
+from tests.panel.declared import CHILD, DeclaredBacklog, ticket
 from tests.reading.envelopes import envelope
 
 
@@ -166,28 +166,32 @@ def test_an_instant_reads_as_a_distance_from_now():
     )
 
 
-def test_progress_lists_parents_with_criteria_nearest_to_done_first(client):
+def test_a_parent_with_criteria_shows_them_in_its_own_row_and_no_second_card(client):
+    """Parents with criteria once drew a second card listing the same parents again."""
     far = ticket(
         "pro-01m2ffffffff",
         title="Far parent",
-        acceptance=tuple(Criterion(title=f"c{i}", done=False) for i in range(4)),
+        acceptance=(
+            Criterion(title="a", done=True),
+            *(Criterion(title=f"c{i}", done=False) for i in range(3)),
+        ),
     )
     kid = ticket("pro-01m2kkkkkkkk", parent="pro-01m2ffffffff")
-    page = client(DeclaredBacklog(live_value=(far, kid, PARENT, CHILD))).get("/").text
+    page = client(DeclaredBacklog(live_value=(far, kid))).get("/").text
 
-    end = page.index('<section class="kv-card kv-wide">')
-    section = page[page.index("<h2>progress</h2>") : end]
-    assert section.index("The parent") < section.index("Far parent")
-    assert 'class="kv-fill done" style="width: 50%"' in section and "1/2 criteria" in section
-    assert "1 live beneath" in section
+    assert "<h2>progress</h2>" not in page
+    main = page[: page.index('<div class="kv-narrow">')]
+    assert main.count('href="/ticket/pro-01m2ffffffff"') == 1
+    row = page[page.index("Far parent") : page.index("0 of 1 done")]
+    assert "criteria 1/4" in row
 
 
-def test_a_parent_without_criteria_is_not_in_progress(client):
+def test_a_parent_without_criteria_shows_no_criteria_count(client):
     bare = ticket("pro-01m2pppppppp", title="Bare parent")
     kid = ticket("pro-01m2qqqqqqqq", parent="pro-01m2pppppppp")
     page = client(DeclaredBacklog(live_value=(bare, kid))).get("/").text
 
-    assert "<h2>progress</h2>" not in page
+    assert "<h2>progress</h2>" not in page and "criteria" not in page[page.index("Bare parent") :]
 
 
 def test_overview_cards_link_only_their_rows_filter_whatever_the_url_holds(client):
