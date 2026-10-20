@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 
 from knotview.panel.selection import NOBODY
-from knotview.panel.tree import Tree
 from knotview.reading.snapshot import Snapshot
 from knotview.values.ticket import Ticket
 from knotview.values.issue import Issue
@@ -17,21 +16,6 @@ class Tally:
     count: int
     filter: str
     value: str
-
-
-@dataclass(frozen=True, kw_only=True)
-class Progress:
-    """How far one parent has got: its own criteria, and the live children still under it."""
-
-    ticket: Ticket
-    met: int
-    criteria: int
-    children: int
-
-    @property
-    def remaining(self) -> int:
-        """Criteria still unticked, which is what the card is sorted by."""
-        return self.criteria - self.met
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -88,7 +72,6 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     # open tickets when nothing is ready either, highest priority first.
     ready_first: tuple[Ticket, ...]
     open_first: tuple[Ticket, ...]
-    progress: tuple[Progress, ...]
     ready_to_close: tuple[Ticket, ...]
     stale: tuple[Ticket, ...]
     recently_changed: tuple[Ticket, ...]
@@ -154,7 +137,6 @@ class Overview:  # pylint: disable=too-many-instance-attributes
             parents_label=_named(_parents(live), project.types),
             ready_first=tuple(sorted(snapshot.ready, key=lambda t: (t.priority, t.id))),
             open_first=tuple(sorted(live, key=lambda t: (t.priority, t.id))),
-            progress=_progress(live),
             ready_to_close=snapshot.attention.ready_to_close,
             stale=snapshot.attention.stale,
             recently_changed=tuple(sorted(live, key=lambda t: t.updated or "", reverse=True))[
@@ -181,17 +163,6 @@ def _by_document(snapshot: Snapshot) -> tuple[Tally, ...]:
         for kind in project.doc_types
     )
     return tallies if any(tally.count for tally in tallies) else ()
-
-
-def _progress(live: tuple[Ticket, ...]) -> tuple[Progress, ...]:
-    """Every parent that states criteria, nearest to done first, with its live children counted."""
-    roots = Tree.over(live).roots
-    stated = [
-        Progress(ticket=r.ticket, met=r.met, criteria=r.criteria, children=r.beneath)
-        for r in roots
-        if r.criteria
-    ]
-    return tuple(sorted(stated, key=lambda p: (p.remaining, p.ticket.priority, p.ticket.id)))
 
 
 def _named(parents: tuple[Ticket, ...], types: tuple[str, ...]) -> str:

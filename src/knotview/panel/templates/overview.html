@@ -95,25 +95,6 @@ show unless the reader hides them; the rest repeat the headline counts and show 
 {% set tickets = overview.stale %} {% include "_rows.html" %}
 {% endif %}
 
-{% if overview.progress %}
-<section class="kv-card">
-  <h2>progress</h2>
-  <div class="kv-body">
-    <p class="kv-muted">Each parent's own criteria, nearest to done first, with the live tickets still under it. A parent can be done with its children and still owe its own criteria.</p>
-  </div>
-  {% for row in overview.progress %}
-  <div class="kv-row">
-    <div class="kv-row-main"><a class="title" href="/ticket/{{ row.ticket.id | segment }}">{{ row.ticket.title }}</a></div>
-    <div class="kv-row-end kv-progress">
-      <span class="kv-track"><span class="kv-fill done" style="width: {{ (row.met * 100 / row.criteria) | round | int }}%"></span></span>
-      <span class="kv-muted">{{ row.met }}/{{ row.criteria }} criteria</span>
-      <span class="kv-muted">{{ row.children }} live beneath</span>
-    </div>
-  </div>
-  {% endfor %}
-</section>
-{% endif %}
-
 <div class="kv-split">
   {# The widest card shows the parents and their progress; with nothing filed under anything it
   shows what is ready to start instead, or the open tickets when nothing is ready, so it is never
@@ -126,7 +107,7 @@ show unless the reader hides them; the rest repeat the headline counts and show 
       <a class="kv-badge p{{ epic.ticket.priority }}" href="/tickets?priority={{ epic.ticket.priority }}" title="every ticket at P{{ epic.ticket.priority }}">P{{ epic.ticket.priority }}</a>
       <div class="kv-row-main">
         <a class="title" href="/ticket/{{ epic.ticket.id | segment }}">{{ epic.ticket.title }}</a>
-        <div class="kv-meta"><span class="kv-mono">{{ epic.ticket.id }}</span>{% for tag in epic.ticket.tags %}<span>·</span><a href="/tickets?tag={{ tag | urlencode }}">{{ tag }}</a>{% endfor %}</div>
+        <div class="kv-meta"><span class="kv-mono">{{ epic.ticket.id }}</span>{% for tag in epic.ticket.tags %}<span>·</span><a href="/tickets?tag={{ tag | urlencode }}">{{ tag }}</a>{% endfor %}{% if epic.ticket.criteria %}<span>·</span><span title="its own acceptance criteria: a parent can be done with its children and still owe these">criteria {{ epic.ticket.met }}/{{ epic.ticket.criteria }}</span>{% endif %}</div>
       </div>
       <div class="kv-row-end kv-progress">
         <span class="kv-track"><span class="kv-fill done" style="width: {{ (epic.done * 100 / (epic.total or 1)) | round | int }}%"></span></span>

@@ -4,6 +4,12 @@ All notable changes are recorded here. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+### Fixed
+
+- A project whose parents state their own acceptance criteria no longer gets a second
+  overview card listing the same parents. Each parent's criteria now show in its row on the one
+  card.
+
 ## [1.0.0] - unreleased
 
 A redesign of every page, and worktree switching. Tag `v1.0.0` at the commit that is published.
