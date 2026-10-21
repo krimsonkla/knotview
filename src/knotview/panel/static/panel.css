@@ -774,6 +774,63 @@ button.kv-pill {
 .kv-more-link {
   font-size: 13px;
 }
+/* Charts over time: one column per week, drawn upward against the tallest in the chart. */
+.kv-trend-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--kv-space-2);
+  margin: var(--kv-space-3) var(--kv-space-4) 0;
+  font-size: 13px;
+}
+.kv-trend-now strong {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.kv-columns {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 96px;
+  margin: var(--kv-space-3) var(--kv-space-4) 0;
+}
+.kv-column {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  height: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--bgColor-neutral-muted);
+}
+.kv-column .kv-fill {
+  width: 100%;
+  min-height: 0;
+  border-radius: 3px 3px 0 0;
+}
+.kv-pair {
+  gap: 1px;
+  background: none;
+}
+.kv-pair .kv-fill {
+  flex: 1 1 0;
+}
+.kv-dot.t-opened::before {
+  background: var(--kv-accent);
+}
+.kv-dot.t-closed::before {
+  background: var(--fgColor-done);
+}
+/* A lead time reads "12 min" or "1.4 days", wider than a count. */
+.kv-lead .kv-bar {
+  grid-template-columns: 7em minmax(0, 1fr) 5em;
+}
+.kv-axis {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--kv-space-1) var(--kv-space-4) var(--kv-space-3);
+  color: var(--fgColor-muted);
+  font-size: 12px;
+}
 .kv-note {
   margin: var(--kv-space-2) var(--kv-space-4) 0;
   font-size: 12px;

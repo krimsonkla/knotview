@@ -4,6 +4,25 @@ All notable changes are recorded here. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [1.1.0] - unreleased
+
+Charts over time on the overview.
+
+### Added
+
+- Three charts over time on the overview, behind the gear: open tickets at the end of each week,
+  tickets opened and closed each week, and lead time from created to closed. They cover the last
+  twelve weeks, or fewer for a younger backlog. They come from each ticket's `created` and
+  `closed` times, so the panel still keeps no history. Past status changes are not recorded, so
+  there is no chart of time in progress.
+
+### Security
+
+- Pillow, used only to build the README tour, now needs 13.0.0 or later, which fixes several
+  high-severity advisories in 12.3.0.
+- certifi, which the test client pulls in through httpx, is locked at 2026.10.19 for a critical
+  advisory in 2026.7.22.
+
 ### Fixed
 
 - A project whose parents state their own acceptance criteria no longer gets a second

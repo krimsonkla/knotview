@@ -1,8 +1,10 @@
 """What the first page shows: a backlog counted the ways a reader asks about it."""
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from knotview.panel.selection import NOBODY
+from knotview.panel.trend import Trend
 from knotview.reading.snapshot import Snapshot
 from knotview.values.ticket import Ticket
 from knotview.values.issue import Issue
@@ -77,9 +79,14 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     recently_changed: tuple[Ticket, ...]
     recently_closed: tuple[Ticket, ...]
     integrity: tuple[Issue, ...]
+    # The last weeks worked out from each ticket's created and closed instants; the charts that
+    # draw it wait behind the charts menu like the other repeated counts.
+    trend: Trend
 
     @classmethod
-    def over(cls, snapshot: Snapshot, *, showing: int = 5) -> "Overview":
+    def over(
+        cls, snapshot: Snapshot, *, showing: int = 5, now: datetime | None = None
+    ) -> "Overview":
         """The overview of one snapshot, counted over its live tickets."""
         project, live = snapshot.project, snapshot.live
         return cls(
@@ -144,6 +151,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
             ],
             recently_closed=snapshot.closed[:showing],
             integrity=snapshot.integrity,
+            trend=Trend.over(live, snapshot.closed, project.types, now=now or datetime.now(UTC)),
         )
 
     @property

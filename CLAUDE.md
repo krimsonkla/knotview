@@ -17,8 +17,8 @@
 - `src/knotview/entry/` the `knotview` command and the saved-projects file
 - `src/knotview/reading/` the `Backlog` port, its one implementation over `knot ... --json`, the
   envelope reader, and `GitWorktrees`, which lists the repository's worktrees
-- `src/knotview/panel/` the FastAPI app (`Pages` and `panel()`), the selection, tree and overview
-  values, the worktree resolver and cookie, the templates and the static files
+- `src/knotview/panel/` the FastAPI app (`Pages` and `panel()`), the selection, tree, overview
+  and trend values, the worktree resolver and cookie, the templates and the static files
 - `src/knotview/values/` frozen dataclasses: Ticket, Project, Criterion, Reference, Worktree, and
   the two refusals
 - `scripts/` maintenance tools outside the package and the coverage gate: `vendor_primer.py`
@@ -141,6 +141,9 @@ page render's listing and never runs git.
   across visits (localStorage) on the tree and the overview's charts.
 - The worktree and pinned-tag cookies ignore the port, so a second panel on the same machine
   over the same directory shares them; a panel left on another worktree moves the others too.
+- The overview's charts over time (`panel/trend.py`) come only from each ticket's `created` and
+  `closed` instants. There is no history store, so a past status, priority or type cannot be
+  charted; do not add one that writes, since the panel never writes.
 - The README's one image, `docs/screenshots/tour.webp`, is rebuilt with
   `uv run python -m scripts.capture_screenshots`; it needs Chrome (`KNOTVIEW_CHROME` overrides the
   path) and Pillow from the dev group. Keep it the only image, so the README has one picture to
