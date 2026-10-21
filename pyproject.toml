@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "knotview"
-version = "1.0.0"
+version = "1.1.0"
 description = "A read-only panel over a knot backlog, dynamic over the project's own configuration."
 readme = "README.md"
 authors = [{ name = "Jason Risch" }]
@@ -50,7 +50,7 @@ dev = [
     "pylint>=3",
     "black>=24",
     "ruff>=0.5",
-    "pillow>=12.3.0",
+    "pillow>=13.0.0",
 ]
 
 [tool.setuptools.packages.find]

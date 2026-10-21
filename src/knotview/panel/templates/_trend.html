@@ -1,0 +1,39 @@
+{# The overview's charts over time, worked out from each ticket's created and closed instants by
+Trend. Columns are drawn against the tallest in their chart, and each carries its week and its
+numbers on hover, so a reader can read one week without a scale. #}
+{% macro week_of(day) %}{{ day.strftime("%b") }} {{ day.day }}{% endmacro %}
+{% set weeks = overview.trend.weeks %}
+{% set first, last = weeks[0], weeks[-1] %}
+<section class="kv-card" data-chart="open over time" hidden>
+  <h2>open over time</h2>
+  {% set change = last.open - first.open %}
+  <p class="kv-trend-now"><strong>{{ last.open }}</strong> open now {% if weeks | length > 1 %}<span class="kv-muted">{{ "+" if change > 0 else "" }}{{ change }} since the week of {{ week_of(first.start) }}</span>{% endif %}</p>
+  <div class="kv-columns" role="img" aria-label="open tickets at the end of each of the last {{ weeks | length }} weeks">
+    {% for week in weeks %}
+    <span class="kv-column" title="week of {{ week_of(week.start) }}: {{ week.open }} open"><span class="kv-fill" style="height: {{ (week.open * 100 / overview.trend.most_open) | round | int }}%"></span></span>
+    {% endfor %}
+  </div>
+  <div class="kv-axis"><span>{{ week_of(first.start) }}</span><span>this week</span></div>
+  <p class="kv-muted kv-note">open at the end of each week, Monday to Sunday in UTC</p>
+</section>
+<section class="kv-card" data-chart="opened and closed" hidden>
+  <h2>opened and closed</h2>
+  <p class="kv-trend-now"><span class="kv-dot t-opened">{{ weeks | sum(attribute="opened") }} opened</span> <span class="kv-dot t-closed">{{ weeks | sum(attribute="closed") }} closed</span> <span class="kv-muted">in {{ weeks | length }} weeks</span></p>
+  <div class="kv-columns" role="img" aria-label="tickets opened and closed in each of the last {{ weeks | length }} weeks">
+    {% for week in weeks %}
+    <span class="kv-column kv-pair" title="week of {{ week_of(week.start) }}: {{ week.opened }} opened, {{ week.closed }} closed"><span class="kv-fill" style="height: {{ (week.opened * 100 / overview.trend.most_moved) | round | int }}%"></span><span class="kv-fill done" style="height: {{ (week.closed * 100 / overview.trend.most_moved) | round | int }}%"></span></span>
+    {% endfor %}
+  </div>
+  <div class="kv-axis"><span>{{ week_of(first.start) }}</span><span>this week</span></div>
+</section>
+{% if overview.trend.lead %}
+<section class="kv-card" data-chart="lead time" hidden>
+  <h2>lead time</h2>
+  <p class="kv-trend-now"><strong>{{ overview.trend.lead.spoken }}</strong> <span class="kv-muted">median from created to closed, over {{ overview.trend.lead.count }} closed in {{ weeks | length }} weeks</span></p>
+  <div class="kv-bars kv-lead">
+    {% for lead in overview.trend.lead_by_type %}
+    <div class="kv-bar" title="median of {{ lead.count }} closed"><span>{{ lead.label }}</span><span class="kv-track"><span class="kv-fill" style="width: {{ (lead.seconds * 100 / overview.trend.longest) | round | int }}%"></span></span><span class="kv-num">{{ lead.spoken }}</span></div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

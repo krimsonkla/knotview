@@ -56,7 +56,9 @@ Each counted link names its card in `data-card`, which the tests read to follow 
 {# Which charts show is the reader's choice, kept in this browser by fold.js. Priority and type
 show unless the reader hides them; the rest repeat the headline counts and show when asked. #}
 {% set charts = ["by priority", "by type", "by status"] + (["closed"] if overview.by_terminal else [])
-  + (["by document"] if overview.by_document else []) + ["queues"] %}
+  + (["by document"] if overview.by_document else []) + ["queues"]
+  + (["open over time", "opened and closed"] if overview.trend.shown else [])
+  + (["lead time"] if overview.trend.lead else []) %}
 <dialog class="kv-dialog" id="charts-dialog" aria-label="Charts">
   <h2>Charts</h2>
   <div class="kv-dialog-body">
@@ -82,6 +84,7 @@ show unless the reader hides them; the rest repeat the headline counts and show 
   {% call bars("queues", "queues", overview.by_queue, by_queue) %}
   <a class="kv-bar" href="/tickets" data-card="queues"><span>live</span><span class="kv-track"><span class="kv-fill" style="width: 100%"></span></span><span class="kv-num">{{ overview.live_total }}</span></a>
   {% endcall %}
+  {% if overview.trend.shown %}{% include "_trend.html" %}{% endif %}
 </div>
 
 {% if overview.ready_to_close %}
