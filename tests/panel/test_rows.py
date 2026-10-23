@@ -58,10 +58,25 @@ def test_a_row_without_a_time_shows_none(client):
     assert "<time" not in row
 
 
-def test_ordered_by_leverage_each_row_shows_its_leverage(client):
+def test_ordered_by_leverage_each_row_says_how_much_closing_it_frees(client):
     page = client(DeclaredBacklog(live_value=(TAGGED,))).get("/tickets?order=leverage").text
 
-    assert "leverage 4" in page
+    assert ">frees 4</span>" in page
+    assert 'title="closing it frees 4 tickets waiting on it' in page
+
+
+def test_a_row_that_frees_nothing_says_nothing_about_it_even_ordered_by_leverage(client):
+    leaf = ticket("kno-r4", leverage=0)
+
+    (row,) = _rows(client(DeclaredBacklog(live_value=(leaf,))).get("/tickets?order=leverage").text)
+
+    assert "frees" not in row
+
+
+def test_unordered_by_leverage_the_tickets_list_says_nothing_about_what_a_row_frees(client):
+    page = client(DeclaredBacklog(live_value=(TAGGED,))).get("/tickets").text
+
+    assert "frees" not in page
 
 
 def test_a_row_names_its_document_types_and_a_row_without_documents_names_none(client):

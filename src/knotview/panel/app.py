@@ -23,7 +23,7 @@ from knotview.panel.overview import Overview
 from knotview.panel.prose import outlined
 from knotview.panel.prose import rendered as prose
 from knotview.panel.prose import split as prose_split
-from knotview.panel.selection import ANY, ORDERS, Selection
+from knotview.panel.selection import ANY, FREEING, ORDERS, Selection
 from knotview.panel.tags import COOKIE, Tags
 from knotview.panel.tree import Tree
 from knotview.panel.worktree_choice import encoded, named
@@ -284,7 +284,13 @@ class Pages:
         )
 
     def queue(self, request: Request, which: str) -> HTMLResponse:
-        """One of knot's own queues: what is ready to start, or what is waiting on something."""
+        """One of knot's own queues: what is ready to start, or what is waiting on something.
+
+        The ready queue leads with the tickets whose closing frees the most other work, which is
+        knot's own answer to which of several ready tickets to take first; priority breaks a tie.
+        Its rows say how much each frees. The blocked queue keeps knot's order inside each wave,
+        since nothing in it can start yet.
+        """
         backlog = self._backlog(request)
         queues = {"ready": backlog.ready, "blocked": backlog.blocked}
         if which not in queues:
@@ -295,6 +301,8 @@ class Pages:
                 selection=Selection(),
             )
         tickets = self._narrowed(request, queues[which]())
+        if which == "ready":
+            tickets = FREEING.ordered(tickets)
         return self._rendered(
             request,
             "queue.html",

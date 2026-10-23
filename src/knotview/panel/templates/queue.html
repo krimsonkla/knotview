@@ -1,9 +1,10 @@
 {% extends "layout.html" %} {% block title %}{{ which }}{% endblock %} {% block main %}
 {% set show_missing = true %}
+{% set frees = which == "ready" %}
 <h1 class="kv-title">{{ which | capitalize }}</h1>
 {% if which == "ready" %}
 <p class="kv-muted">Every blocker closed, so nothing outside the ticket is in the way.
-  When several are ready, the highest leverage dissolves the most waiting work.</p>
+  Ordered by how many tickets closing each one frees, then by priority.</p>
 {% else %}
 <p class="kv-muted">At least one blocker still open.
   The level is how many rounds of closing stand before each can start.</p>

@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from knotview.panel.selection import NOBODY
+from knotview.panel.selection import FREEING, NOBODY
 from knotview.panel.trend import Trend
 from knotview.reading.snapshot import Snapshot
 from knotview.values.ticket import Ticket
@@ -70,9 +70,13 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     # What the parents are called, from the types the project declares, so a project whose
     # parents are all epics reads "epics" and one with none of that type never sees the word.
     parents_label: str
-    # What the parents card shows when nothing is filed under anything: the ready queue, or the
-    # open tickets when nothing is ready either, highest priority first.
+    # What the parents card shows when nothing is filed under anything: the ready queue, those
+    # whose closing frees the most first, or the open tickets when nothing is ready either,
+    # highest priority first.
     ready_first: tuple[Ticket, ...]
+    # Where to start when the parents card leaves the ready queue unlisted: the ready tickets that
+    # free the most, if any frees anything.
+    start_here: tuple[Ticket, ...]
     open_first: tuple[Ticket, ...]
     ready_to_close: tuple[Ticket, ...]
     stale: tuple[Ticket, ...]
@@ -142,7 +146,8 @@ class Overview:  # pylint: disable=too-many-instance-attributes
             parents=_parents(live),
             epics=_epics(_parents(live), snapshot),
             parents_label=_named(_parents(live), project.types),
-            ready_first=tuple(sorted(snapshot.ready, key=lambda t: (t.priority, t.id))),
+            ready_first=FREEING.ordered(snapshot.ready),
+            start_here=_start_here(snapshot.ready),
             open_first=tuple(sorted(live, key=lambda t: (t.priority, t.id))),
             ready_to_close=snapshot.attention.ready_to_close,
             stale=snapshot.attention.stale,
@@ -158,6 +163,19 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     def live_total(self) -> int:
         """How many tickets are live, summed across statuses rather than counted a second time."""
         return sum(tally.count for tally in self.by_status)
+
+
+def _start_here(ready: tuple[Ticket, ...], *, most: int = 3) -> tuple[Ticket, ...]:
+    """The ready tickets tied for freeing the most other work, a few at most, or none.
+
+    Only the ties at the top rather than the first few: a ticket that frees one beside one that
+    frees seven is not where to start, and the ready queue a click away lists the rest in order.
+    Nothing when no ready ticket frees anything, since a pointer to a leaf says nothing.
+    """
+    best = max((one.leverage or 0 for one in ready), default=0)
+    if not best:
+        return ()
+    return tuple(one for one in FREEING.ordered(ready) if one.leverage == best)[:most]
 
 
 def _by_document(snapshot: Snapshot) -> tuple[Tally, ...]:

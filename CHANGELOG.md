@@ -4,6 +4,21 @@ All notable changes are recorded here. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+### Added
+
+- The ready queue is ordered by how many tickets closing each one frees, then by priority. The
+  number is knot's leverage: the live tickets that depend on a ticket through deps,
+  directly or through other tickets.
+- Each ready row says how many tickets it frees, for example "frees 7". A row that frees nothing
+  says nothing. The overview's ready list uses the same order and the same note.
+- When the overview shows parents, the gear can add a *start here* list naming the ready tickets
+  that free the most, up to three. It is hidden until chosen, like the extra charts.
+
+### Changed
+
+- Sorted by leverage, a row on the tickets list now says "frees N" in place of "leverage N", and
+  says nothing when the number is zero. Tickets with the same leverage now sort by priority.
+
 ## [1.1.0] - unreleased
 
 Charts over time on the overview.

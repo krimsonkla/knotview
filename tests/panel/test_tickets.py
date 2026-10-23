@@ -111,6 +111,7 @@ def test_leverage_orders_highest_first_and_level_lowest_first_with_unknowns_last
 
     assert by_leverage.index("High leverage") < by_leverage.index("Low leverage")
     assert by_leverage.index("Low leverage") < by_leverage.index("No metrics")
+    assert "frees 1" in by_leverage
     assert by_level.index("Low leverage") < by_level.index("High leverage")
     assert by_level.index("High leverage") < by_level.index("No metrics")
 
@@ -122,7 +123,7 @@ def test_leverage_and_level_show_when_ordered_by_them_and_no_metric_is_drawn_as_
     by_leverage = client(backlog).get("/tickets?order=leverage").text
     by_level = client(backlog).get("/tickets?order=level").text
 
-    assert "leverage 3" in by_leverage and "level 2" in by_level
+    assert "frees 3" in by_leverage and "level 2" in by_level
     assert '<option value="leverage" selected>Sort: leverage</option>' in by_leverage
     assert "—" not in by_leverage
 
