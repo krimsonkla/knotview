@@ -243,8 +243,14 @@ class Selection:  # pylint: disable=too-many-instance-attributes
         keys = {
             "priority": lambda held: (held.priority, held.id),
             # Highest leverage first and lowest level first, with the rows knot gave no number
-            # (a closed row, a cycle) after every row it did.
-            "leverage": lambda held: (held.leverage is None, -(held.leverage or 0), held.id),
+            # (a closed row, a cycle) after every row it did. Leverage ties go to priority, since
+            # knot's advice is to take the ticket that frees the most and let priority break in.
+            "leverage": lambda held: (
+                held.leverage is None,
+                -(held.leverage or 0),
+                held.priority,
+                held.id,
+            ),
             "level": lambda held: (held.level is None, held.level or 0, held.id),
             "updated": lambda held: (held.updated or "", held.id),
             "created": lambda held: (held.created or "", held.id),
@@ -304,6 +310,12 @@ class Selection:  # pylint: disable=too-many-instance-attributes
                 if looking in sentence.lower():
                     return " ".join(sentence.split())
         return None
+
+
+# The order the ready lists share: the tickets whose closing frees the most other work first,
+# then by priority. knot calls the number leverage and names it the default answer to which of
+# several ready tickets to take, so the ready queue and the overview lead with it unasked.
+FREEING = Selection(order="leverage")
 
 
 def _known(given: str | None, allowed: tuple[str, ...], *, fallback: str = ANY) -> str:

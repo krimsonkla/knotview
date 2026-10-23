@@ -14,6 +14,7 @@ PATHS = {
     "/queue/{which}",
     "/ticket/{identifier}",
     "/document/{identifier}",
+    "/compare",
     "/digest",
     "/tags",
     "/worktree",
@@ -29,7 +30,7 @@ def test_every_route_is_a_get():
     covered by the path assertion above."""
     routes = [route for route in panel(DeclaredBacklog()).routes if isinstance(route, APIRoute)]
 
-    assert len(routes) == 9
+    assert len(routes) == 10
     assert all(route.methods == {"GET"} for route in routes)
 
 

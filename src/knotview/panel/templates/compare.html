@@ -1,0 +1,124 @@
+{% extends "layout.html" %} {% block title %}compare{% endblock %} {% block main %}
+{# The chosen worktree's backlog against another's. A ticket only the other side holds cannot be
+opened here, since every page reads the chosen worktree, so its row names it without a link. #}
+{% set mine = here.label if here else "the launch directory" %}
+<h1 class="kv-title">Compare</h1>
+<p class="kv-muted">
+  The backlog in {{ mine }} against the backlog in another worktree. Each worktree holds its own
+  copy of the tickets, so this is what merging one branch into the other would change. Tickets that
+  read the same on both sides are counted, not listed.
+</p>
+
+{% macro brief(one, opened) %}
+<div class="kv-row">
+  <span class="kv-dot s-{{ one.status }}">{{ one.status }}</span>
+  <div class="kv-row-main">
+    <div class="kv-row-title">
+      {% if opened %}<a class="title" href="/ticket/{{ one.id | segment }}">{{ one.title }}</a>{% else %}<span class="title">{{ one.title }}</span>{% endif %}
+    </div>
+    <div class="kv-meta"><span class="kv-mono">{{ one.id }}</span><span>·</span><span>{{ one.type }}</span></div>
+  </div>
+  <div class="kv-row-end"><span class="kv-badge p{{ one.priority }}">P{{ one.priority }}</span></div>
+</div>
+{% endmacro %}
+
+{% macro paired(pairs, theirs) %}
+<section class="kv-card kv-list">
+  {% for pair in pairs %}
+  <div class="kv-row">
+    <span class="kv-dot s-{{ pair.here.status }}">{{ pair.here.status }}</span>
+    <div class="kv-row-main">
+      <div class="kv-row-title"><a class="title" href="/ticket/{{ pair.id | segment }}">{{ pair.here.title }}</a></div>
+      <div class="kv-meta"><span class="kv-mono">{{ pair.id }}</span><span>·</span><span>{{ pair.here.type }}</span></div>
+      <ul class="kv-changes">
+        {% for change in pair.changes %}
+        <li><span class="kv-muted">{{ change.field }}</span> <span title="in {{ mine }}">{{ change.here }}</span>
+          <span class="kv-muted" aria-label="here, and in {{ theirs }}">→</span>
+          <span title="in {{ theirs }}">{{ change.there }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="kv-row-end"><span class="kv-badge p{{ pair.here.priority }}">P{{ pair.here.priority }}</span></div>
+  </div>
+  {% endfor %}
+</section>
+{% endmacro %}
+
+{% if others %}
+<form class="kv-worktrees kv-compare-pick" method="get" action="/compare" data-auto>
+  <label for="compare-with">{{ mine }} compared with</label>
+  <select id="compare-with" class="kv-pill" name="with">
+    {% if not other %}<option value="" selected disabled>choose a worktree</option>{% endif %}
+    {% for one in others %}
+    <option
+      value="{{ one.path }}"
+      title="{{ one.path }}"
+      {% if other and one.path == other.path %}selected{% endif %}
+      >{{ one.label }}</option
+    >
+    {% endfor %}
+  </select>
+  <noscript><button type="submit" title="compare with this worktree">compare</button></noscript>
+</form>
+{% endif %}
+
+{% if not others %}
+<section class="kv-card">
+  <h2>nothing to compare</h2>
+  <div class="kv-body">
+    <p>git lists one worktree here, so there is no other backlog to compare this one with.</p>
+  </div>
+</section>
+{% elif not other %}
+<section class="kv-card">
+  <h2>choose a worktree</h2>
+  <div class="kv-body">
+    {% if asked %}<p>That is not another worktree git lists now, so nothing was read.</p>{% endif %}
+    <p class="kv-muted">Choose one of the worktrees above.{% if offered %}
+      <a href="{{ compare }}">Compare with {{ offered.label }}</a>.{% endif %}</p>
+  </div>
+</section>
+{% elif refusal %}
+<section class="kv-card kv-warn">
+  <h2>{{ other.label }} could not be read</h2>
+  <div class="kv-body">
+    <p>{{ refusal.message }}.</p>
+    <p class="kv-muted">{{ refusal.advice }}.</p>
+  </div>
+</section>
+{% else %}
+{% set theirs = other.label %}
+<p class="kv-compare-sum">
+  <span><span class="kv-count">{{ comparison.only_here | length }}</span> only in {{ mine }}</span>
+  <span><span class="kv-count">{{ comparison.only_there | length }}</span> only in {{ theirs }}</span>
+  <span><span class="kv-count">{{ comparison.parted | length }}</span> closed on one side</span>
+  <span><span class="kv-count">{{ comparison.changed | length }}</span> changed</span>
+  <span><span class="kv-count">{{ comparison.alike | length }}</span> the same</span>
+</p>
+{% if not comparison.differs %}
+<section class="kv-card">
+  <h2>the same on both sides</h2>
+  <div class="kv-body"><p>Every ticket reads the same in {{ mine }} and in {{ theirs }}.</p></div>
+</section>
+{% endif %}
+{% if comparison.only_here %}
+<h2 class="kv-wave">only in {{ mine }} <span class="kv-count">{{ comparison.only_here | length }}</span></h2>
+<section class="kv-card kv-list">{% for one in comparison.only_here %}{{ brief(one, true) }}{% endfor %}</section>
+{% endif %}
+{% if comparison.only_there %}
+<h2 class="kv-wave">only in {{ theirs }} <span class="kv-count">{{ comparison.only_there | length }}</span></h2>
+<p class="kv-muted">Choose {{ theirs }} in the header to open these.</p>
+<section class="kv-card kv-list">{% for one in comparison.only_there %}{{ brief(one, false) }}{% endfor %}</section>
+{% endif %}
+{% if comparison.parted %}
+<h2 class="kv-wave">closed on one side, live on the other <span class="kv-count">{{ comparison.parted | length }}</span></h2>
+<p class="kv-muted">Each line reads {{ mine }} first, then {{ theirs }}.</p>
+{{ paired(comparison.parted, theirs) }}
+{% endif %}
+{% if comparison.changed %}
+<h2 class="kv-wave">changed <span class="kv-count">{{ comparison.changed | length }}</span></h2>
+<p class="kv-muted">Status, priority, title or type differ. Each line reads {{ mine }} first, then {{ theirs }}.</p>
+{{ paired(comparison.changed, theirs) }}
+{% endif %}
+{% endif %}
+{% endblock %}

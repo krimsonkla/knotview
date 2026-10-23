@@ -16,8 +16,9 @@ from knotview.values.document import Document
 from tests.panel.declared import PROJECT, DeclaredBacklog, ticket
 
 # A live chore, a closed chore, a ticket owning an other document and an unassigned one, so every
-# card has a row above zero; built here rather than by editing the shared declared backlog.
-LIVE_CHORE = ticket("pro-01m2l1111111", type="chore", assignee="someone")
+# card has a row above zero, the two chores sharing a tag; built here rather than by editing the
+# shared declared backlog.
+LIVE_CHORE = ticket("pro-01m2l1111111", type="chore", assignee="someone", tags=("ui",))
 OWNER = ticket(
     "pro-01m2l2222222",
     doc_types=("other",),
@@ -27,7 +28,7 @@ OWNER = ticket(
     ),
 )
 UNASSIGNED = ticket("pro-01m2l3333333", type="bug", status="in_progress")
-CLOSED_CHORE = ticket("pro-01m2l4444444", type="chore", status="closed")
+CLOSED_CHORE = ticket("pro-01m2l4444444", type="chore", status="closed", tags=("ui",))
 BACKLOG = {
     "project_value": replace(PROJECT, doc_types=("spec", "plan", "other"), doc_count=1),
     "live_value": (LIVE_CHORE, OWNER, UNASSIGNED),
@@ -67,7 +68,7 @@ def overview_browser(client):
 def test_every_card_has_a_row_to_follow(browser):
     cards = {card for card, _, count in rows(browser.get("/").text) if count}
 
-    assert {"by type", "by status", "by priority", "by document", "queues"} <= cards
+    assert {"by type", "by status", "by priority", "by document", "queues", "by tag"} <= cards
 
 
 @pytest.mark.parametrize("start", ["/", FILTERED])
@@ -82,10 +83,10 @@ def test_every_count_equals_the_list_its_link_opens(browser, start):
 
 def test_no_filter_in_the_overviews_url_reaches_a_card_link(browser):
     """Each link holds its own row's filter and nothing more: one parameter, or a terminal
-    status's two, whatever the overview's own URL was asked with."""
+    status's or a tag's two, whatever the overview's own URL was asked with."""
     for _, href, _ in rows(browser.get(FILTERED).text):
         names = sorted(name.split("=")[0] for name in urlsplit(href).query.split("&") if name)
-        assert len(names) <= 1 or names == ["closed", "status"], href
+        assert len(names) <= 1 or names in (["closed", "status"], ["closed", "tag"]), href
 
 
 def test_a_filter_in_the_overviews_url_changes_nothing(browser):
@@ -107,4 +108,5 @@ def test_each_card_link_carries_exactly_its_rows_own_filter(browser):
         "/tickets?doc=other",
         "/queue/ready",
         "/tickets?assignee=nobody",
+        "/tickets?tag=ui&closed=1",
     } <= hrefs
