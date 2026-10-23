@@ -17,6 +17,11 @@ All notable changes are recorded here. The format follows [Keep a Changelog](htt
   closed, out of all its tickets. Each row links to the list of the tag's tickets, closed ones
   included. Pinned tags are not shown, because every ticket on the page already has them. After
   eight tags, the rest fold.
+- A Compare page, `/compare?with=<worktree>`, that compares the backlog of the worktree you read
+  with the backlog of one other worktree. It lists the tickets only one side holds, the tickets
+  closed on one side and live on the other, and the tickets whose status, priority, title or type
+  differ. It counts the tickets that are the same. The other worktree must be one that git lists,
+  and the page reloads when either backlog changes. An icon beside the worktree dropdown opens it.
 
 ### Changed
 

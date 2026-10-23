@@ -28,7 +28,8 @@ def test_a_backlog_that_cannot_be_read_answers_the_digest_with_a_refusal(client)
 def test_the_page_asks_for_the_digest_and_holds_no_stream_open():
     """A stream per tab used up the six connections a browser allows one host, and the next
     page waited behind them; short requests leave the connections free."""
-    assert 'fetch("/digest", { cache: "no-store" })' in FOLLOW
+    assert 'fetch(source, { cache: "no-store" })' in FOLLOW
+    assert 'getAttribute("data-follow") || "/digest"' in FOLLOW
     assert "EventSource" not in FOLLOW
     assert "document.hidden" in FOLLOW and "visibilitychange" in FOLLOW
 

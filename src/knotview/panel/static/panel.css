@@ -1204,3 +1204,35 @@ details.kv-card.kv-fold > summary::first-letter {
     grid-column: auto;
   }
 }
+
+/* The comparison of two worktrees: the choice of the other side, the counts, and each change. */
+/* The compare link is an icon like the header's other tools; on its own page it takes the accent. */
+.kv-compare-link:hover {
+  text-decoration: none;
+}
+.kv-compare-link[aria-current="page"] {
+  color: var(--kv-accent);
+  border-color: var(--kv-accent);
+}
+.kv-compare-pick {
+  margin: var(--kv-space-2) 0 var(--kv-space-4);
+}
+.kv-compare-sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kv-space-2) var(--kv-space-4);
+  margin: 0 0 var(--kv-space-4);
+  color: var(--fgColor-muted);
+  font-size: 13px;
+}
+.kv-row-title > span.title {
+  color: var(--fgColor-default);
+  font-weight: 600;
+  font-size: 15px;
+}
+.kv-changes {
+  margin: var(--kv-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}

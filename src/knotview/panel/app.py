@@ -6,7 +6,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from fastapi import FastAPI, Request
 from fastapi.responses import (
@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from knotview.panel.comparison import Comparison
 from knotview.panel.overview import Overview
 from knotview.panel.prose import outlined
 from knotview.panel.prose import rendered as prose
@@ -36,6 +37,7 @@ from knotview.values.missing_ticket import MissingTicket
 from knotview.values.project import Project
 from knotview.values.ticket import Ticket
 from knotview.values.unreadable_backlog import UnreadableBacklog
+from knotview.values.worktree import Worktree
 
 HERE = Path(__file__).resolve().parent
 
@@ -82,6 +84,8 @@ class Pages:
         path, backlog = self.backlogs.reading(cookie, listed)
         request.state.worktrees = listed if len(listed) > 1 else ()
         request.state.reading = self.backlogs.marked(cookie, listed)
+        offered = self.backlogs.counterpart(cookie, request.state.worktrees)
+        request.state.compare = _compared(offered) if offered else "/compare"
         request.state.carried = self._carried(path, backlog)
         request.state.backlog = backlog
         return backlog
@@ -118,6 +122,7 @@ class Pages:
                 "current": _current(request),
                 "worktrees": request.state.worktrees,
                 "reading": request.state.reading,
+                "compare": request.state.compare,
                 "carried": request.state.carried,
                 **context,
             },
@@ -199,6 +204,7 @@ class Pages:
                 "refusal": refusal,
                 "worktrees": getattr(request.state, "worktrees", ()),
                 "reading": getattr(request.state, "reading", None),
+                "compare": getattr(request.state, "compare", "/compare"),
                 "here": _here(request),
             },
             status_code=503,
@@ -411,16 +417,100 @@ class Pages:
         except MissingTicket:
             return None
 
+    def compare(self, request: Request) -> HTMLResponse:
+        """The chosen worktree's backlog against another's that git lists, or the choice of one.
+
+        The other worktree is named by `with`, which arrives in a link anyone can write, so it is
+        only ever matched against git's list as the page just read it. A missing or unlisted name
+        reads nothing and shows the choice instead. The other side is read through the reader the
+        pages keep for it, so a comparison starts no process a choice of that worktree would not.
+
+        The page follows both sides. It carries the two digests joined and asks /digest about the
+        same worktree, so an edit in either worktree, or a switch of the chosen one, reloads it.
+        """
+        backlog = self._backlog(request)
+        held = request.cookies.get(self.backlogs.cookie)
+        listed = request.state.worktrees
+        sides = {
+            "here": next((one for one in listed if one.path == request.state.reading), None),
+            "others": tuple(one for one in listed if one.path != request.state.reading),
+        }
+        asked = request.query_params.get("with", "")
+        found = self.backlogs.beside(asked, held, listed)
+        if not found:
+            return self._rendered(
+                request,
+                "compare.html",
+                other=None,
+                asked=bool(asked),
+                offered=self.backlogs.counterpart(held, listed),
+                **sides,
+            )
+        other, path, there = found
+        request.state.carried = _joined(request.state.carried, self._beside(path, there))
+        try:
+            theirs = (there.live(), there.closed())
+        except UnreadableBacklog as refusal:
+            return self._rendered(
+                request,
+                "compare.html",
+                status=503,
+                other=other,
+                refusal=refusal,
+                follow=_followed(other),
+                **sides,
+            )
+        return self._rendered(
+            request,
+            "compare.html",
+            other=other,
+            comparison=self._compared(request, (backlog.live(), backlog.closed()), theirs),
+            follow=_followed(other),
+            **sides,
+        )
+
+    def _compared(
+        self,
+        request: Request,
+        ours: tuple[tuple[Ticket, ...], tuple[Ticket, ...]],
+        theirs: tuple[tuple[Ticket, ...], tuple[Ticket, ...]],
+    ) -> Comparison:
+        """Two sides compared, then narrowed to the tickets either side's copy keeps by tag."""
+        comparison = Comparison.between(here=ours, there=theirs)
+        chosen = _tags(request)
+        if not chosen.chosen:
+            return comparison
+        everyone = (*ours[0], *ours[1], *theirs[0], *theirs[1])
+        return comparison.within({one.id for one in chosen.narrow(everyone)})
+
+    def _beside(self, path: Path, backlog: Backlog) -> str:
+        """The other side's digest as a comparison carries it, or a mark that it could not be read.
+
+        A mark rather than nothing, so a page rendered while that worktree was unreadable reloads
+        the moment it can be read, and a page following a readable one reloads if it stops being.
+        """
+        try:
+            return self.backlogs.stamped(path, backlog.digest())
+        except UnreadableBacklog:
+            return UNREAD
+
     def digest(self, request: Request) -> str:
         """What the chosen worktree's backlog looks like right now, as one short value to compare.
 
         Checked against the listing the last page render saw, never a fresh one: every open tab
-        asks this about once a second, and git is not asked at that rate.
+        asks this about once a second, and git is not asked at that rate. A comparison asks with
+        the other worktree named, and is answered both digests joined, as its page carries them;
+        a name the last listing does not hold adds nothing, so the page reloads and settles again.
         """
-        path, backlog = self.backlogs.reading(
-            request.cookies.get(self.backlogs.cookie), self.backlogs.known()
-        )
-        return self.backlogs.stamped(path, backlog.digest())
+        held = request.cookies.get(self.backlogs.cookie)
+        known = self.backlogs.known()
+        path, backlog = self.backlogs.reading(held, known)
+        stamped = self.backlogs.stamped(path, backlog.digest())
+        found = self.backlogs.beside(request.query_params.get("with", ""), held, known)
+        if not found:
+            return stamped
+        _, beside, there = found
+        return _paired(stamped, self._beside(beside, there))
 
 
 # The route table, written out as data so the surface can be read in one place and asserted by
@@ -434,6 +524,7 @@ ROUTES: tuple[tuple[str, str, type[Response] | None], ...] = (
     ("/queue/{which}", "queue", HTMLResponse),
     ("/ticket/{identifier}", "ticket", HTMLResponse),
     ("/document/{identifier}", "document", HTMLResponse),
+    ("/compare", "compare", HTMLResponse),
     ("/digest", "digest", PlainTextResponse),
     ("/tags", "tags", None),
     ("/worktree", "worktree", None),
@@ -529,6 +620,34 @@ def _options(
     return options
 
 
+# What a comparison carries for a side whose digest could not be read. No digest is a single dash,
+# so it cannot be mistaken for one.
+UNREAD = "-"
+
+
+def _joined(here: str | None, there: str) -> str | None:
+    """Both sides' digests as one value, or nothing when the chosen side carries none.
+
+    Nothing then, as on every other page: the poll takes its first answer as the baseline.
+    """
+    return _paired(here, there) if here is not None else None
+
+
+def _paired(here: str, there: str) -> str:
+    """Two digests as the one value a comparison carries and polls for."""
+    return "~".join((here, there))
+
+
+def _compared(other: Worktree) -> str:
+    """The comparison with one worktree, as a link."""
+    return "/compare?" + urlencode({"with": str(other.path)})
+
+
+def _followed(other: Worktree) -> str:
+    """The digest a comparison with one worktree polls, naming the same worktree its page does."""
+    return "/digest?" + urlencode({"with": str(other.path)})
+
+
 def _given(backlog: Backlog, _path: Path) -> Backlog:
     """The one backlog whatever path is asked for: the factory for a panel given no other."""
     return backlog
@@ -541,6 +660,7 @@ _TABS = {
     "/tree": "tree",
     "/queue/ready": "ready",
     "/queue/blocked": "blocked",
+    "/compare": "compare",
 }
 
 

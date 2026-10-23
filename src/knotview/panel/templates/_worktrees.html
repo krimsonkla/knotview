@@ -2,7 +2,7 @@
 A dropdown in a GET form, like every other request here: choosing changes a cookie in this
 browser and nothing else. follow.js submits it as soon as the choice changes; without script,
 the button does. Each option's full path is its title, since two can share a name or a
-directory. #}
+directory. The compare icon opens this worktree against the one the panel offers first. #}
 {% if worktrees %}
 <form class="kv-worktrees" method="get" action="/worktree">
   <label for="worktree-choice">worktree</label>
@@ -21,5 +21,25 @@ directory. #}
   </select>
   <input type="hidden" name="back" value="{{ here }}" />
   <noscript><button type="submit" title="read this worktree">switch</button></noscript>
+  <a
+    class="kv-icon kv-compare-link"
+    href="{{ compare }}"
+    title="Compare this worktree's backlog with another's"
+    aria-label="Compare worktrees"
+    {% if current == "compare" %}aria-current="page"{% endif %}
+    ><svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 5h9.5M10 2.5 12.5 5 10 7.5" />
+      <path d="M13 11H3.5M6 8.5 3.5 11 6 13.5" /></svg
+  ></a>
 </form>
 {% endif %}

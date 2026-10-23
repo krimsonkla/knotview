@@ -84,7 +84,8 @@ holds a gear that chooses which charts to show:
 - **Worktrees** appear when the repository has more than one. Choose one and every page reads
   that worktree's backlog, since each worktree holds its own copy of `.tickets/`. A worktree git
   no longer lists falls back to the directory the panel was started in. This needs git 2.36 or
-  later; without it, the panel reads the one directory.
+  later; without it, the panel reads the one directory. The compare icon (two arrows) beside the
+  dropdown opens the Compare page.
 - **The theme switch** cycles System, Light and Dark. Your choice is kept in this browser.
 
 Every instant is shown in your browser's timezone, and the exact UTC instant is on hover. Without
@@ -98,6 +99,7 @@ script the page shows UTC, labelled as such.
 | **Queues** `/queue/ready`, `/queue/blocked` | knot's own queues, in the same rows as the tickets list. The ready queue is ordered by how many tickets closing each one frees, then by priority. Each of its rows says that number, for example "frees 7". It is knot's leverage. The blocked queue is grouped by level into the rounds of closing before each ticket can start. |
 | **Ticket** `/ticket/<id>` | The title and one summary line, then the ticket's documents as cards, then the description, folded after its first two paragraphs. Later sections and the notes fold. Children, blocked by and blocking, linked tickets, siblings, and knot's dependency tree sit behind tabs, and empty ones are not drawn. A sidebar holds the documents, priority, assignee, tags, progress, parent, mode and external links. Folds and the chosen tab survive the page reloading itself. Markdown tables render as tables. |
 | **Document** `/document/<id>` | One document in a readable column, with tabs across the ticket's other documents, an *all* menu listing them by type, and an outline of its headings. A document whose ticket knot cannot find still reads, and the start of an id works as knot resolves it. |
+| **Compare** `/compare?with=<worktree>` | Shown only when git lists more than one worktree. It compares the worktree you read with one other worktree that you choose from git's list. The header icon opens the directory the panel was started in, or the first other worktree git lists. It lists the tickets that only one side holds, the tickets that are closed on one side and live on the other, and the tickets whose status, priority, title or type differ, with both values. It counts the tickets that are the same and does not list them. A path that git does not list reads nothing and shows the choice again. The page reloads when either backlog changes. |
 | **Live** | Each open page asks about once a second whether the backlog changed, and reloads itself when it has, documents included. Rows in the lists saved since you last looked carry a mark at their left edge, and the header counts them; click the count to clear the marks. The overview's short lists carry no marks. |
 
 ## Developing

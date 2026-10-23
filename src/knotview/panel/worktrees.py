@@ -6,7 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
 
-from knotview.panel.worktree_choice import chosen, containing, cookie_name
+from knotview.panel.worktree_choice import chosen, containing, cookie_name, named
 from knotview.reading.backlog import Backlog
 from knotview.values.worktree import Worktree
 
@@ -92,9 +92,39 @@ class Backlogs:
         picked = chosen(held, among)
         if not picked:
             return self.launch, self._reader(self.launch)
-        home = containing(self.launch, among)
-        path = picked.path / self.launch.relative_to(home.path) if home else picked.path
+        path = self._within(picked, among)
         return path, self._reader(path)
+
+    def beside(
+        self, asked: str, held: str | None, among: tuple[Worktree, ...]
+    ) -> tuple[Worktree, Path, Backlog] | None:
+        """The other worktree a comparison names, where it is read, and its backlog; or nothing.
+
+        The name comes from a link, so it is matched against git's list like the cookie is, and
+        anything unlisted reads nothing. The worktree being read is not one of the others: a
+        backlog compared with itself has nothing to say. The reader is the same one the pages use
+        when that worktree is chosen, so a comparison starts no reader of its own.
+        """
+        reading = self.marked(held, among)
+        picked = named(asked, tuple(one for one in among if one.path != reading))
+        if not picked:
+            return None
+        path = self._within(picked, among)
+        return picked, path, self._reader(path)
+
+    def counterpart(self, held: str | None, among: tuple[Worktree, ...]) -> Worktree | None:
+        """The worktree a comparison offers first: the launch's when another is being read, else
+        the first other one git lists, which is the main worktree unless that is the one read."""
+        reading = self.marked(held, among)
+        home = containing(self.launch, among)
+        if home and home.path != reading:
+            return home
+        return next((one for one in among if one.path != reading), None)
+
+    def _within(self, picked: Worktree, among: tuple[Worktree, ...]) -> Path:
+        """Where a worktree's backlog is read: the launch directory's place below its root."""
+        home = containing(self.launch, among)
+        return picked.path / self.launch.relative_to(home.path) if home else picked.path
 
     def marked(self, held: str | None, among: tuple[Worktree, ...]) -> Path | None:
         """The worktree the picker marks: the chosen one, else the one holding the launch."""
