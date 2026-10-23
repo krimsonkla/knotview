@@ -4,6 +4,14 @@ All notable changes are recorded here. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [1.2.0] - unreleased
+
+The ready queue ordered by what each ticket frees, progress by tag, and comparing worktrees.
+
+### Security
+
+- black, a dev-only formatter, is locked at 26.10.1 for a high-severity advisory in 26.10.0.
+
 ### Added
 
 - The ready queue is ordered by how many tickets closing each one frees, then by priority. The
