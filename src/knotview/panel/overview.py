@@ -34,6 +34,20 @@ class Epic:
 
 
 @dataclass(frozen=True, kw_only=True)
+class TagProgress:
+    """A tag and how many of the tickets carrying it are closed, out of all that carry it.
+
+    Counted over the live and closed tickets together, because that is the list its row opens:
+    the tickets with the tag, closed ones included. Like a parent's progress it costs no further
+    knot read.
+    """
+
+    tag: str
+    done: int
+    total: int
+
+
+@dataclass(frozen=True, kw_only=True)
 class Overview:  # pylint: disable=too-many-instance-attributes
     """The backlog counted by type, by status and by priority, plus the queues and the parents.
 
@@ -86,12 +100,23 @@ class Overview:  # pylint: disable=too-many-instance-attributes
     # The last weeks worked out from each ticket's created and closed instants; the charts that
     # draw it wait behind the charts menu like the other repeated counts.
     trend: Trend
+    # Each tag with its share closed, the most open work first; behind the charts menu too.
+    by_tag: tuple[TagProgress, ...]
 
     @classmethod
     def over(
-        cls, snapshot: Snapshot, *, showing: int = 5, now: datetime | None = None
+        cls,
+        snapshot: Snapshot,
+        *,
+        showing: int = 5,
+        now: datetime | None = None,
+        pinned: tuple[str, ...] = (),
     ) -> "Overview":
-        """The overview of one snapshot, counted over its live tickets."""
+        """The overview of one snapshot, counted over its live tickets.
+
+        The pinned tags are the ones the snapshot was already narrowed to, which the tag card
+        leaves out: every ticket left carries them, so their rows would only repeat the totals.
+        """
         project, live = snapshot.project, snapshot.live
         return cls(
             by_type=tuple(
@@ -157,6 +182,7 @@ class Overview:  # pylint: disable=too-many-instance-attributes
             recently_closed=snapshot.closed[:showing],
             integrity=snapshot.integrity,
             trend=Trend.over(live, snapshot.closed, project.types, now=now or datetime.now(UTC)),
+            by_tag=_by_tag(snapshot, pinned),
         )
 
     @property
@@ -189,6 +215,26 @@ def _by_document(snapshot: Snapshot) -> tuple[Tally, ...]:
         for kind in project.doc_types
     )
     return tallies if any(tally.count for tally in tallies) else ()
+
+
+def _by_tag(snapshot: Snapshot, pinned: tuple[str, ...]) -> tuple[TagProgress, ...]:
+    """Every tag a ticket carries, with how many of its tickets are closed.
+
+    Ordered by the work still open under it, most first, then by size and name, so the tags that
+    need attention lead and the finished ones sink to the end. A tag the reader has pinned is left
+    out, since narrowing to it already made it every ticket on the page.
+    """
+    left_out = set(pinned)
+    done: dict[str, int] = {}
+    total: dict[str, int] = {}
+    for held in snapshot.live + snapshot.closed:
+        for tag in set(held.tags) - left_out:
+            total[tag] = total.get(tag, 0) + 1
+    for held in snapshot.closed:
+        for tag in set(held.tags) - left_out:
+            done[tag] = done.get(tag, 0) + 1
+    rows = (TagProgress(tag=tag, done=done.get(tag, 0), total=all_) for tag, all_ in total.items())
+    return tuple(sorted(rows, key=lambda row: (row.done - row.total, -row.total, row.tag)))
 
 
 def _named(parents: tuple[Ticket, ...], types: tuple[str, ...]) -> str:

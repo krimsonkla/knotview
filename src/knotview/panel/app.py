@@ -237,7 +237,7 @@ class Pages:
         return self._rendered(
             request,
             "overview.html",
-            overview=Overview.over(seen),
+            overview=Overview.over(seen, pinned=chosen.chosen),
             selection=Selection(),
         )
 

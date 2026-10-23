@@ -13,6 +13,10 @@ All notable changes are recorded here. The format follows [Keep a Changelog](htt
   says nothing. The overview's ready list uses the same order and the same note.
 - When the overview shows parents, the gear can add a *start here* list naming the ready tickets
   that free the most, up to three. It is hidden until chosen, like the extra charts.
+- A chart by tag on the overview, behind the gear. Each tag shows how many of its tickets are
+  closed, out of all its tickets. Each row links to the list of the tag's tickets, closed ones
+  included. Pinned tags are not shown, because every ticket on the page already has them. After
+  eight tags, the rest fold.
 
 ### Changed
 

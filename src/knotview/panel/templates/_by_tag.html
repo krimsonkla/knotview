@@ -1,0 +1,19 @@
+{# Each tag with how many of its tickets are closed, the bar filled as the parents' progress is.
+A row counts the tag's live and closed tickets, so it opens the list with the tag and closed
+tickets included, which shows exactly that many. The done figure has no link of its own: no list
+shows only the closed tickets across every terminal status. Past the first eight, the rest fold. #}
+{% macro tag_row(row) %}
+<a class="kv-bar" href="/tickets?{{ selection.query_string(tag=row.tag, closed='1') }}" data-card="by tag"><span>{{ row.tag }}</span><span class="kv-track"><span class="kv-fill done" style="width: {{ (row.done * 100 / row.total) | round | int }}%"></span></span><span class="kv-muted">{{ row.done }} of</span><span class="kv-num">{{ row.total }}</span></a>
+{% endmacro %}
+<section class="kv-card" data-chart="by tag" hidden>
+  <h2>by tag</h2>
+  <div class="kv-bars kv-tagged">
+    {% for row in overview.by_tag[:8] %}{{ tag_row(row) }}{% endfor %}
+    {% if overview.by_tag | length > 8 %}
+    <details class="kv-fold kv-more-text kv-more-bars" data-fold="overview-tags"><summary>{{ overview.by_tag | length - 8 }} more tags</summary>
+      {% for row in overview.by_tag[8:] %}{{ tag_row(row) }}{% endfor %}
+    </details>
+    {% endif %}
+    <p class="kv-muted kv-note">closed of all tickets carrying each tag; a ticket may carry several</p>
+  </div>
+</section>
