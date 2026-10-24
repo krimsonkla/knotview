@@ -1,4 +1,5 @@
 {% extends "layout.html" %} {% block title %}compare{% endblock %} {% block main %}
+{% from "_status.html" import kind, pill %}
 {# The chosen worktree's backlog against another's. A ticket only the other side holds cannot be
 opened here, since every page reads the chosen worktree, so its row names it without a link. #}
 {% set mine = here.label if here else "the launch directory" %}
@@ -11,12 +12,12 @@ opened here, since every page reads the chosen worktree, so its row names it wit
 
 {% macro brief(one, opened) %}
 <div class="kv-row">
-  <span class="kv-dot s-{{ one.status }}">{{ one.status }}</span>
   <div class="kv-row-main">
     <div class="kv-row-title">
+      {{ kind(one.type) }}{{ pill(project, one.status) }}
       {% if opened %}<a class="title" href="/ticket/{{ one.id | segment }}">{{ one.title }}</a>{% else %}<span class="title">{{ one.title }}</span>{% endif %}
     </div>
-    <div class="kv-meta"><span class="kv-mono">{{ one.id }}</span><span>·</span><span>{{ one.type }}</span></div>
+    <div class="kv-meta"><span class="kv-mono">{{ one.id }}</span>{% if one.assignee %}<span>·</span><span>{{ one.assignee }}</span>{% endif %}</div>
   </div>
   <div class="kv-row-end"><span class="kv-badge p{{ one.priority }}">P{{ one.priority }}</span></div>
 </div>
@@ -26,15 +27,22 @@ opened here, since every page reads the chosen worktree, so its row names it wit
 <section class="kv-card kv-list">
   {% for pair in pairs %}
   <div class="kv-row">
-    <span class="kv-dot s-{{ pair.here.status }}">{{ pair.here.status }}</span>
     <div class="kv-row-main">
-      <div class="kv-row-title"><a class="title" href="/ticket/{{ pair.id | segment }}">{{ pair.here.title }}</a></div>
-      <div class="kv-meta"><span class="kv-mono">{{ pair.id }}</span><span>·</span><span>{{ pair.here.type }}</span></div>
+      <div class="kv-row-title">{{ kind(pair.here.type) }}{{ pill(project, pair.here.status) }}<a class="title" href="/ticket/{{ pair.id | segment }}">{{ pair.here.title }}</a></div>
+      <div class="kv-meta">
+        <span class="kv-mono">{{ pair.id }}</span>
+        <span>·</span><span class="kv-dot r-{{ project.status_role(pair.here.status) }}" title="in {{ mine }}">{{ pair.here.status }} in {{ mine }}</span>
+        <span>·</span><span class="kv-dot r-{{ project.status_role(pair.there.status) }}" title="in {{ theirs }}">{{ pair.there.status }} in {{ theirs }}</span>
+        {% if pair.here.assignee == pair.there.assignee %}{% if pair.here.assignee %}<span>·</span><span>{{ pair.here.assignee }}</span>{% endif %}
+        {% else %}<span>·</span><span>{{ pair.here.assignee or "nobody" }} in {{ mine }}</span><span>·</span><span>{{ pair.there.assignee or "nobody" }} in {{ theirs }}</span>{% endif %}
+      </div>
       <ul class="kv-changes">
         {% for change in pair.changes %}
-        <li><span class="kv-muted">{{ change.field }}</span> <span title="in {{ mine }}">{{ change.here }}</span>
+        {# A status reads as two pills, so the change of role shows as well as the change of word. #}
+        {% set as_pill = change.field == "status" %}
+        <li><span class="kv-muted">{{ change.field }}</span> <span title="in {{ mine }}">{{ pill(project, change.here) if as_pill else change.here }}</span>
           <span class="kv-muted" aria-label="here, and in {{ theirs }}">→</span>
-          <span title="in {{ theirs }}">{{ change.there }}</span></li>
+          <span title="in {{ theirs }}">{{ pill(project, change.there) if as_pill else change.there }}</span></li>
         {% endfor %}
       </ul>
     </div>

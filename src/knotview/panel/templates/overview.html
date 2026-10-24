@@ -4,6 +4,7 @@
 {# The overview's short lists are not marked since the last look; the full lists are. #}
 {% set unmarked = true %}
 {% from "_time.html" import ago %}
+{% from "_status.html" import kind, pill %}
 {# Every count links to the list it counts, built by Selection from the count's own filter and
 nothing else, so a filter in this page's URL never rides into a link while the count ignores it.
 Each counted link names its card in `data-card`, which the tests read to follow it. #}
@@ -13,7 +14,8 @@ Each counted link names its card in `data-card`, which the tests read to follow 
   <h2>{{ title }}</h2>
   <div class="kv-bars">
     {% for tally in tallies %}
-    {% set hue = (tone ~ "-" ~ tally.value) if tone else "" %}
+    {# A status chart is coloured by each status's role, as its pills are; other tones by value. #}
+    {% set hue = ("r-" ~ project.status_role(tally.value)) if tone == "role" else ((tone ~ "-" ~ tally.value) if tone else "") %}
     <a class="kv-bar" href="{{ link(tally) }}" data-card="{{ card }}"><span{% if hue %} class="kv-dot {{ hue }}"{% endif %}>{{ tally.label }}</span><span class="kv-track"><span class="kv-fill {{ hue }}" style="width: {{ (tally.count * 100 / most) | round | int }}%"></span></span><span class="kv-num">{{ tally.count }}</span></a>
     {% endfor %}
     {{ caller() if caller is defined else "" }}
@@ -46,7 +48,7 @@ Each counted link names its card in `data-card`, which the tests read to follow 
 
 <div class="kv-stats">
   {% for tally in overview.by_status %}
-  <a class="kv-stat" href="{{ by_value(tally) }}" data-card="headline"><span class="kv-dot s-{{ tally.value }}">{{ tally.label | replace("_", " ") | capitalize }}</span><strong>{{ tally.count }}</strong></a>
+  <a class="kv-stat" href="{{ by_value(tally) }}" data-card="headline"><span class="kv-dot r-{{ project.status_role(tally.value) }}">{{ tally.label | replace("_", " ") | capitalize }}</span><strong>{{ tally.count }}</strong></a>
   {% endfor %}
   {% for tally in overview.by_queue if tally.filter == "queue" %}
   <a class="kv-stat" href="/queue/{{ tally.value }}" data-card="headline"><span class="kv-dot q-{{ tally.value }}">{{ tally.label | capitalize }}</span><strong>{{ tally.count }}</strong></a>
@@ -78,8 +80,8 @@ show unless the reader hides them; the rest repeat the headline counts and show 
 <div class="kv-grid">
   {{ bars("by priority", "by priority", overview.by_priority, by_value, shown=true, tone="p") }}
   {{ bars("by type", "by type", overview.by_type, by_value, shown=true) }}
-  {{ bars("by status", "by status", overview.by_status, by_value, tone="s") }}
-  {% if overview.by_terminal %}{{ bars("by status", "closed", overview.by_terminal, by_terminal, tone="s") }}{% endif %}
+  {{ bars("by status", "by status", overview.by_status, by_value, tone="role") }}
+  {% if overview.by_terminal %}{{ bars("by status", "closed", overview.by_terminal, by_terminal, tone="role") }}{% endif %}
   {% if overview.by_document %}{% call bars("by document", "by document", overview.by_document, by_document) %}
   <p class="kv-muted kv-note">tickets owning each type; a ticket may own several</p>
   {% endcall %}{% endif %}
@@ -122,7 +124,7 @@ most are pointed at on their own; without parents the card lists the ready queue
     <div class="kv-row">
       <a class="kv-badge p{{ epic.ticket.priority }}" href="/tickets?priority={{ epic.ticket.priority }}" title="every ticket at P{{ epic.ticket.priority }}">P{{ epic.ticket.priority }}</a>
       <div class="kv-row-main">
-        <a class="title" href="/ticket/{{ epic.ticket.id | segment }}">{{ epic.ticket.title }}</a>
+        <div class="kv-row-title compact">{{ kind(epic.ticket.type) }}{{ pill(project, epic.ticket.status, "/tickets?status=" ~ epic.ticket.status | urlencode) }}<a class="title" href="/ticket/{{ epic.ticket.id | segment }}">{{ epic.ticket.title }}</a></div>
         <div class="kv-meta"><span class="kv-mono">{{ epic.ticket.id }}</span>{% for tag in epic.ticket.tags %}<span>·</span><a href="/tickets?tag={{ tag | urlencode }}">{{ tag }}</a>{% endfor %}{% if epic.ticket.criteria %}<span>·</span><span title="its own acceptance criteria: a parent can be done with its children and still owe these">criteria {{ epic.ticket.met }}/{{ epic.ticket.criteria }}</span>{% endif %}</div>
       </div>
       <div class="kv-row-end kv-progress">
@@ -146,10 +148,12 @@ most are pointed at on their own; without parents the card lists the ready queue
     <section class="kv-card">
       <h2>{{ title }}</h2>
       {% for ticket in listed %}
+      {# The narrow cards give the title the whole width and lead the line under it with the #}
+      {# type and status, small: as columns before the title they left it a strip a few words wide. #}
       <div class="kv-row">
         <div class="kv-row-main">
           <a class="title" href="/ticket/{{ ticket.id | segment }}">{{ ticket.title }}</a>
-          <div class="kv-meta"><span class="kv-dot s-{{ ticket.status }}">{{ ticket.status }}</span><span>·</span><span class="kv-mono">{{ ticket.id }}</span>{% if ticket.updated %}<span>·</span><span>{{ ago(ticket.updated) }}</span>{% endif %}</div>
+          <div class="kv-meta">{{ kind(ticket.type) }}{{ pill(project, ticket.status, "/tickets?status=" ~ ticket.status | urlencode) }}<span class="kv-mono">{{ ticket.id }}</span>{% if ticket.assignee %}<span>·</span><a href="/tickets?assignee={{ ticket.assignee | urlencode }}">{{ ticket.assignee }}</a>{% endif %}{% if ticket.updated %}<span>·</span><span>{{ ago(ticket.updated) }}</span>{% endif %}</div>
         </div>
       </div>
       {% else %}

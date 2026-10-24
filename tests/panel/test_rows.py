@@ -36,8 +36,12 @@ def test_a_row_shows_status_title_tags_id_type_time_assignee_and_priority(client
     page = client(DeclaredBacklog(live_value=(TAGGED,))).get("/tickets").text
     (row,) = _rows(page)
 
-    assert 'class="kv-dot s-open" href="/tickets?status=open">open<' in row
-    assert ">teams<" in row and "kno-r1" in row and 'href="/tickets?type=task">task<' in row
+    assert 'class="kv-status r-intake" href="/tickets?status=open">open<' in row
+    assert (
+        ">teams<" in row
+        and "kno-r1" in row
+        and 'href="/tickets?type=task" title="every task">task<' in row
+    )
     assert re.search(r"updated <time class=\"ago\" datetime=\"2026-10-01T10:00:00.000000Z\"", row)
     assert 'href="/tickets?assignee=ada">ada<' in row
     assert 'class="kv-badge p1" href="/tickets?priority=1"' in row and ">P1</a>" in row
@@ -86,8 +90,67 @@ def test_a_row_names_its_document_types_and_a_row_without_documents_names_none(c
 
     rows = _rows(client(DeclaredBacklog(live_value=(owner, other))).get("/tickets").text)
 
-    assert 'class="kv-chip doc"' in rows[0] and ">spec<" in rows[0]
-    assert 'class="kv-chip doc"' not in rows[1]
+    assert 'class="kv-doc" href="/ticket/kno-r1#documents" title="spec"' in rows[0]
+    assert 'class="kv-docmarks" title="spec">docs' in rows[0]
+    assert "kv-docmarks" not in rows[1] and "kv-chip" not in rows[1]
+
+
+def test_a_rows_first_line_is_its_type_then_its_status_then_its_title_and_nothing_else(client):
+    """A reader asks what a ticket is before where it stands, so the type comes first; the two
+    flow before the title rather than standing as columns that narrow it."""
+    (row,) = _rows(client(DeclaredBacklog(live_value=(TAGGED,))).get("/tickets").text)
+
+    line = row[row.index('<div class="kv-row-title">') : row.index("</div>")]
+    assert re.findall(r"<a [^>]*>([^<]*)</a>", line) == ["task", TAGGED.status, TAGGED.title]
+    assert line.index('class="kv-type"') < line.index('class="kv-status') < line.index('"title"')
+
+
+def test_the_type_is_named_once_so_the_muted_line_no_longer_carries_it(client):
+    (row,) = _rows(client(DeclaredBacklog(live_value=(TAGGED,))).get("/tickets").text)
+
+    meta = row[row.index('<div class="kv-meta">') :]
+    assert row.count('href="/tickets?type=task"') == 1 and ">task<" not in meta
+
+
+def test_tags_are_a_facets_line_of_key_then_value_each_linking_to_the_whole_tag(client):
+    faceted = ticket("kno-r5", tags=("area:pipeline", "init:graph", "teams"))
+
+    (row,) = _rows(client(DeclaredBacklog(live_value=(faceted,))).get("/tickets").text)
+
+    facets = row[row.index('<div class="kv-facets">') : row.index('<div class="kv-meta">')]
+    assert (
+        '<a href="/tickets?tag=area%3Apipeline"><span class="key">area</span> pipeline</a>'
+        in facets
+    )
+    assert '<a href="/tickets?tag=init%3Agraph"><span class="key">init</span> graph</a>' in facets
+    assert '<a href="/tickets?tag=teams">teams</a>' in facets
+    assert "kv-chip" not in row
+
+
+def test_a_tag_with_nothing_on_one_side_of_its_colon_is_shown_whole(client):
+    odd = ticket("kno-r6", tags=("area:", ":graph"))
+
+    (row,) = _rows(client(DeclaredBacklog(live_value=(odd,))).get("/tickets").text)
+
+    assert ">area:</a>" in row and ">:graph</a>" in row and 'class="key"' not in row
+
+
+def test_a_row_without_tags_has_no_facets_line(client):
+    bare = ticket("kno-r7", tags=())
+
+    (row,) = _rows(client(DeclaredBacklog(live_value=(bare,))).get("/tickets").text)
+
+    assert "kv-facets" not in row
+
+
+def test_the_documents_end_the_muted_line_after_every_other_fact(client):
+    spec = Document(id="kno-r1-d1", ticket="kno-r1", title="Spec", type="spec")
+    owner = ticket("kno-r1", documents=(spec,), assignee="ada")
+
+    (row,) = _rows(client(DeclaredBacklog(live_value=(owner,))).get("/tickets").text)
+
+    meta = row[row.index('<div class="kv-meta">') :]
+    assert meta.index(">ada<") < meta.index('class="kv-docmarks"')
 
 
 def test_clearing_the_tag_pill_leaves_pinned_tags_in_force(client):

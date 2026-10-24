@@ -11,8 +11,8 @@ class Node:
 
     Counts are of live children only, because that is what a listing holds: a child that closed
     is in the archive and not here. The parent's own acceptance criteria are the other progress a
-    parent has, and they are counted separately since a parent can be done with its children and
-    still owe its own criteria.
+    parent has; its row counts them as any row does, since a parent can be done with its children
+    and still owe its own criteria.
     """
 
     ticket: Ticket
@@ -27,16 +27,6 @@ class Node:
     def beneath(self) -> int:
         """How many live tickets are filed under this one at any depth."""
         return sum(1 + child.beneath for child in self.children)
-
-    @property
-    def met(self) -> int:
-        """How many of this ticket's own acceptance criteria are ticked."""
-        return self.ticket.met
-
-    @property
-    def criteria(self) -> int:
-        """How many criteria this ticket states."""
-        return self.ticket.criteria
 
 
 @dataclass(frozen=True, kw_only=True)

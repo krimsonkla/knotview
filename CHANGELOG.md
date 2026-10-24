@@ -4,6 +4,49 @@ All notable changes are recorded here. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [1.3.0] - unreleased
+
+Related tickets in full on the ticket page, status coloured by its role, and a calmer row: type and status before the title, tags on a line of their own, documents as small squares.
+
+### Added
+
+- The ticket page shows each related ticket in the full row that every list uses: children,
+  blocked by, blocking, linked tickets and siblings. A reference to no ticket is still shown as
+  missing.
+- Children and siblings show open tickets first, then by priority. A line above the list counts
+  each status and the ready tickets. A child that is a parent says how many of its children are
+  closed.
+- Each open blocker says if it is ready to start or how many tickets block it. Closed blockers go
+  last and say when they closed.
+- On blocking, a ticket that only this ticket blocks is marked *only blocker* and comes first.
+- Each node of the dependency tree shows its priority, its assignee, and if it is ready or
+  blocked.
+- The overview's recently changed and recently closed rows show the type and the assignee.
+- Compare rows show the assignee, and a ticket on both sides shows its status on each side.
+
+### Changed
+
+- Every ticket row starts with its type and then its status, before the title on the same line.
+  A long title wraps back under them, so it keeps the row's full width. The ticket page header
+  and the overview's rows start the same way. In the overview's narrow cards, the type and status
+  sit small in the grey line under the title. The type is no longer repeated in the grey line.
+- Each ticket's status is a filled pill after its type. The pill's colour comes from the role of the status in the project: intake green,
+  active amber, other open stages teal, the status that `knot close` uses purple, and other
+  terminal statuses grey. Before, only the words open, in_progress, closed and done had a colour.
+- The pill is on every list, the tree, the ticket page and its related tickets, the overview's
+  parents and its recently changed and recently closed cards, and the compare page. A changed status on the
+  compare page shows as two pills.
+- A row for a ticket in a terminal status has a muted title.
+- Each ticket row has three lines. The first line is the type, as a small outlined label, and the
+  title. The second line is the tags as `key value` facets, not as chips. The third line is the
+  muted facts, without the type, and it ends with `docs` and one small square for each document
+  type: filled when attached, dashed when required and missing. Before, the tags and documents
+  were chips after the title, and most titles wrapped to two lines.
+- The tree uses the same row as the lists. A branch shows its acceptance count once; before, it
+  also showed the count again as "criteria".
+- The overview's status counts and its status charts use the same role colours as the pills.
+  Before, a status such as `todo` was a green pill but a grey dot.
+
 ## [1.2.0] - unreleased
 
 The ready queue ordered by what each ticket frees, progress by tag, and comparing worktrees.

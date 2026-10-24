@@ -289,15 +289,80 @@ a.kv-chip:hover {
   border-radius: 999px;
   background: var(--fgColor-muted);
 }
-.kv-dot.s-open::before {
+/* A dot or bar that stands for a status takes its role's colour, the same as the status pill. */
+.kv-dot.r-intake::before,
+.kv-fill.r-intake {
   background: var(--fgColor-success);
 }
-.kv-dot.s-in_progress::before {
+.kv-dot.r-active::before,
+.kv-fill.r-active {
   background: var(--fgColor-attention);
 }
-.kv-dot.s-closed::before,
-.kv-dot.s-done::before {
+.kv-dot.r-stage::before,
+.kv-fill.r-stage {
+  background: var(--kv-accent);
+}
+.kv-dot.r-closing::before,
+.kv-fill.r-closing {
   background: var(--fgColor-done);
+}
+.kv-dot.r-terminal::before,
+.kv-fill.r-terminal {
+  background: var(--fgColor-muted);
+}
+
+/* A ticket's status as a filled pill, like GitHub's Open and Closed labels, and the same height */
+/* and weight as the priority badge beside it. It is coloured by the role the project gives the */
+/* status (Project.status_role), not by its word, so five rules cover every project's statuses: */
+/* intake green, active amber, other stages the accent, the closing status purple, and any */
+/* other terminal status grey. The border is the pill's own colour, thinned, because Primer's */
+/* muted border tokens are not among those vendored. */
+.kv-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 var(--kv-space-2);
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+a.kv-status:hover {
+  text-decoration: none;
+  filter: brightness(1.25);
+}
+.kv-status.r-intake {
+  color: var(--fgColor-success);
+  background: var(--bgColor-success-muted);
+  border-color: color-mix(in srgb, var(--fgColor-success) 40%, transparent);
+}
+.kv-status.r-active {
+  color: var(--fgColor-attention);
+  background: var(--bgColor-attention-muted);
+  border-color: color-mix(in srgb, var(--fgColor-attention) 40%, transparent);
+}
+.kv-status.r-stage {
+  color: var(--kv-accent);
+  background: var(--kv-accent-muted);
+  border-color: color-mix(in srgb, var(--kv-accent) 40%, transparent);
+}
+.kv-status.r-closing {
+  color: var(--fgColor-done);
+  background: var(--bgColor-done-muted);
+  border-color: color-mix(in srgb, var(--fgColor-done) 40%, transparent);
+}
+.kv-status.r-terminal {
+  color: var(--fgColor-muted);
+  background: var(--bgColor-neutral-muted);
+  border-color: color-mix(in srgb, var(--fgColor-muted) 40%, transparent);
+}
+.kv-status.large {
+  height: 32px;
+  padding: 0 var(--kv-space-3);
+  font-size: 14px;
 }
 
 .kv-badge {
@@ -397,10 +462,22 @@ a.kv-badge:hover {
 .kv-row.since-last-look {
   box-shadow: inset 3px 0 0 var(--kv-accent);
 }
-.kv-row > .kv-dot {
+/* The status is the row's first column, wide enough for the usual words, so the pills line up */
+/* down a list and the titles start at one edge. */
+.kv-row > .kv-status {
   flex: 0 0 auto;
-  min-width: 7.5em;
-  padding-top: 2px;
+}
+/* A ticket in a terminal status recedes, so the open work is what a list leads with. */
+.kv-row:has(
+    > .kv-status.r-closing,
+    > .kv-status.r-terminal,
+    .kv-row-title > .kv-status.r-closing,
+    .kv-row-title > .kv-status.r-terminal,
+    .kv-meta > .kv-status.r-closing,
+    .kv-meta > .kv-status.r-terminal
+  )
+  .title {
+  color: var(--fgColor-muted);
 }
 .kv-row-main {
   flex: 1 1 auto;
@@ -411,19 +488,100 @@ a.kv-badge:hover {
   color: var(--fgColor-default);
   font-weight: 600;
 }
-.kv-narrow .kv-row > .kv-dot {
+/* In the overview's narrow cards the type and status sit small in the muted line, so the title */
+/* has the card's whole width. */
+.kv-meta > .kv-type,
+.kv-meta > .kv-status {
   min-width: 0;
+  height: 18px;
+  padding: 0 6px;
+  font-size: 11px;
 }
-.kv-row-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px var(--kv-space-2);
+/* A row's first line flows: its type and status, then the title, which wraps back under them to */
+/* the row's full width. As fixed columns they took about 13em from every title. */
+.kv-row-title > .kv-type,
+.kv-row-title > .kv-status {
+  height: 20px;
+  margin-right: 6px;
+  padding: 0 6px;
+  font-size: 11px;
+  vertical-align: 1px;
+}
+.kv-row-title > .kv-status {
+  margin-right: var(--kv-space-2);
+}
+.kv-row-title > .kv-chip {
+  margin-left: 6px;
+}
+.kv-row-title.compact > a.title {
+  font-size: 14px;
 }
 .kv-row-title > a.title {
   color: var(--fgColor-default);
   font-weight: 600;
   font-size: 15px;
+}
+/* A ticket's type: a small outlined label, as GitHub draws an issue's type. */
+.kv-type {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--kv-radius);
+  color: var(--fgColor-default);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+a.kv-type:hover {
+  text-decoration: none;
+  border-color: var(--fgColor-muted);
+}
+/* Rows lead with the type, then the status: two fixed columns, so both line up down a list. */
+.kv-type.large {
+  height: 32px;
+  padding: 0 var(--kv-space-3);
+  font-size: 14px;
+}
+/* The second line: the tags as `key value` facets, quieter than chips, each a link to its tag. */
+.kv-facets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--kv-space-3);
+  margin-top: 2px;
+  font-size: 12px;
+}
+.kv-facets a {
+  color: var(--fgColor-default);
+}
+.kv-facets .key {
+  color: var(--fgColor-muted);
+}
+/* The muted line ends with a square per document type: filled when attached, dashed when a */
+/* required one is missing. The group's title names them all. */
+/* A row's documents as small squares; not .kv-docs, which is the ticket page's card grid. */
+.kv-docmarks {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.kv-doc {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--fgColor-done);
+  border-radius: 2px;
+  background: var(--fgColor-done);
+}
+.kv-doc.missing {
+  border: 1px dashed var(--borderColor-attention-emphasis);
+  background: transparent;
 }
 .kv-meta {
   display: flex;
@@ -697,17 +855,8 @@ button.kv-pill {
 .kv-fill.done {
   background: var(--fgColor-done);
 }
-/* Bars and dots coloured as the mockup draws them: by status, by queue and by priority. */
-.kv-fill.s-open,
-.kv-dot.q-ready::before {
-  background: var(--fgColor-success);
-}
-.kv-fill.s-in_progress {
-  background: var(--fgColor-attention);
-}
-.kv-fill.s-closed {
-  background: var(--fgColor-done);
-}
+/* Bars and dots coloured as the mockup draws them: by queue and by priority. Status bars and */
+/* dots are coloured by role, with the status pill's rules above. */
 .kv-dot.q-ready::before {
   background: var(--kv-accent);
 }
@@ -891,13 +1040,6 @@ button.kv-pill {
   margin: 0 0 var(--kv-space-6);
   padding-bottom: var(--kv-space-4);
   border-bottom: 1px solid var(--borderColor-default);
-}
-.kv-summary .kv-dot {
-  height: 28px;
-  padding: 0 var(--kv-space-3);
-  border: 1px solid var(--borderColor-default);
-  border-radius: var(--kv-radius);
-  font-size: 13px;
 }
 .kv-summary a {
   color: inherit;
@@ -1092,11 +1234,6 @@ details.kv-card.kv-fold > summary::first-letter {
 .kv-children > li > .kv-branch > summary {
   border-top: 1px solid var(--borderColor-muted);
 }
-.kv-leafnote {
-  display: block;
-  padding: 0 var(--kv-space-4) var(--kv-space-2) calc(7.5em + 28px);
-  font-size: 12px;
-}
 
 /* A document: its tabs, its "all" menu, the body and its outline. */
 .kv-doctabs {
@@ -1188,11 +1325,14 @@ details.kv-card.kv-fold > summary::first-letter {
   .kv-main {
     padding: var(--kv-space-4);
   }
+  /* The title takes whatever width the badge leaves, so a row never wraps by its content and */
+  /* the badge stays at the right edge; only a full-width part such as a progress bar drops below. */
   .kv-row {
     flex-wrap: wrap;
+    row-gap: var(--kv-space-2);
   }
-  .kv-row > .kv-dot {
-    min-width: 0;
+  .kv-row > .kv-row-main {
+    flex: 1 1 0;
   }
   .kv-progress {
     width: 100%;

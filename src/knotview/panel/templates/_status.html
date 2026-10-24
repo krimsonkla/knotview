@@ -1,0 +1,17 @@
+{# A status as a filled pill, coloured by the role the project gives it rather than by its word, #}
+{# so a project's own `todo` or `spec` is coloured like knot's `open` or a stage would be. The #}
+{# role comes from `Project.status_role`. With `href` the pill is a link; without, plain text. #}
+{# `large` is the ticket page's own header. #}
+{# A ticket's type as an outlined label that opens every ticket of that type. Rows lead with it, #}
+{# before the status, since a reader asks what a ticket is before asking where it stands. #}
+{% macro kind(type, large=false) -%}
+<a class="kv-type{{ ' large' if large }}" href="/tickets?type={{ type | urlencode }}" title="every {{ type }}">{{ type }}</a>
+{%- endmacro %}
+{% macro pill(project, status, href=none, large=false) -%}
+{% set classes = "kv-status r-" ~ project.status_role(status) ~ (" large" if large else "") -%}
+{% if href -%}
+<a class="{{ classes }}" href="{{ href }}">{{ status }}</a>
+{%- else -%}
+<span class="{{ classes }}">{{ status }}</span>
+{%- endif %}
+{%- endmacro %}

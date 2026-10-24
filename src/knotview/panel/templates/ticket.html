@@ -1,15 +1,33 @@
 {% extends "layout.html" %} {% block title %}{{ ticket.id }}{% endblock %} {% block main %}
 {% from "_time.html" import stamp, ago %}
+{% from "_status.html" import kind, pill %}
 {# One ticket, leading with what a reader came for: the title and one summary line, then its
 documents, then the description. Later sections fold, related tickets sit behind tabs, and the
 facts about the ticket sit in a sidebar. Nothing empty is drawn. Folds and the chosen tab are
 remembered for the tab by fold.js, so the page's own reload after a backlog change keeps them. #}
-{% macro ref_rows(references) %}{% for reference in references %}
+{# A related ticket no listing holds is drawn from the reference alone: missing if knot says no
+ticket has the id, or its status and title as `show` stated them. #}
+{% macro ref_row(reference) %}
 <div class="kv-row">
-  {% if reference.missing %}<span class="kv-chip">missing</span><span class="kv-muted">no ticket has this id</span>{% else %}<a class="kv-dot s-{{ reference.status }}" href="/ticket/{{ reference.id | segment }}">{{ reference.status }}</a><div class="kv-row-main"><a class="title" href="/ticket/{{ reference.id | segment }}">{{ reference.title }}</a></div>{% endif %}
+  {% if reference.missing %}<span class="kv-chip">missing</span><span class="kv-muted">no ticket has this id</span>{% else %}{{ pill(project, reference.status, "/ticket/" ~ reference.id | segment) }}<div class="kv-row-main"><a class="title" href="/ticket/{{ reference.id | segment }}">{{ reference.title }}</a></div>{% endif %}
   <span class="kv-mono kv-muted">{{ reference.id }}</span>
 </div>
+{% endmacro %}
+{# Related tickets in full, through the one row every list uses, each with the fact its tab adds:
+how far along its own children are, whether a blocker can start, or that this ticket is the last
+thing in its way. #}
+{% macro related_rows(relatives, kind) %}{% for relative in relatives %}
+{% if relative.ticket %}{% set one = relative.ticket %}{% set fact %}
+{% if kind == "blocker" %}{% if project.is_live(one) %}{% if relative.ready %}<span class="kv-dot q-ready">ready to start</span>{% elif relative.waiting_on %}<span class="kv-dot q-blocked">blocked by {{ relative.waiting_on | length }}</span>{% endif %}{% elif one.closed %}<span>closed {{ ago(one.closed) }}</span>{% endif %}
+{% elif kind == "blocking" %}{% if relative.only_blocker %}<span class="kv-chip" title="closing this ticket makes it ready">only blocker</span>{% endif %}
+{% elif kind == "family" and relative.children_total %}<span>{{ relative.children_closed }} of {{ relative.children_total }} children closed</span>{% endif %}
+{% endset %}{% include "_row.html" %}
+{% else %}{{ ref_row(relative.reference) }}{% endif %}
 {% endfor %}{% endmacro %}
+{# How many of a list are in each status, and how many knot would let start now. #}
+{% macro tally(counts, ready) %}<p class="kv-muted kv-tally">{% for status, count in counts %}{{ count }} {{ status }}{% if not loop.last %} · {% endif %}{% endfor %}{% if ready %} · {{ ready }} ready{% endif %}</p>{% endmacro %}
+{# The related rows are short lists under one ticket, so they are not marked since the last look. #}
+{% set unmarked = true %}
 
 <p class="kv-muted kv-crumb">
   <a href="/tickets">Tickets</a> /
@@ -18,8 +36,9 @@ remembered for the tab by fold.js, so the page's own reload after a backlog chan
 </p>
 <h1 class="kv-title">{{ ticket.title }} <span class="kv-mono kv-muted">{{ ticket.id }}</span></h1>
 <p class="kv-summary">
-  <a class="kv-dot s-{{ ticket.status }}" href="/tickets?status={{ ticket.status | urlencode }}">{{ ticket.status }}</a>
-  <span class="kv-muted"><a href="/tickets?type={{ ticket.type | urlencode }}">{{ ticket.type }}</a>{% if ticket.created %} · created {{ ago(ticket.created) }}{% endif %}{% if ticket.updated %} · updated {{ ago(ticket.updated) }}{% endif %}{% if ticket.closed %} · closed {{ ago(ticket.closed) }}{% endif %}{% if documents %} · {{ documents | length }} document{{ "s" if documents | length != 1 }}{% endif %}{% if children_total %} · {{ children_closed }} of {{ children_total }} children closed{% endif %}</span>
+  {{ kind(ticket.type, large=true) }}
+  {{ pill(project, ticket.status, "/tickets?status=" ~ ticket.status | urlencode, large=true) }}
+  <span class="kv-muted">{% if ticket.created %}created {{ ago(ticket.created) }}{% endif %}{% if ticket.updated %} · updated {{ ago(ticket.updated) }}{% endif %}{% if ticket.closed %} · closed {{ ago(ticket.closed) }}{% endif %}{% if documents %} · {{ documents | length }} document{{ "s" if documents | length != 1 }}{% endif %}{% if children_total %} · {{ children_closed }} of {{ children_total }} children closed{% endif %}</span>
 </p>
 
 <div class="kv-layout">
@@ -86,11 +105,11 @@ remembered for the tab by fold.js, so the page's own reload after a backlog chan
     </details>
     {% endif %}
 
-    {% set relations = ticket.blockers | length + ticket.blocking | length + missing_types | length %}
+    {% set relations = blockers | length + blocking | length + missing_types | length %}
     {% set tabs = [] %}
     {% if children_total %}{% set _ = tabs.append(("tab-children", "Children", children_total)) %}{% endif %}
     {% if relations %}{% set _ = tabs.append(("tab-relations", "Blocked by & blocking", relations)) %}{% endif %}
-    {% if ticket.linked %}{% set _ = tabs.append(("tab-linked", "Linked", ticket.linked | length)) %}{% endif %}
+    {% if linked %}{% set _ = tabs.append(("tab-linked", "Linked", linked | length)) %}{% endif %}
     {% if siblings %}{% set _ = tabs.append(("tab-siblings", "Siblings", siblings | length)) %}{% endif %}
     {% if dependencies.deps %}{% set _ = tabs.append(("tab-graph", "Depends on", "")) %}{% endif %}
     {% if tabs %}
@@ -107,33 +126,35 @@ remembered for the tab by fold.js, so the page's own reload after a backlog chan
         {% if hiding_closed %}<a class="kv-toggle" href="/ticket/{{ ticket.id | segment }}">show closed</a>
         {% elif children_closed %}<a class="kv-toggle" href="/ticket/{{ ticket.id | segment }}?children=live">hide closed ({{ children_closed }})</a>{% endif %}
       </h3>
-      <div class="kv-card">{{ ref_rows(children) }}</div>
+      {{ tally(children_tally, children_ready) }}
+      <div class="kv-card kv-list">{{ related_rows(children, "family") }}</div>
     </section>
     {% endif %}
     {% if relations %}
     <section class="kv-tabpanel" id="tab-relations">
-      {% if ticket.blockers or missing_types %}
-      <h3 class="kv-wave">blocked by <span class="kv-count" title="the tickets blocking this, and the required documents it lacks">{{ ticket.blockers | length + missing_types | length }}</span></h3>
-      <div class="kv-card">
-        {{ ref_rows(ticket.blockers) }}
+      {% if blockers or missing_types %}
+      <h3 class="kv-wave">blocked by <span class="kv-count" title="the tickets blocking this, and the required documents it lacks">{{ blockers | length + missing_types | length }}</span></h3>
+      <div class="kv-card kv-list">
+        {{ related_rows(blockers, "blocker") }}
         {% for kind, statuses in missing_types %}
         <div class="kv-row lacking"><span class="kv-chip doc missing">{{ kind }}</span><span>no {{ kind }} attached</span><span class="kv-muted">needed to enter {{ statuses | join(", ") }}</span></div>
         {% endfor %}
       </div>
       {% endif %}
-      {% if ticket.blocking %}
-      <h3 class="kv-wave">blocking <span class="kv-count">{{ ticket.blocking | length }}</span></h3>
-      <div class="kv-card">{{ ref_rows(ticket.blocking) }}</div>
+      {% if blocking %}
+      <h3 class="kv-wave">blocking <span class="kv-count">{{ blocking | length }}</span></h3>
+      <div class="kv-card kv-list">{{ related_rows(blocking, "blocking") }}</div>
       {% endif %}
     </section>
     {% endif %}
-    {% if ticket.linked %}
-    <section class="kv-tabpanel" id="tab-linked"><div class="kv-card">{{ ref_rows(ticket.linked) }}</div></section>
+    {% if linked %}
+    <section class="kv-tabpanel" id="tab-linked"><div class="kv-card kv-list">{{ related_rows(linked, "linked") }}</div></section>
     {% endif %}
     {% if siblings %}
     <section class="kv-tabpanel" id="tab-siblings">
       <h3 class="kv-wave">also under {{ parent.title }} <span class="kv-count">{{ siblings | length }}</span></h3>
-      <div class="kv-card">{{ ref_rows(siblings) }}</div>
+      {{ tally(siblings_tally, siblings_ready) }}
+      <div class="kv-card kv-list">{{ related_rows(siblings, "family") }}</div>
     </section>
     {% endif %}
     {% if dependencies.deps %}
@@ -147,9 +168,14 @@ remembered for the tab by fold.js, so the page's own reload after a backlog chan
           <span class="kv-chip">missing</span>
           <span class="kv-mono">{{ node.id }}</span>
           {% else %}
-          <a class="kv-dot s-{{ node.status }}" href="/ticket/{{ node.id | segment }}">{{ node.status }}</a>
+          {% set full = related.relative(node) %}
+          {% if full.ticket %}{{ kind(full.ticket.type) }}{% endif %}
+          {{ pill(project, node.status, "/ticket/" ~ node.id | segment) }}
+          {% if full.ticket %}<span class="kv-badge p{{ full.ticket.priority }}">P{{ full.ticket.priority }}</span>{% endif %}
           <a href="/ticket/{{ node.id | segment }}">{{ node.title }}</a>
           <span class="kv-mono kv-muted">{{ node.id }}</span>
+          {% if full.ticket %}{% if full.ticket.assignee %}<span class="kv-muted">{{ full.ticket.assignee }}</span>{% endif %}
+          {% if project.is_live(full.ticket) %}{% if full.ready %}<span class="kv-dot q-ready">ready</span>{% elif full.waiting_on %}<span class="kv-dot q-blocked" title="waits on {{ full.waiting_on | length }} {{ 'ticket' if full.waiting_on | length == 1 else 'tickets' }} not yet closed">blocked</span>{% endif %}{% endif %}{% endif %}
           {% if node.seen_before %}<span class="kv-muted">drawn above</span>{% endif %}
           {% if node.deps %}
           <ul class="deps">

@@ -110,3 +110,58 @@ def test_references_sort_by_declared_status_then_undeclared_then_missing_whateve
     ordered = DOCUMENTED.by_status((gone, shut, odd, first, second))
 
     assert [one.id for one in ordered] == ["o1", "o2", "c", "u", "g"]
+
+
+# A project whose words knotview has never seen, so only the roles can colour them: an intake
+# called `todo`, two stages, an active lane, the status `knot close` uses and a second terminal one.
+STAGED = replace(
+    PROJECT,
+    statuses=("todo", "brainstorm", "spec", "implement", "done", "dropped"),
+    active_status="implement",
+    terminal_statuses=("dropped", "done"),
+)
+
+
+def test_each_status_plays_the_role_its_configuration_gives_it_whatever_its_word():
+    roles = {status: STAGED.status_role(status) for status in STAGED.statuses}
+
+    assert roles == {
+        "todo": "intake",
+        "brainstorm": "stage",
+        "spec": "stage",
+        "implement": "active",
+        "done": "closing",
+        "dropped": "terminal",
+    }
+
+
+def test_knot_s_own_words_play_the_roles_knot_gives_them():
+    assert [PROJECT.status_role(one) for one in PROJECT.statuses] == [
+        "intake",
+        "active",
+        "closing",
+    ]
+
+
+def test_the_intake_is_the_first_status_that_is_neither_active_nor_terminal():
+    started_first = replace(PROJECT, statuses=("in_progress", "open", "closed"))
+
+    assert started_first.status_role("open") == "intake"
+    assert started_first.status_role("in_progress") == "active"
+
+
+def test_an_undeclared_status_is_a_stage_unless_knot_calls_it_terminal():
+    assert PROJECT.status_role("parked") == "stage"
+    assert replace(PROJECT, terminal_statuses=("closed", "gone")).status_role("gone") == "terminal"
+
+
+def test_a_terminal_status_the_project_never_lists_is_closing_when_knot_names_it_first():
+    unlisted = replace(PROJECT, statuses=("open", "in_progress"), terminal_statuses=("closed",))
+
+    assert unlisted.status_role("closed") == "closing"
+
+
+def test_a_project_with_only_terminal_and_active_statuses_has_no_intake():
+    bare = replace(PROJECT, statuses=("in_progress", "closed"))
+
+    assert bare.status_role("open") == "stage"

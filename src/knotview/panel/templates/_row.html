@@ -1,23 +1,26 @@
-{# One ticket in a list: its status, its title with its tags and documents, a muted line of what #}
-{# else is known, and its priority. Expects `one`, `project`, `selection` and `show_missing`, and #}
-{# `frees` where a ready list wants each row to say how much closing it would free. #}
-{# A value the ticket does not have is left out rather than drawn as a dash. #}
+{# One ticket in a list, in three lines: its type, status and title, the title flowing after them; its tags as quiet `key value` facets; #}
+{# and a muted line of what else is known, ending with a small square per document. Expects `one`, #}
+{# `project`, `selection` and `show_missing`, and `frees` where a ready list wants each row to say #}
+{# how much closing it would free, and `fact` where a page adds facts of its own to the muted line, #}
+{# as the ticket page and the tree do. `row_tag` names the row's element, `summary` for a tree #}
+{# branch that folds. A value the ticket does not have is left out rather than drawn as a dash. #}
 {% from "_time.html" import ago %}
+{% from "_status.html" import kind, pill %}
+{% set folds = row_tag is defined and row_tag == "summary" %}
+{% set marked %}{% if not unmarked %} data-updated="{{ one.updated or '' }}"{% endif %}{% endset %}
 {# The since-last-look mark rides on data-updated, so a page that wants rows unmarked sets #}
 {# `unmarked` and its rows carry no instant for follow.js to compare. #}
-<div class="kv-row"{% if not unmarked %} data-updated="{{ one.updated or '' }}"{% endif %}>
-  <a class="kv-dot s-{{ one.status }}" href="/tickets?status={{ one.status | urlencode }}">{{ one.status }}</a>
+{% if folds %}<summary class="kv-row"{{ marked }}>{% else %}<div class="kv-row"{{ marked }}>{% endif %}
   <div class="kv-row-main">
     <div class="kv-row-title">
+      {{ kind(one.type) }}{{ pill(project, one.status, "/tickets?status=" ~ one.status | urlencode) }}
       <a class="title" href="/ticket/{{ one.id | segment }}">{{ one.title }}</a>
-      {% for tag in one.tags %}<a class="kv-chip" href="/tickets?tag={{ tag | urlencode }}">{{ tag }}</a>{% endfor %}
-      {% for kind in project.types_of(one) %}<a class="kv-chip doc" href="/ticket/{{ one.id | segment }}#documents">{{ kind }}</a>{% endfor %}
-      {% if show_missing and project.is_live(one) %}{% for kind, statuses in project.missing_by_type(one) %}<span class="kv-chip doc missing" title="needed to enter {{ statuses | join(', ') }}">{{ kind }}</span>{% endfor %}{% endif %}
     </div>
+    {# A `key:value` tag reads as its key, muted, then its value; any other tag as itself. #}
+    {% if one.tags %}<div class="kv-facets">{% for tag in one.tags %}{% set key, colon, value = tag.partition(":") %}<a href="/tickets?tag={{ tag | urlencode }}">{% if key and value %}<span class="key">{{ key }}</span> {{ value }}{% else %}{{ tag }}{% endif %}</a>{% endfor %}</div>{% endif %}
     {% if selection.deep and selection.excerpt(one) %}<div class="kv-meta kv-excerpt">{{ selection.excerpt(one) }}</div>{% endif %}
     <div class="kv-meta">
       <span class="kv-mono">{{ one.id }}</span>
-      <span>·</span><a href="/tickets?type={{ one.type | urlencode }}">{{ one.type }}</a>
       {% if one.assignee %}<span>·</span><a href="/tickets?assignee={{ one.assignee | urlencode }}">{{ one.assignee }}</a>{% endif %}
       {% set when = "created" if selection.order == "created" else "updated" %}
       {% if one[when] %}<span>·</span><span>{{ when }} {{ ago(one[when]) }}</span>{% endif %}
@@ -26,7 +29,15 @@
       {% if blocking %}<span>·</span><span>blocked by {{ blocking | length }}</span>{% endif %}
       {% if ((frees is defined and frees) or selection.order == "leverage") and one.leverage %}<span>·</span><span title="closing it frees {{ one.leverage }} {{ 'ticket' if one.leverage == 1 else 'tickets' }} waiting on it, directly or through others">frees {{ one.leverage }}</span>{% endif %}
       {% if selection.order == "level" and one.level is not none %}<span>·</span><span>level {{ one.level }}</span>{% endif %}
+      {% if fact is defined and fact | trim %}<span>·</span>{{ fact | trim }}{% endif %}
+      {# One square per document type: filled when attached, dashed when required and missing. #}
+      {% set attached = project.types_of(one) %}
+      {% set lacking = project.missing_by_type(one) if show_missing and project.is_live(one) else () %}
+      {% if attached or lacking %}<span>·</span><span class="kv-docmarks" title="{% for kind in attached %}{{ kind }}{% if not loop.last or lacking %}, {% endif %}{% endfor %}{% for kind, statuses in lacking %}missing {{ kind }}{% if not loop.last %}, {% endif %}{% endfor %}">docs
+        {%- for kind in attached %} <a class="kv-doc" href="/ticket/{{ one.id | segment }}#documents" title="{{ kind }}" aria-label="{{ kind }}"></a>{% endfor %}
+        {%- for kind, statuses in lacking %} <span class="kv-doc missing" title="missing {{ kind }}, needed to enter {{ statuses | join(', ') }}" aria-label="missing {{ kind }}"></span>{% endfor -%}
+      </span>{% endif %}
     </div>
   </div>
   <div class="kv-row-end"><a class="kv-badge p{{ one.priority }}" href="/tickets?priority={{ one.priority }}" title="every ticket at P{{ one.priority }}">P{{ one.priority }}</a></div>
-</div>
+{% if folds %}</summary>{% else %}</div>{% endif %}

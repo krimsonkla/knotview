@@ -101,6 +101,7 @@ CHILD = ticket(
         Reference(id="pro-01m2cccccccc", title="The closed one", status="closed"),
         Reference(id="pro-01m2zzzzzzzz", title="", status="", missing=True),
     ),
+    deps=("pro-01m2cccccccc", "pro-01m2zzzzzzzz"),
     linked=(Reference(id="pro-01m2dddddddd", title="The orphan", status="open"),),
     external_refs=("https://example.test/1",),
 )
