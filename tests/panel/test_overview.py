@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from knotview.panel.app import _ago
-from knotview.panel.overview import _named, _plural
+from knotview.panel.overview import _named, _plural, _start_here
 from knotview.reading.knot_command import _issue
 from knotview.values.attention import Attention
 from knotview.values.criterion import Criterion
@@ -353,6 +353,8 @@ def test_with_nothing_filed_under_anything_the_card_lists_what_is_ready(client):
 
     assert "<h2>ready</h2>" in card
     assert card.index("Ready zero") < card.index("Ready one")
+    assert "frees" not in card
+
     assert 'href="/queue/ready">See all 2 ready</a>' in card
 
 
@@ -364,3 +366,63 @@ def test_with_nothing_ready_either_the_card_lists_the_open_tickets(client):
 
     assert "<h2>open tickets</h2>" in card and "Waiting" in card
     assert 'href="/tickets">See all 1</a>' in card
+
+
+def test_the_ready_card_leads_with_what_frees_most_and_says_how_much(client):
+    flat = (
+        ticket("pro-01m2r1111111", title="Urgent leaf", priority=0, leverage=0),
+        ticket("pro-01m2r2222222", title="Frees two", priority=3, leverage=2),
+    )
+    backlog = DeclaredBacklog(live_value=flat, ready_value=flat, closed_value=())
+
+    card = client(backlog).get("/").text.split('<section class="kv-card kv-wide">')[1]
+    card = card[: card.index("</section>")]
+
+    assert card.index("Frees two") < card.index("Urgent leaf")
+    assert card.count(">frees 2</span>") == 1 and "start here" not in card
+
+
+def test_with_parents_the_overview_points_at_the_ready_tickets_that_free_most(client):
+    top = ticket("pro-01m2t1111111", title="Frees three", leverage=3, priority=2)
+    tie = ticket("pro-01m2t2222222", title="Also frees three", leverage=3, priority=1)
+    less = ticket("pro-01m2t3333333", title="Frees one", leverage=1)
+
+    page = client(DeclaredBacklog(ready_value=(less, top, tie))).get("/").text
+    pointer = page[page.index('<h2 class="kv-wave">start here</h2>') :]
+    pointer = pointer[: pointer.index("</section>")]
+
+    assert "closing any of these frees the most tickets" in pointer
+    assert 'href="/queue/ready">The ready queue</a>' in pointer
+    assert pointer.index("Also frees three") < pointer.index("Frees three")
+    assert pointer.count(">frees 3</span>") == 2 and "Frees one" not in pointer
+
+
+def test_start_here_waits_behind_the_gear_until_the_reader_asks_for_it(client):
+    top = ticket("pro-01m2t1111111", title="Frees three", leverage=3)
+
+    page = client(DeclaredBacklog(ready_value=(top,))).get("/").text
+
+    assert '<section data-chart="start here" hidden>' in page
+    assert 'data-chart-toggle="start here" />' in page
+
+
+def test_one_ticket_that_frees_most_is_pointed_at_as_it(client):
+    top = ticket("pro-01m2t1111111", title="Frees three", leverage=3)
+
+    page = client(DeclaredBacklog(ready_value=(top, CHILD))).get("/").text
+
+    assert "start here" in page and "closing it frees the most tickets" in page
+
+
+def test_no_pointer_shows_when_no_ready_ticket_frees_anything(client):
+    page = client(DeclaredBacklog()).get("/").text
+
+    assert "start here" not in page
+
+
+def test_the_pointer_holds_only_the_ties_at_the_top_and_at_most_three():
+    many = (*(ticket(f"pro-{at}", leverage=4) for at in range(5)), ticket("x", leverage=9))
+
+    assert [one.id for one in _start_here(many)] == ["x"]
+    assert [one.id for one in _start_here(many[:5])] == ["pro-0", "pro-1", "pro-2"]
+    assert not _start_here((ticket("y", leverage=0), ticket("z"))) and not _start_here(())

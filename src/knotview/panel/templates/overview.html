@@ -57,12 +57,14 @@ Each counted link names its card in `data-card`, which the tests read to follow 
 show unless the reader hides them; the rest repeat the headline counts and show when asked. #}
 {% set charts = ["by priority", "by type", "by status"] + (["closed"] if overview.by_terminal else [])
   + (["by document"] if overview.by_document else []) + ["queues"]
+  + (["by tag"] if overview.by_tag else [])
+  + (["start here"] if overview.epics and overview.start_here else [])
   + (["open over time", "opened and closed"] if overview.trend.shown else [])
   + (["lead time"] if overview.trend.lead else []) %}
 <dialog class="kv-dialog" id="charts-dialog" aria-label="Charts">
   <h2>Charts</h2>
   <div class="kv-dialog-body">
-    <p class="kv-muted">Choose the charts this overview shows. The choice is kept in this browser.</p>
+    <p class="kv-muted">Choose what this overview shows. The choice is kept in this browser.</p>
     <fieldset class="kv-fieldset">
       <legend>Show</legend>
       {% for chart in charts %}
@@ -84,6 +86,7 @@ show unless the reader hides them; the rest repeat the headline counts and show 
   {% call bars("queues", "queues", overview.by_queue, by_queue) %}
   <a class="kv-bar" href="/tickets" data-card="queues"><span>live</span><span class="kv-track"><span class="kv-fill" style="width: 100%"></span></span><span class="kv-num">{{ overview.live_total }}</span></a>
   {% endcall %}
+  {% if overview.by_tag %}{% include "_by_tag.html" %}{% endif %}
   {% if overview.trend.shown %}{% include "_trend.html" %}{% endif %}
 </div>
 
@@ -91,6 +94,16 @@ show unless the reader hides them; the rest repeat the headline counts and show 
 <h2 class="kv-wave">ready to close</h2>
 <p class="kv-muted">In progress with every acceptance criterion ticked. knot's own advice is to close these before picking up new work.</p>
 {% set tickets = overview.ready_to_close %} {% include "_rows.html" %}
+{% endif %}
+{# With parents on the wide card the ready queue is not listed here, so the tickets that free the
+most are pointed at on their own; without parents the card lists the ready queue in that order. #}
+{# It is the reader's choice from the gear, hidden until asked for, like the charts. #}
+{% if overview.epics and overview.start_here %}
+<section data-chart="start here" hidden>
+<h2 class="kv-wave">start here</h2>
+<p class="kv-muted">Ready, and closing {{ "it" if overview.start_here | length == 1 else "any of these" }} frees the most tickets. <a href="/queue/ready">The ready queue</a> lists the rest, ordered by how many tickets closing each one frees.</p>
+{% with tickets = overview.start_here, frees = true %}{% include "_rows.html" %}{% endwith %}
+</section>
 {% endif %}
 {% if overview.stale %}
 <h2 class="kv-wave">stale</h2>
@@ -119,7 +132,7 @@ show unless the reader hides them; the rest repeat the headline counts and show 
     </div>
     {% endfor %}
     {% else %}
-    {% set listed, title, more, word = (overview.ready_first, "ready", "/queue/ready", " ready") if overview.ready_first else (overview.open_first, "open tickets", "/tickets", "") %}
+    {% set listed, title, more, word, frees = (overview.ready_first, "ready", "/queue/ready", " ready", true) if overview.ready_first else (overview.open_first, "open tickets", "/tickets", "", false) %}
     <h2>{{ title }}</h2>
     {% for one in listed[:8] %}{% include "_row.html" %}{% else %}
     <p class="kv-row kv-muted">Nothing is open.</p>

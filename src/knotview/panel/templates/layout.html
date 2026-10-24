@@ -37,7 +37,7 @@ pinned to narrow every page, and the live indicator. `current` names this page's
         {% include "_theme.html" %}
         {% include "_pinned.html" %}
         <span id="since" class="kv-chip active since" hidden title="rows marked: updated since you last looked; click to clear"></span>
-        <span id="live" class="kv-live live" title="following the backlog"{% if carried %} data-digest="{{ carried }}"{% endif %}>live</span>
+        <span id="live" class="kv-live live" title="following the backlog"{% if carried %} data-digest="{{ carried }}"{% endif %}{% if follow %} data-follow="{{ follow }}"{% endif %}>live</span>
       </div>
     </header>
 

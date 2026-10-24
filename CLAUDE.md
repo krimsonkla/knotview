@@ -17,8 +17,8 @@
 - `src/knotview/entry/` the `knotview` command and the saved-projects file
 - `src/knotview/reading/` the `Backlog` port, its one implementation over `knot ... --json`, the
   envelope reader, and `GitWorktrees`, which lists the repository's worktrees
-- `src/knotview/panel/` the FastAPI app (`Pages` and `panel()`), the selection, tree, overview
-  and trend values, the worktree resolver and cookie, the templates and the static files
+- `src/knotview/panel/` the FastAPI app (`Pages` and `panel()`), the selection, tree, overview,
+  trend and comparison values, the worktree resolver and cookie, the templates and the static files
 - `src/knotview/values/` frozen dataclasses: Ticket, Project, Criterion, Reference, Worktree, and
   the two refusals
 - `scripts/` maintenance tools outside the package and the coverage gate: `vendor_primer.py`
@@ -76,6 +76,14 @@ picks one per request from the `knotview_worktree_<digest>` cookie, matched agai
 choice and the page's carried digest once per request; `/digest` checks the cookie against the last
 page render's listing and never runs git.
 
+`/compare?with=<path>` compares the chosen worktree's backlog with one other listed worktree.
+`Backlogs.beside` matches `with` against git's list (never the worktree being read) and returns the
+same cached `KnotCommand` a choice of that worktree uses; anything unlisted reads nothing and shows
+the picker. `panel/comparison.py` sorts tickets into only-here, only-there, closed on one side,
+changed (status, priority, title, type) and alike. The page carries both digests joined with `~`
+and names `/digest?with=<path>` in `data-follow` on `#live`, so `follow.js` polls that instead and
+reloads when either side moves; an unreadable other side is carried as `-`.
+
 ## Key Files
 
 - `src/knotview/reading/knot_command.py`: `READS`, `_spoken` (argv with `--json --`), the
@@ -96,6 +104,7 @@ page render's listing and never runs git.
   parser.
 - `src/knotview/panel/worktrees.py`: `Backlogs`, the per-worktree reader cache and the choice.
 - `src/knotview/panel/worktree_choice.py`: the worktree cookie's name, encoding and matching.
+- `src/knotview/panel/comparison.py`: `Comparison`, two worktrees' tickets grouped by difference.
 - `tests/reading/conftest.py`: the fake `knot` and `git` scripts the reading tests drive.
 - `tests/reading/record_envelopes.py`: regenerates the recorded envelopes from a real knot.
 

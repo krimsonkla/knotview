@@ -150,6 +150,9 @@ var keepSearch = function () {
   // a worktree switched in another tab, still reloads this page. Without it, the first answer is
   // the baseline, as before.
   var known = badge.getAttribute("data-digest");
+  // A page that follows more than the chosen worktree, such as a comparison, names the digest
+  // that covers what it shows; every other page follows the chosen worktree's.
+  var source = badge.getAttribute("data-follow") || "/digest";
   var timer = null;
   var asking = false;
 
@@ -164,7 +167,7 @@ var keepSearch = function () {
     // was rendered from, so a tab opened in the background still reloads when shown after a change.
     if ((document.hidden && known !== null) || asking) return;
     asking = true;
-    fetch("/digest", { cache: "no-store" })
+    fetch(source, { cache: "no-store" })
       .then(function (answer) {
         if (!answer.ok) {
           mark("unreadable", true);

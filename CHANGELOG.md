@@ -4,6 +4,38 @@ All notable changes are recorded here. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [1.2.0] - unreleased
+
+The ready queue ordered by what each ticket frees, progress by tag, and comparing worktrees.
+
+### Security
+
+- black, a dev-only formatter, is locked at 26.10.1 for a high-severity advisory in 26.10.0.
+
+### Added
+
+- The ready queue is ordered by how many tickets closing each one frees, then by priority. The
+  number is knot's leverage: the live tickets that depend on a ticket through deps,
+  directly or through other tickets.
+- Each ready row says how many tickets it frees, for example "frees 7". A row that frees nothing
+  says nothing. The overview's ready list uses the same order and the same note.
+- When the overview shows parents, the gear can add a *start here* list naming the ready tickets
+  that free the most, up to three. It is hidden until chosen, like the extra charts.
+- A chart by tag on the overview, behind the gear. Each tag shows how many of its tickets are
+  closed, out of all its tickets. Each row links to the list of the tag's tickets, closed ones
+  included. Pinned tags are not shown, because every ticket on the page already has them. After
+  eight tags, the rest fold.
+- A Compare page, `/compare?with=<worktree>`, that compares the backlog of the worktree you read
+  with the backlog of one other worktree. It lists the tickets only one side holds, the tickets
+  closed on one side and live on the other, and the tickets whose status, priority, title or type
+  differ. It counts the tickets that are the same. The other worktree must be one that git lists,
+  and the page reloads when either backlog changes. An icon beside the worktree dropdown opens it.
+
+### Changed
+
+- Sorted by leverage, a row on the tickets list now says "frees N" in place of "leverage N", and
+  says nothing when the number is zero. Tickets with the same leverage now sort by priority.
+
 ## [1.1.0] - unreleased
 
 Charts over time on the overview.

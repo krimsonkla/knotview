@@ -3,6 +3,7 @@
 ;; somebody notices is broken.
 {
     :project-name "knotview"
+    :prefix "kno"
     :tickets-dir ".tickets"
     :default-type "task"
     :default-priority 2

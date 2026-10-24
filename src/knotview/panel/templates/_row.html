@@ -1,5 +1,6 @@
 {# One ticket in a list: its status, its title with its tags and documents, a muted line of what #}
-{# else is known, and its priority. Expects `one`, `project`, `selection` and `show_missing`. #}
+{# else is known, and its priority. Expects `one`, `project`, `selection` and `show_missing`, and #}
+{# `frees` where a ready list wants each row to say how much closing it would free. #}
 {# A value the ticket does not have is left out rather than drawn as a dash. #}
 {% from "_time.html" import ago %}
 {# The since-last-look mark rides on data-updated, so a page that wants rows unmarked sets #}
@@ -23,7 +24,7 @@
       {% if one.criteria %}<span>·</span><span>acceptance {{ one.met }}/{{ one.criteria }}</span>{% endif %}
       {% set blocking = one.open_blockers(project.terminal_statuses) %}
       {% if blocking %}<span>·</span><span>blocked by {{ blocking | length }}</span>{% endif %}
-      {% if selection.order == "leverage" and one.leverage is not none %}<span>·</span><span>leverage {{ one.leverage }}</span>{% endif %}
+      {% if ((frees is defined and frees) or selection.order == "leverage") and one.leverage %}<span>·</span><span title="closing it frees {{ one.leverage }} {{ 'ticket' if one.leverage == 1 else 'tickets' }} waiting on it, directly or through others">frees {{ one.leverage }}</span>{% endif %}
       {% if selection.order == "level" and one.level is not none %}<span>·</span><span>level {{ one.level }}</span>{% endif %}
     </div>
   </div>
