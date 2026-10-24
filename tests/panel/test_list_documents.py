@@ -94,7 +94,7 @@ def test_a_row_shows_its_types_in_declared_order_linking_to_its_documents(client
 
     row = text[text.index("The parent") :]
     row = row[: row.index('<div class="kv-row-end">')]
-    assert row.index(">spec<") < row.index(">plan<")
+    assert row.index('title="spec"') < row.index('title="plan"')
     assert 'href="/ticket/pro-01m2aaaaaaaa#documents"' in row
 
 
@@ -102,8 +102,8 @@ def test_missing_types_are_dashed_on_the_list_and_the_ready_queue(client):
     listed = page(client, "/tickets")
     queued = page(client, "/queue/ready")
 
-    assert 'class="kv-chip doc missing" title="needed to enter in_progress"' in listed
-    assert 'class="kv-chip doc missing"' in queued
+    assert 'class="kv-doc missing" title="missing spec, needed to enter in_progress"' in listed
+    assert 'class="kv-doc missing"' in queued
 
 
 def test_no_dashed_type_on_the_overview_even_where_a_card_shows_a_lacking_ticket(client):
@@ -111,14 +111,14 @@ def test_no_dashed_type_on_the_overview_even_where_a_card_shows_a_lacking_ticket
 
     text = page(client, "/", attention_value=stale)
 
-    assert "The orphan" in text and 'class="kv-chip doc missing"' not in text
+    assert "The orphan" in text and 'class="kv-doc missing"' not in text
 
 
 def test_the_tree_lists_show_dashed_types_as_its_rows_do(client):
     # Story 3 kept dashes off the tree; kno-01m3q9rs9632 turned them on, rows and lists alike.
     text = page(client, "/tree")
 
-    assert "The orphan" in text and 'class="kv-chip doc missing"' in text
+    assert "The orphan" in text and 'class="kv-doc missing"' in text
 
 
 def test_a_documents_filter_that_leaves_nothing_says_so(client):
@@ -136,7 +136,7 @@ def test_a_row_owning_nothing_draws_no_document_chip_and_still_lists_under_none_
     plain = client(DeclaredBacklog(live_value=bare)).get("/tickets").text
     filtered = client(DeclaredBacklog(live_value=bare)).get("/tickets?nodocs=1").text
 
-    assert 'class="kv-chip doc"' not in plain
+    assert 'class="kv-doc"' not in plain
     assert "Bare" in filtered
 
 
@@ -209,4 +209,4 @@ def test_a_dashed_tag_names_every_status_that_needs_its_type(client):
 
     text = client(DeclaredBacklog(project_value=gated)).get("/tickets").text
 
-    assert 'class="kv-chip doc missing" title="needed to enter open, in_progress">spec<' in text
+    assert 'class="kv-doc missing" title="missing spec, needed to enter open, in_progress"' in text

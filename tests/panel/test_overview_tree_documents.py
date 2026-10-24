@@ -37,15 +37,15 @@ def test_a_tree_node_shows_its_types_in_order_linking_to_its_documents(client):
     text = page(client, "/tree")
 
     row = section(text, "The parent", "</summary>")
-    assert row.index(">spec<") < row.index(">plan<")
+    assert row.index('title="spec"') < row.index('title="plan"')
     assert 'href="/ticket/pro-01m2aaaaaaaa#documents"' in row
 
 
 def test_a_live_leaf_shows_what_it_lacks_dashed(client):
     text = page(client, "/tree")
 
-    leaf = section(text, "The child", "</div>")
-    assert 'class="kv-chip doc missing" title="needed to enter in_progress">spec<' in leaf
+    leaf = section(text, "The child", '<div class="kv-row-end">')
+    assert 'class="kv-doc missing" title="missing spec, needed to enter in_progress"' in leaf
 
 
 def test_a_closed_leaf_draws_no_dashed_type(client):
@@ -53,14 +53,15 @@ def test_a_closed_leaf_draws_no_dashed_type(client):
 
     text = page(client, "/tree", live_value=(PARENT, shut))
 
-    assert 'class="kv-chip doc missing"' not in section(text, "The child", "</div>")
+    leaf = section(text, "The child", '<div class="kv-row-end">')
+    assert 'class="kv-doc missing"' not in leaf
 
 
 def test_an_orphan_row_on_the_tree_shows_its_dashed_types(client):
     text = page(client, "/tree")
 
     row = section(text, "The orphan", '<div class="kv-row-end">')
-    assert 'class="kv-chip doc missing"' in row
+    assert 'class="kv-doc missing"' in row
 
 
 def test_the_overview_counts_live_tickets_by_the_types_they_own_linking_to_each_list(client):

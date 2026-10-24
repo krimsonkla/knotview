@@ -333,3 +333,9 @@ def test_the_recorded_child_lacks_its_plan_and_the_orphan_lacks_both():
         ("in_progress", ("spec", "plan")),
     )
     assert project.types_of(rows["pro-01m2aaaaaaaa"]) == ("spec", "plan")
+
+
+def test_a_listing_row_keeps_the_ids_it_depends_on():
+    _, child, orphan = tickets_from(envelope("list")["data"], attempting="listing")
+
+    assert child.deps == ("pro-01m2cccccccc", "pro-01m2zzzzzzzz") and orphan.deps == ()

@@ -29,7 +29,7 @@ def test_statuses_priorities_and_queues_are_counted(client):
     assert 'href="/queue/ready" data-card="queues"><span>ready</span>' in page
     assert 'href="/tickets?assignee=nobody" data-card="queues"><span>unassigned</span>' in page
     closed = 'href="/tickets?status=closed&amp;closed=1" data-card="by status">'
-    assert closed + '<span class="kv-dot s-closed">closed<' in page
+    assert closed + '<span class="kv-dot r-closing">closed<' in page
     assert "archive_count" not in page
 
 
@@ -213,7 +213,7 @@ def test_the_terminal_count_narrows_with_the_chosen_tags(client):
     after = browser.get("/").text
 
     def closed_count(page: str) -> str:
-        start = page.index('closed=1" data-card="by status"><span class="kv-dot s-closed">closed')
+        start = page.index('closed=1" data-card="by status"><span class="kv-dot r-closing">closed')
         return page[start : start + 300].split('<span class="kv-num">')[1].split("<")[0]
 
     assert closed_count(before) == "2" and closed_count(after) == "1"
@@ -426,3 +426,14 @@ def test_the_pointer_holds_only_the_ties_at_the_top_and_at_most_three():
     assert [one.id for one in _start_here(many)] == ["x"]
     assert [one.id for one in _start_here(many[:5])] == ["pro-0", "pro-1", "pro-2"]
     assert not _start_here((ticket("y", leverage=0), ticket("z"))) and not _start_here(())
+
+
+def test_recent_rows_name_each_ticket_s_type_and_its_assignee_where_it_has_one(client):
+    page = client(DeclaredBacklog()).get("/").text
+
+    changed = page[page.index("recently changed") : page.index("recently closed")]
+    closed = page[page.index("recently closed") :]
+    orphan = changed[changed.index("The orphan") :].split("</div>", 1)[0]
+    assert 'class="kv-type" href="/tickets?type=bug"' in changed
+    assert '<a href="/tickets?assignee=someone">someone</a>' in orphan
+    assert 'class="kv-type" href="/tickets?type=chore"' in closed and "assignee=" not in closed

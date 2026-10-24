@@ -1,6 +1,5 @@
 {% extends "layout.html" %} {% block title %}tree{% endblock %} {% block main %}
-{% from "_time.html" import ago %}
-{# The rows here are the lists' rows; the branch's own row adds its counts. #}
+{# Every row here is the lists' row, so a tree row reads like a list row; a branch adds its counts. #}
 {% set show_missing = true %}
 <h1 class="kv-title">Tree</h1>
 <p class="kv-muted">
@@ -10,41 +9,23 @@
   roots on one island are joined by a dependency or a link, and cannot be worked apart.
 </p>
 
+{# A branch is the list's own row drawn as the fold's summary, with the tree's facts added to its #}
+{# muted line: its island, its children and, when deeper, everything beneath it. Its criteria are #}
+{# the row's acceptance count, so they are not repeated. A leaf is the list's row as it stands. #}
 {% macro node_row(node, project) %}
-{% set one = node.ticket %}
-<details class="kv-branch" open data-fold="{{ one.id }}">
-  <summary class="kv-row" data-updated="{{ one.updated or '' }}">
-    <a class="kv-dot s-{{ one.status }}" href="/tickets?status={{ one.status | urlencode }}">{{ one.status }}</a>
-    <div class="kv-row-main">
-      <div class="kv-row-title">
-        <a class="title" href="/ticket/{{ one.id | segment }}">{{ one.title }}</a>
-        {% for tag in one.tags %}<a class="kv-chip" href="/tickets?tag={{ tag | urlencode }}">{{ tag }}</a>{% endfor %}
-        {% for kind in project.types_of(one) %}<a class="kv-chip doc" href="/ticket/{{ one.id | segment }}#documents">{{ kind }}</a>{% endfor %}
-        {% if project.is_live(one) %}{% for kind, statuses in project.missing_by_type(one) %}<span class="kv-chip doc missing" title="needed to enter {{ statuses | join(', ') }}">{{ kind }}</span>{% endfor %}{% endif %}
-      </div>
-      <div class="kv-meta">
-        <span class="kv-mono">{{ one.id }}</span>
-        <span>·</span><a href="/tickets?type={{ one.type | urlencode }}">{{ one.type }}</a>
-        {% if one.component is not none %}<span>·</span><a
-          href="/tickets?component={{ one.component | urlencode }}"
-          title="knot's connected component: the live tickets this one is joined to by parents, dependencies and links"
-          >island {{ one.component }}</a
-        >{% endif %}
-        <span>·</span><span>children {{ node.total }}</span>
-        {% if node.beneath != node.total %}<span>·</span><span>beneath {{ node.beneath }}</span>{% endif %}
-        {% if node.criteria %}<span>·</span><span>criteria {{ node.met }}/{{ node.criteria }}</span>{% endif %}
-      </div>
-    </div>
-    <div class="kv-row-end"><a class="kv-badge p{{ one.priority }}" href="/tickets?priority={{ one.priority }}" title="every ticket at P{{ one.priority }}">P{{ one.priority }}</a></div>
-  </summary>
+{% set branch %}
+{% if node.ticket.component is not none %}<a
+  href="/tickets?component={{ node.ticket.component | urlencode }}"
+  title="knot's connected component: the live tickets this one is joined to by parents, dependencies and links"
+  >island {{ node.ticket.component }}</a
+><span>·</span>{% endif %}<span>children {{ node.total }}</span>
+{% if node.beneath != node.total %}<span>·</span><span>beneath {{ node.beneath }}</span>{% endif %}
+{% endset %}
+<details class="kv-branch" open data-fold="{{ node.ticket.id }}">
+  {% with one = node.ticket, fact = branch, row_tag = "summary" %}{% include "_row.html" %}{% endwith %}
   <ul class="kv-children">
     {% for child in node.children %}
-    <li>
-      {% if child.children %}{{ node_row(child, project) }}{% else %}
-      {% set one = child.ticket %}{% include "_row.html" %}
-      {% if child.criteria %}<span class="kv-muted kv-leafnote">criteria {{ child.met }}/{{ child.criteria }}</span>{% endif %}
-      {% endif %}
-    </li>
+    <li>{% if child.children %}{{ node_row(child, project) }}{% else %}{% with one = child.ticket %}{% include "_row.html" %}{% endwith %}{% endif %}</li>
     {% endfor %}
   </ul>
 </details>

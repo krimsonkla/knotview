@@ -259,6 +259,7 @@ def ticket_from(stated: dict[str, Any]) -> Ticket:
         blocking=_references(stated, "blocking"),
         children=_references(stated, "children"),
         linked=_references(stated, "linked"),
+        deps=_words(stated, "deps"),
         sections=_sections(stated),
         leverage=_number(stated, "leverage"),
         coupling=_number(stated, "coupling"),

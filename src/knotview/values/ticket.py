@@ -48,6 +48,10 @@ class Ticket:  # pylint: disable=too-many-instance-attributes
     blocking: tuple[Reference, ...] = ()
     children: tuple[Reference, ...] = ()
     linked: tuple[Reference, ...] = ()
+    # The ids it waits on, bare. A listing row states only these, where a read of the one ticket
+    # also states them as blockers with titles and statuses; they are what lets a page say how
+    # many of a listed ticket's blockers are still open, by looking each up in the listings.
+    deps: tuple[str, ...] = ()
     sections: dict[str, str] = field(default_factory=dict)
     # knot's graph metrics, on listing rows only. Leverage is how much waiting structure closing
     # this ticket dissolves; level is how many rounds of closing stand before it can start;

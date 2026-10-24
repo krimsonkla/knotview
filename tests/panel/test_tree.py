@@ -15,7 +15,6 @@ def test_children_nest_under_their_parent_to_any_depth():
     (child,) = root.children
     assert child.ticket is CHILD and child.children[0].ticket is GRANDCHILD
     assert (root.total, root.beneath, child.total, child.beneath) == (1, 2, 1, 1)
-    assert (root.met, root.criteria) == (1, 2)
 
 
 def test_every_live_ticket_appears_exactly_once():
@@ -59,7 +58,7 @@ def test_the_page_nests_a_grandchild_inside_its_parent_and_lists_the_rest(client
     inner = page.index('data-fold="pro-01m2bbbbbbbb"')
     leaf = page.index("The grandchild")
     assert opened < inner < leaf < page.index("</details>", leaf)
-    assert "children 1" in page and "beneath 2" in page and "criteria 1/2" in page
+    assert "children 1" in page and "beneath 2" in page
     assert "filed under a parent that is not live" in page and "The stray" in page
     assert "filed under nothing" in page and "The orphan" in page
     assert 'src="/static/fold.js?v=' in page
@@ -80,3 +79,32 @@ def test_tree_branches_hold_shared_rows_inside_remembered_folds(client):
     assert '<details class="kv-branch" open data-fold="' in page
     assert 'class="kv-row"' in page
     assert 'src="/static/fold.js?v=' in page
+
+
+def test_a_branch_counts_its_acceptance_once_and_never_again_as_criteria(client):
+    page = client(DeclaredBacklog(live_value=(PARENT, CHILD))).get("/tree").text
+
+    branch = page[page.index('data-fold="pro-01m2aaaaaaaa"') : page.index("</summary>")]
+    assert branch.count("acceptance 1/2") == 1 and "criteria" not in page
+
+
+def test_a_branch_is_the_lists_row_with_the_trees_facts_ending_its_muted_line(client):
+    page = client(DeclaredBacklog(live_value=(PARENT, CHILD, GRANDCHILD))).get("/tree").text
+
+    branch = page[page.index('data-fold="pro-01m2aaaaaaaa"') : page.index("</summary>")]
+    assert '<summary class="kv-row" data-updated=' in branch
+    assert 'class="kv-type" href="/tickets?type=epic"' in branch
+    assert '<div class="kv-facets">' in branch
+    meta = branch[branch.index('<div class="kv-meta">') :]
+    assert (
+        meta.index("acceptance 1/2") < meta.index("children 1") < meta.index('class="kv-docmarks"')
+    )
+
+
+def test_every_row_on_the_tree_carries_its_status_pill(client):
+    live = (PARENT, CHILD, GRANDCHILD, ORPHAN, STRAY)
+    page = client(DeclaredBacklog(live_value=live)).get("/tree").text
+
+    rows = page.split('class="kv-row"')[1:]
+    assert len(rows) == len(live)
+    assert all('<a class="kv-status r-' in row[: row.index('class="title"')] for row in rows)

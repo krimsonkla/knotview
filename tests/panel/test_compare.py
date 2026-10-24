@@ -238,3 +238,52 @@ def test_the_compare_link_is_marked_on_its_own_page(client):
     page = browser.get("/compare").text
 
     assert re.search(r'class="kv-icon kv-compare-link"[^>]*aria-current="page"', page)
+
+
+def _row_of(page: str, title: str) -> str:
+    """The compare row holding that title, whitespace folded."""
+    held = re.sub(r"\s+", " ", page)
+    return held[held.index(title) :].split("</ul>", 1)[0]
+
+
+def test_a_row_both_sides_hold_states_each_side_s_status_and_a_shared_assignee_once(client):
+    shared = replace(CHILD, assignee="ann")
+    feature = DeclaredBacklog(
+        live_value=(FEATURE_ONLY, PARENT, ORPHAN),
+        closed_value=(replace(shared, status="closed"),),
+        digests=["f1"] * 9,
+    )
+    main = DeclaredBacklog(live_value=(PARENT, shared, ORPHAN), digests=["m1"] * 9)
+    browser, _ = _panel(client, main=main, feature=feature)
+
+    row = _row_of(browser.get(_with(FEATURE)).text, shared.title)
+
+    assert 'class="kv-dot r-active" title="in main · knotview">in_progress in main' in row
+    assert 'class="kv-dot r-closing" title="in feature · knotview-feature">closed in feature' in row
+    assert row.count(">ann<") == 1
+
+
+def test_a_row_whose_assignee_differs_names_each_side_s_and_nobody_for_none(client):
+    feature = DeclaredBacklog(
+        live_value=(FEATURE_ONLY, replace(PARENT, priority=0, assignee="bo"), ORPHAN),
+        closed_value=(),
+        digests=["f1"] * 9,
+    )
+    browser, _ = _panel(client, feature=feature)
+
+    row = _row_of(browser.get(_with(FEATURE)).text, PARENT.title)
+
+    assert "<span>nobody in main · knotview</span>" in row
+    assert "<span>bo in feature · knotview-feature</span>" in row
+
+
+def test_a_row_only_one_side_holds_names_its_assignee(client):
+    owned = replace(FEATURE_ONLY, assignee="cy")
+    feature = DeclaredBacklog(live_value=(owned, PARENT, ORPHAN), digests=["f1"] * 9)
+    browser, _ = _panel(client, feature=feature)
+
+    there = _section(browser.get(_with(FEATURE)).text, "only in feature · knotview-feature <span")
+
+    # The type leads the row as a label, so the muted line goes straight from the id to the owner.
+    assert '<a class="kv-type" href="/tickets?type=task" title="every task">task</a>' in there
+    assert "</span><span>·</span><span>cy</span>" in there

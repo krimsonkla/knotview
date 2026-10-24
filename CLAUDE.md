@@ -18,7 +18,8 @@
 - `src/knotview/reading/` the `Backlog` port, its one implementation over `knot ... --json`, the
   envelope reader, and `GitWorktrees`, which lists the repository's worktrees
 - `src/knotview/panel/` the FastAPI app (`Pages` and `panel()`), the selection, tree, overview,
-  trend and comparison values, the worktree resolver and cookie, the templates and the static files
+  trend, comparison and related-ticket values, the worktree resolver and cookie, the templates
+  and the static files
 - `src/knotview/values/` frozen dataclasses: Ticket, Project, Criterion, Reference, Worktree, and
   the two refusals
 - `scripts/` maintenance tools outside the package and the coverage gate: `vendor_primer.py`
@@ -97,7 +98,8 @@ reloads when either side moves; an unreadable other side is carried as `-`.
   overview's chart choices and opening a dialog from a button.
 - `src/knotview/panel/static/primer.css`: generated Primer tokens; `panel.css`: the `kv-` components.
 - `src/knotview/panel/templates/_row.html`, `_rows.html`, `_filters.html`: one ticket row shared by
-  every list, and the tickets page's filters.
+  every list and the tree (a tree branch passes `row_tag="summary"` and its counts as `fact`), and
+  the tickets page's filters.
 - `src/knotview/panel/selection.py`: every filter the URL carries, and the query-string builder.
 - `src/knotview/panel/tags.py`: the sticky tag choice, its cookie, and `narrow`.
 - `src/knotview/reading/git_worktrees.py`: `GitWorktrees`, the pinned git argv, the porcelain
@@ -105,6 +107,8 @@ reloads when either side moves; an unreadable other side is carried as `-`.
 - `src/knotview/panel/worktrees.py`: `Backlogs`, the per-worktree reader cache and the choice.
 - `src/knotview/panel/worktree_choice.py`: the worktree cookie's name, encoding and matching.
 - `src/knotview/panel/comparison.py`: `Comparison`, two worktrees' tickets grouped by difference.
+- `src/knotview/panel/related.py`: `Related`, the ticket page's lookup of each related id in the
+  live, closed and ready listings, with the fact each tab adds.
 - `tests/reading/conftest.py`: the fake `knot` and `git` scripts the reading tests drive.
 - `tests/reading/record_envelopes.py`: regenerates the recorded envelopes from a real knot.
 
@@ -118,6 +122,10 @@ reloads when either side moves; an unreadable other side is carried as `-`.
   behind a per-reader choice kept in the browser, as the overview's charts are.
 - Labels come from the project's `.knot.edn` and its data, never from a word picked here: the
   overview names its parents by the types they have, and says "parents" only as a fallback.
+- Colour follows the same rule. A status pill (`_status.html`) is coloured by
+  `Project.status_role` (intake, active, stage, closing, terminal), never by the status word, so
+  `panel.css` has one rule per role. The overview's status dots and bars use the same roles
+  (`kv-dot r-<role>`, `kv-fill r-<role>`); no rule is keyed on a status word.
 - A story's brainstorm, spec and plan live only as knot documents on its ticket (`other`, `spec`,
   `plan`, titled "<topic> brainstorm|design spec|implementation plan"), added with
   `knot document add` and updated with `knot document replace`. The harness drafts them under

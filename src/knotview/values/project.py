@@ -60,6 +60,28 @@ class Project:  # pylint: disable=too-many-instance-attributes
         """Every status that is not terminal, in the order the project declared them."""
         return tuple(status for status in self.statuses if status not in self.terminal_statuses)
 
+    def status_role(self, status: str) -> str:
+        """The part a status plays in this project's workflow, which is what a page colours by.
+
+        Colouring by the word would colour `open` and leave `todo` grey, so the role comes from the
+        configuration instead, in knot's own terms. The intake status is the first declared one
+        that is neither active nor terminal, which is how knot's list table picks its intake lane.
+        The active status is the one `knot start` moves to. Any other open status is a stage. The
+        closing status is the first terminal one in declared order, which is where `knot close`
+        moves a ticket; any other terminal status, such as a `wontfix` beside `closed`, is simply
+        terminal. A status the project does not declare is a stage unless knot calls it terminal.
+        """
+        if status in self.terminal_statuses:
+            closing = next(
+                (one for one in self.statuses if one in self.terminal_statuses),
+                self.terminal_statuses[0],
+            )
+            return "closing" if status == closing else "terminal"
+        if status == self.active_status:
+            return "active"
+        intake = next((one for one in self.open_statuses if one != self.active_status), None)
+        return "intake" if status == intake else "stage"
+
     def ordered(self, documents: Iterable[Document]) -> tuple[Document, ...]:
         """Documents in the project's declared type order, then by title, undeclared types last."""
         return tuple(

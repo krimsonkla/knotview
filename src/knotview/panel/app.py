@@ -24,6 +24,7 @@ from knotview.panel.overview import Overview
 from knotview.panel.prose import outlined
 from knotview.panel.prose import rendered as prose
 from knotview.panel.prose import split as prose_split
+from knotview.panel.related import Related
 from knotview.panel.selection import ANY, FREEING, ORDERS, Selection
 from knotview.panel.tags import COOKIE, Tags
 from knotview.panel.tree import Tree
@@ -319,33 +320,51 @@ class Pages:
         )
 
     def ticket(self, request: Request, identifier: str) -> HTMLResponse:
-        """One ticket in full: its sections, its criteria, its graph and its notes."""
+        """One ticket in full: its sections, its criteria, its graph and its notes.
+
+        Its related tickets are drawn in full, as every list draws a ticket, so the page also
+        reads the live, closed and ready listings and looks each related id up in them. They are
+        not narrowed by the reader's tags: a blocker outside the chosen tags still blocks.
+        """
         backlog = self._backlog(request)
         ticket = backlog.ticket(identifier)
         project = backlog.project()
         parent = self._parent_of(backlog, ticket)
+        related = Related.over(
+            project, live=backlog.live(), closed=backlog.closed(), ready=backlog.ready()
+        )
         # The one parameter this page owns. Only "live" hides anything, so a stale or mistyped
         # value shows every child rather than hiding some for a reason the reader cannot see; and
         # no other link on the page carries it.
-        children = project.by_status(ticket.children)
+        children = related.by_status(related.relatives(ticket.children))
         closed = tuple(one for one in children if one.status in project.terminal_statuses)
         live = tuple(one for one in children if one.status not in project.terminal_statuses)
         # Hiding only where there is something to hide: a kept link, after the closed children
         # were reopened, otherwise shows "3 of 3" and a toggle that changes nothing.
         hiding = request.query_params.get("children") == "live" and bool(closed)
-        siblings = project.by_status(
-            one for one in (parent.children if parent else ()) if one.id != ticket.id
+        siblings = related.by_status(
+            related.relatives(
+                one for one in (parent.children if parent else ()) if one.id != ticket.id
+            )
         )
         return self._rendered(
             request,
             "ticket.html",
             ticket=ticket,
             parent=parent,
+            related=related,
             children=live if hiding else children,
+            children_tally=related.tally(children),
+            children_ready=sum(1 for one in children if one.ready),
             children_total=len(children),
             children_closed=len(closed),
             hiding_closed=hiding,
             siblings=siblings,
+            siblings_tally=related.tally(siblings),
+            siblings_ready=sum(1 for one in siblings if one.ready),
+            blockers=related.by_status(related.relatives(ticket.blockers)),
+            blocking=related.by_blocking(related.relatives(ticket.blocking, of=ticket.id)),
+            linked=related.relatives(ticket.linked),
             dependencies=backlog.dependencies(ticket.id),
             documents=project.ordered(self._documents_of(backlog, ticket)),
             # knot checks required documents only on a move, and a closed ticket makes none.
